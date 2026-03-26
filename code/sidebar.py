@@ -16,10 +16,9 @@ class TspSidebar(ft.Container):
             padding=10
         )
 
-        # "Kontejner", který omezuje výšku seznamu
         self.list_container = ft.Container(
             content=self.points_list,
-            height=300, # Tady omezíš, jak vysoký ten seznam bude
+            height=300,
             bgcolor=ft.Colors.WHITE,
             border_radius=10,
             border=ft.border.all(1, ft.Colors.GREY_300),

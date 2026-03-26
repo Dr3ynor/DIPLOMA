@@ -1,15 +1,13 @@
 from subject import Subject
 
 class AppState(Subject):
-    """Konkrétní implementace stavu aplikace."""
-    
     def __init__(self):
-        super().__init__() # Inicializuje seznam observerů z rodiče
+        super().__init__()
         self._points = []
 
     def add_point(self, lat, lon):
         self._points.append((lat, lon))
-        self.notify(self._points) # Použije metodu zděděnou z Subject
+        self.notify(self._points)
 
     def clear_all(self):
         self._points.clear()

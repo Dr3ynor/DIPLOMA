@@ -1,7 +1,6 @@
 from abc import ABC
 
 class Subject(ABC):
-    """Abstraktní třída pro objekt, který je sledován"""
     
     def __init__(self):
         self._observers = []
