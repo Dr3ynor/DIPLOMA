@@ -24,8 +24,7 @@ class AppState(Subject):
 
     def set_map_url(self, url):
             self._map_url = url
-            print(f"DEBUG: State mění URL na: {url}")
-            self.notify(self._points) # ??
+            self.notify(self._points)
 
     def get_map_url(self):
         return self._map_url

@@ -76,7 +76,7 @@ class TspSidebar(ft.Container):
             ft.FilledButton(
                 "SPOČÍTAT TRASU", 
                 width=float("inf"),
-                on_click=lambda _: print(f"DEBUG: Počítám trasu pro {len(state.get_points())} bodů.")
+                on_click=lambda _: print(f"Calculating for {len(state.get_points())} points.")
             ),
             ft.TextButton(
                 "Vymazat vše", 
@@ -89,9 +89,7 @@ class TspSidebar(ft.Container):
         state.attach(self.update_ui)
 
     def _on_apply_map_click(self, e):
-        """Zpracuje kliknutí na tlačítko a aktualizuje stav mapy."""
         if self.map_selector.value:
-            print(f"DEBUG: Sidebar posílá novou URL: {self.map_selector.value}")
             state.set_map_url(self.map_selector.value)
 
     def update_ui(self, points):

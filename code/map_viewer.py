@@ -31,7 +31,7 @@ class TspMapViewer(ftm.Map):
 
         new_url = state.get_map_url()
         if self.tile_layer.url_template != new_url:
-            print(f"DEBUG: Mapa mění podklad na {new_url}")
+            print(f"Changing base for: {new_url}")
             self.tile_layer.url_template = new_url
         
         
@@ -58,4 +58,4 @@ class TspMapViewer(ftm.Map):
     
     def _remove_point(self, index):
         state.remove_point_at(index)
-        print(f"DEBUG: point {index} deleted")
+        print(f"point {index} deleted")
