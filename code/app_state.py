@@ -4,6 +4,7 @@ class AppState(Subject):
     def __init__(self):
         super().__init__()
         self._points = []
+        self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
 
     def add_point(self, lat, lon):
         self._points.append((lat, lon))
@@ -20,6 +21,14 @@ class AppState(Subject):
         if 0 <= index < len(self._points):
             self._points.pop(index)
             self.notify(self._points)
+
+    def set_map_url(self, url):
+            self._map_url = url
+            print(f"DEBUG: State mění URL na: {url}")
+            self.notify(self._points) # ??
+
+    def get_map_url(self):
+        return self._map_url
 
 
 state = AppState()

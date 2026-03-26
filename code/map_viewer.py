@@ -5,11 +5,10 @@ from app_state import state
 class TspMapViewer(ftm.Map):
     def __init__(self):
         self.marker_layer = ftm.MarkerLayer(markers=[])
-        
-
-        # https://tile.openstreetmap.de/{z}/{x}/{y}.png
-        # https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png
-        # https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png
+        self.tile_layer = ftm.TileLayer(url_template=state.get_map_url(),additional_options={
+        "User-Agent": "JakubDiplomaApp/1.0 (contact: RUZ0096@vsb.cz)",
+        "Referer": "https://localhost" 
+    })
 
         super().__init__(
             expand=True,
@@ -18,7 +17,7 @@ class TspMapViewer(ftm.Map):
             initial_zoom=10,
             on_tap=self._handle_tap,
             layers=[
-                ftm.TileLayer(url_template="https://tile.openstreetmap.de/{z}/{x}/{y}.png"),
+                self.tile_layer,
                 self.marker_layer
             ]
         )
@@ -29,8 +28,14 @@ class TspMapViewer(ftm.Map):
             state.add_point(e.coordinates.latitude, e.coordinates.longitude)
 
     def sync_with_state(self, points):
-        self.marker_layer.markers.clear()
+
+        new_url = state.get_map_url()
+        if self.tile_layer.url_template != new_url:
+            print(f"DEBUG: Mapa mění podklad na {new_url}")
+            self.tile_layer.url_template = new_url
         
+        
+        self.marker_layer.markers.clear()
         for i, (lat, lon) in enumerate(points):
             coord = ftm.MapLatitudeLongitude(lat, lon)
             marker_content = ft.GestureDetector(
