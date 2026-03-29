@@ -2,7 +2,7 @@ import flet as ft
 import flet_map as ftm
 from app_state import state
 
-class TspMapViewer(ftm.Map):
+class MapViewer(ftm.Map):
     def __init__(self):
         self.marker_layer = ftm.MarkerLayer(markers=[])
         self.tile_layer = ftm.TileLayer(url_template=state.get_map_url(),additional_options={
