@@ -55,8 +55,14 @@ class Sidebar(ft.Container):
         )
 
         self.export_btn = ft.ElevatedButton(
-            "Uložit do složky exports",
+            "Uložit do složky instances",
             on_click=self._on_export_click,
+            style=ft.ButtonStyle(color=ft.Colors.BLACK)
+        )
+
+        self.import_btn = ft.ElevatedButton(
+            "Načíst z instance",
+            on_click=self._on_import_click,
             style=ft.ButtonStyle(color=ft.Colors.BLACK)
         )
 
@@ -87,10 +93,25 @@ class Sidebar(ft.Container):
 
             ft.Divider(color=ft.Colors.GREY_600),
 
-            ft.Text("Export dat (do projektu):", size=14, weight="bold", color=ft.Colors.BLACK54),
+            ft.Text("Správa instancí (v složce exports):", size=14, weight="bold", color=ft.Colors.BLACK54),
             self.file_name_input,
             self.export_dropdown,
-            self.export_btn,
+            
+            # Tady jsou tlačítka vedle sebe v řádku
+            ft.Row([
+                ft.ElevatedButton(
+                    "Export", 
+                    on_click=self._on_export_click, 
+                    expand=True,
+                    style=ft.ButtonStyle(color=ft.Colors.BLACK)
+                ),
+                ft.ElevatedButton(
+                    "Import", 
+                    on_click=self._on_import_click, 
+                    expand=True,
+                    style=ft.ButtonStyle(color=ft.Colors.BLACK)
+                ),
+            ], spacing=10),
 
             ft.Divider(color=ft.Colors.GREY_600),
 
@@ -125,18 +146,18 @@ class Sidebar(ft.Container):
                 ft.Text(f"{i+1}. {lat:.4f}, {lon:.4f}", size=12, color=ft.Colors.BLACK)
             )
         # Reset textu tlačítka při změně bodů
-        self.export_btn.text = "Uložit do složky exports"
+        self.export_btn.text = "Uložit do složky instances"
         self.export_btn.bgcolor = None
         self.update()
     
     def _on_export_click(self, e):
-        # Synchronní zápis do složky exports
+        # Synchronní zápis do složky instances
         try:
-            if not os.path.exists("exports"):
-                os.makedirs("exports")
+            if not os.path.exists("instances"):
+                os.makedirs("instances")
             
             filename = f"{self.file_name_input.value}.tsp"
-            filepath = os.path.join("exports", filename)
+            filepath = os.path.join("instances", filename)
             
             points = state.get_points()
             fmt = self.export_dropdown.value
@@ -155,3 +176,30 @@ class Sidebar(ft.Container):
             
         except Exception as ex:
             print(f"CHYBA EXPORTU: {ex}")
+
+
+    def _on_import_click(self, e):
+        # 1. Sestavíme cestu k souboru (předpokládáme složku instances)
+        filename = f"{self.file_name_input.value}.tsp"
+        filepath = os.path.join("instances", filename)
+        
+        # 2. Kontrola, zda soubor vůbec existuje
+        if not os.path.exists(filepath):
+            print(f"CHYBA: Soubor {filepath} nebyl nalezen!")
+            self.import_btn.text = "SOUBOR NENALEZEN"
+            self.import_btn.bgcolor = ft.Colors.RED_200
+            self.update()
+            return
+
+        try:
+            new_points = tsp_manager.load_instance(filepath)
+            
+            if new_points:
+                state.clear_all()
+                state.set_points(new_points)
+                self.update()
+            else:
+                print("VAROVÁNÍ: Soubor byl prázdný nebo chybně formátovaný.")
+                
+        except Exception as ex:
+            print(f"KRITICKÁ CHYBA PŘI IMPORTU: {ex}")

@@ -7,8 +7,14 @@ class AppState(Subject):
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
 
     def add_point(self, lat, lon):
+        # kliknutí do mapy
         self._points.append((lat, lon))
         self.notify(self._points)
+
+    def set_points(self, points):
+        self._points = list(points)
+        self.notify(self._points)
+
 
     def clear_all(self):
         self._points.clear()
