@@ -139,13 +139,38 @@ class Sidebar(ft.Container):
         if self.map_selector.value:
             state.set_map_url(self.map_selector.value)
 
-    def update_ui(self, points):
-        self.points_list.controls.clear()
-        for i, (lat, lon) in enumerate(points):
+    def update_ui(self, data):
+        # DETEKCE MAZÁNÍ: Pokud data nejsou seznam, ale tuple ("delete", index)
+        if isinstance(data, tuple) and data[0] == "delete":
+            index = data[1]
+            if 0 <= index < len(self.points_list.controls):
+                self.points_list.controls.pop(index)
+                # Oprava číslování u zbývajících řádků pod smazaným
+                for i in range(index, len(self.points_list.controls)):
+                    # Vytáhneme souřadnice z původního textu a změníme jen číslo na začátku
+                    old_text = self.points_list.controls[i].value
+                    coords = old_text.split(". ")[1]
+                    self.points_list.controls[i].value = f"{i+1}. {coords}"
+                self.update()
+            return
+
+        # STANDARDNÍ UPDATE (Přidání nebo Import)
+        points = data # V tomhle případě je data seznam bodů
+        current_count = len(self.points_list.controls)
+        new_count = len(points)
+
+        if new_count == current_count + 1:
+            lat, lon = points[-1]
             self.points_list.controls.append(
-                ft.Text(f"{i+1}. {lat:.4f}, {lon:.4f}", size=12, color=ft.Colors.BLACK)
+                ft.Text(f"{new_count}. {lat:.4f}, {lon:.4f}", size=12, color="black")
             )
-        # Reset textu tlačítka při změně bodů
+        else:
+            self.points_list.controls.clear()
+            for i, (lat, lon) in enumerate(points):
+                self.points_list.controls.append(
+                    ft.Text(f"{i+1}. {lat:.4f}, {lon:.4f}", size=12, color="black")
+                )
+        
         self.export_btn.text = "Uložit do složky instances"
         self.export_btn.bgcolor = None
         self.update()
@@ -192,14 +217,38 @@ class Sidebar(ft.Container):
             return
 
         try:
+            # --- NOVÁ LOGIKA: Detekce GEO typu ---
+            is_geo = False
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    # Stačí nám přečíst prvních pár řádků (hlavičku)
+                    for _ in range(20):
+                        line = f.readline()
+                        if not line: break
+                        if "EDGE_WEIGHT_TYPE" in line and "GEO" in line:
+                            is_geo = True
+                            break
+            except Exception as e:
+                print(f"Chyba při čtení hlavičky: {e}")
+            # --------------------------------------
+
             new_points = tsp_manager.load_instance(filepath)
             
             if new_points:
                 state.clear_all()
-                state.set_points(new_points)
+                # Předáme body i informaci, jestli je to mapa (GEO) nebo plátno (EUC)
+                state.set_points(new_points, is_geographic=is_geo)
+                
+                # Vizuální reset tlačítka po úspěchu
+                self.import_btn.text = "NAČTENO"
+                self.import_btn.bgcolor = ft.Colors.GREEN_200
                 self.update()
             else:
                 print("VAROVÁNÍ: Soubor byl prázdný nebo chybně formátovaný.")
                 
         except Exception as ex:
             print(f"KRITICKÁ CHYBA PŘI IMPORTU: {ex}")
+            self.import_btn.text = "CHYBA IMPORTU"
+            self.import_btn.bgcolor = ft.Colors.RED_200
+            self.update()
+            

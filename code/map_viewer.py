@@ -29,33 +29,65 @@ class MapViewer(ftm.Map):
 
     def sync_with_state(self, points):
 
+        if isinstance(points, tuple) and points[0] == "delete":
+            return
+
+
+        # 1. Řízení viditelnosti mapového podkladu podle typu instance
+        self.tile_layer.visible = state.is_geo()
+
+        # 2. Update URL mapy (pokud je podklad viditelný)
         new_url = state.get_map_url()
         if self.tile_layer.url_template != new_url:
-            print(f"Changing base for: {new_url}")
             self.tile_layer.url_template = new_url
+
+        # 3. Optimalizace vykreslování markerů (tvoje původní logika 1:1)
+        current_markers_count = len(self.marker_layer.markers)
+        new_points_count = len(points)
+
+        if new_points_count > current_markers_count:
+            # PŘIDÁVÁNÍ: Přidáme pouze nové body od indexu, kde jsme skončili
+            for i in range(current_markers_count, new_points_count):
+                lat, lon = points[i]
+                self._add_single_marker(lat, lon, i)
+                
+        elif new_points_count < current_markers_count or new_points_count == 0:
+            # MAZÁNÍ/RESET: Tady musíme seznam vyčistit a sestavit znovu, 
+            # protože se změnily indexy pro funkci _remove_point(index)
+            self.marker_layer.markers.clear()
+            for i, (lat, lon) in enumerate(points):
+                self._add_single_marker(lat, lon, i)
         
-        
-        self.marker_layer.markers.clear()
-        for i, (lat, lon) in enumerate(points):
+        # Pokud se počty rovnají (např. jen změna URL), nic s markery neděláme
+        self.update()
+
+    def _add_single_marker(self, lat, lon, index):
             coord = ftm.MapLatitudeLongitude(lat, lon)
             marker_content = ft.GestureDetector(
-                on_secondary_tap=lambda e, index=i: self._remove_point(index),
-                
-                content=ft.Icon(
-                    ft.Icons.LOCATION_ON, 
-                    color=ft.Colors.RED_ACCENT, 
-                    size=30
+                on_secondary_tap=lambda e, idx=index: self._remove_point(idx),
+                content=ft.Container(
+                    width=15,
+                    height=15,
+                    bgcolor="#EE4444",
+                    border_radius=5,
+                    border=ft.border.all(1, "white"),
                 )
             )
-            
             self.marker_layer.markers.append(
-                ftm.Marker(
-                    content=marker_content,
-                    coordinates=coord,
-                )
+                ftm.Marker(content=marker_content, coordinates=coord)
             )
-        self.update()
     
     def _remove_point(self, index):
+        # 1. Zavoláme AppState, který pošle signál ("delete", index) Sidebaru
         state.remove_point_at(index)
-        print(f"point {index} deleted")
+
+        # 2. Chirurgicky vyndáme marker z mapy (tvoje funkční část)
+        if 0 <= index < len(self.marker_layer.markers):
+            self.marker_layer.markers.pop(index)
+            
+            # Oprava indexů u zbývajících markerů
+            for i in range(index, len(self.marker_layer.markers)):
+                self.marker_layer.markers[i].content.on_secondary_tap = lambda e, idx=i: self._remove_point(idx)
+            
+            self.update()
+            print(f"Bod {index} odstraněn")

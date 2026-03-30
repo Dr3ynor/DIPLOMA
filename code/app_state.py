@@ -5,18 +5,21 @@ class AppState(Subject):
         super().__init__()
         self._points = []
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
+        self._is_geographic = True
 
     def add_point(self, lat, lon):
         # kliknutí do mapy
         self._points.append((lat, lon))
         self.notify(self._points)
 
-    def set_points(self, points):
+    def set_points(self, points, is_geographic=True):
         self._points = list(points)
+        self._is_geographic = is_geographic
         self.notify(self._points)
 
 
     def clear_all(self):
+        state._is_geographic = True
         self._points.clear()
         self.notify(self._points)
 
@@ -26,7 +29,8 @@ class AppState(Subject):
     def remove_point_at(self, index):
         if 0 <= index < len(self._points):
             self._points.pop(index)
-            self.notify(self._points)
+            self.notify(("delete", index))
+            # self.notify(self._points)
 
     def set_map_url(self, url):
             self._map_url = url
@@ -34,6 +38,14 @@ class AppState(Subject):
 
     def get_map_url(self):
         return self._map_url
+
+    def is_geo(self):
+        return self._is_geographic
+    
+    def remove_point_silent(self, index):
+        """Smaže bod z databáze, ale nespustí překreslení celého UI."""
+        if 0 <= index < len(self._points):
+            self._points.pop(index)
 
 
 state = AppState()
