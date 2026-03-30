@@ -5,6 +5,7 @@ from app_state import state
 class MapViewer(ftm.Map):
     def __init__(self):
         self.marker_layer = ftm.MarkerLayer(markers=[])
+        self.route_layer = ftm.PolylineLayer(polylines=[])
         self.tile_layer = ftm.TileLayer(url_template=state.get_map_url(),additional_options={
         "User-Agent": "JakubDiplomaApp/1.0 (contact: RUZ0096@vsb.cz)",
         "Referer": "https://localhost" 
@@ -18,6 +19,7 @@ class MapViewer(ftm.Map):
             on_tap=self._handle_tap,
             layers=[
                 self.tile_layer,
+                self.route_layer,
                 self.marker_layer
             ]
         )
@@ -28,6 +30,19 @@ class MapViewer(ftm.Map):
             state.add_point(e.coordinates.latitude, e.coordinates.longitude)
 
     def sync_with_state(self, points):
+        if isinstance(points, tuple) and points[0] == "route_update":
+            route_points = points[1]
+            # Vykreslíme čáru
+            self.route_layer.polylines = [
+                            ftm.PolylineMarker(
+                                coordinates=[ftm.MapLatitudeLongitude(p[0], p[1]) for p in route_points],
+                                color=ft.Colors.BLUE,
+                                border_color=ft.Colors.BLUE_900, # Volitelné: okraj čáry
+                                stroke_width=3,
+                            )
+                        ]
+            self.update()
+            return
 
         if isinstance(points, tuple) and points[0] == "delete":
             return

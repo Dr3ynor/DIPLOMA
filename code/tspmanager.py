@@ -1,7 +1,7 @@
 from iohandler import IOHandler
 # from instancegenerator import InstanceGenerator
 from distance_matrix_builder import DistanceMatrixBuilder
-# from optimizationengine import OptimizationEngine
+from optimazation_engine import OptimizationEngine
 
 from app_state import state
 
@@ -11,7 +11,7 @@ class TSPManager:
         # self.generator = InstanceGenerator()
         self.io_handler = IOHandler() # Tady bude ten tvůj Strategy vzor pro export
         self.matrix_builder = DistanceMatrixBuilder()
-        # self.engine = OptimizationEngine()
+        self.engine = OptimizationEngine()
 
     def load_instance(self, filepath):
         points = self.io_handler.load(filepath)
@@ -43,21 +43,20 @@ class TSPManager:
             print(" ".join(f"{d:.2f}" for d in row))
 
         # 3. Krok: Spuštění algoritmu (vrátí seznam indexů, např. [0, 15, 3...])
-        # route_indices = self.engine.run(solver_type, matrix)
-        
+        route_indices = self.engine.run(solver_type, matrix)
+        print(f"INDECES: {route_indices}")
+
         # 4. Krok: Výpočet celkové délky trasy (pro zobrazení v UI)
-        # total_distance = self._calculate_total_tour_distance(route_indices, matrix)
-        
+        total_distance = self._calculate_total_tour_distance(route_indices, matrix)
+        print(f"DEBUG: Celková délka trasy: {total_distance:.2f} km")
         # 5. Krok: Seřazení bodů podle nalezené trasy pro potřeby Mapy/UI
-        # ordered_points = [points[i] for i in route_indices]
+        ordered_points = [points[i] for i in route_indices]
         
         # Pro TSP se trasa uzavírá návratem do startu
-        # if ordered_points:
-        #     ordered_points.append(ordered_points[0])
-
-        # print(f"DEBUG: Výpočet dokončen. Délka trasy: {total_distance:.2f} km")
+        if ordered_points:
+            ordered_points.append(ordered_points[0])
         
-        # return ordered_points, total_distance
+        return ordered_points, total_distance
 
     def _calculate_total_tour_distance(self, route, matrix):
         """Pomocná funkce pro sečtení délky trasy včetně návratu do startu."""
@@ -72,6 +71,8 @@ class TSPManager:
     def get_export_formats(self):
         return self.io_handler.get_supported_formats()   
 
+    def get_supported_solvers(self):
+        return self.engine.get_solver_options()
 
 
 

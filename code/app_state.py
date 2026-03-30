@@ -22,7 +22,13 @@ class AppState(Subject):
     def clear_all(self):
         state._is_geographic = True
         self._points.clear()
-        self.notify(self._points)
+        self._route.clear() # Smažeme trasu z paměti stavu
+        
+        # 1. Řekneme UI a mapě, že body jsou prázdné (smaže markery a seznam)
+        self.notify(self._points) 
+        
+        # 2. Řekneme mapě, že trasa je prázdná (smaže modrou čáru)
+        self.notify(("route_update", []))
 
     def get_points(self):
         return self._points
