@@ -123,7 +123,7 @@ class Sidebar(ft.Container):
             ft.FilledButton(
                 "SPOČÍTAT TRASU", 
                 width=float("inf"),
-                on_click=lambda _: print(f"Calculating for {len(state.get_points())} points.")
+                on_click=self._on_solve_click,
             ),
             ft.TextButton(
                 "Vymazat vše", 
@@ -251,4 +251,30 @@ class Sidebar(ft.Container):
             self.import_btn.text = "CHYBA IMPORTU"
             self.import_btn.bgcolor = ft.Colors.RED_200
             self.update()
+
+
+    def _on_solve_click(self, e):
+        # 1. Získáme aktuální body z AppState
+        points = state.get_points()
+        
+        if len(points) < 2:
+            print("Chyba: Pro výpočet trasy potřebujete aspoň 2 body.")
+            return
+
+        # 2. Zavoláme TSPManager (všimni si, že solver i metriku bereme z dropdownů)
+        # Pokud dropdowny ještě nemáš, můžeš tam dát natvrdo "NN" a "haversine"
+        try:
+            ordered_route, total_dist = tsp_manager.solve(
+                points=points,
+                solver_type="NN",      # Tady můžeš použít self.solver_dropdown.value
+                distance_metric="haversine" # Tady self.metric_dropdown.value
+            )
+
+            # 3. Uložíme trasu do stavu (tím se vykreslí na mapě)
+            state.set_route(ordered_route)
+
+            # 4. Informujeme uživatele o výsledku (můžeš vypsat do UI)
+            print(f"Trasa nalezena! Celková délka: {total_dist:.2f} km")
             
+        except Exception as ex:
+            print(f"CHYBA PŘI VÝPOČTU: {ex}")

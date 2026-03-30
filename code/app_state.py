@@ -4,6 +4,7 @@ class AppState(Subject):
     def __init__(self):
         super().__init__()
         self._points = []
+        self._route = []
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
         self._is_geographic = True
 
@@ -46,6 +47,15 @@ class AppState(Subject):
         """Smaže bod z databáze, ale nespustí překreslení celého UI."""
         if 0 <= index < len(self._points):
             self._points.pop(index)
+
+    def set_route(self, route_points):
+        """Uloží vypočítanou trasu a upozorní MapViewer."""
+        self._route = route_points
+        # Pošleme speciální zprávu o trase
+        self.notify(("route_update", self._route))
+
+    def get_route(self):
+        return self._route
 
 
 state = AppState()
