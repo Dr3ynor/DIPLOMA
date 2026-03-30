@@ -30,12 +30,30 @@ class MapViewer(ftm.Map):
             state.add_point(e.coordinates.latitude, e.coordinates.longitude)
 
     def sync_with_state(self, points):
+        # --- 1. NATVRDO PŘESUN KAMERY ---
+        if isinstance(points, tuple) and points[0] == "center_map":
+            pt = points[1]
+            # PŘEVOD SOUŘADNIC:
+            viz_lat, viz_lon = self._get_visual_coords(pt)
+            new_zoom = 8 if state.is_geo() else 2 
+            
+            async def _do_fly():
+                try:
+                    await self.center_on(ftm.MapLatitudeLongitude(viz_lat, viz_lon), new_zoom)
+                except Exception as e:
+                    print(f"Chyba při animaci kamery: {e}")
+
+            if self.page:
+                self.page.run_task(_do_fly)
+            return
+
+        # --- 2. VYKRESLENÍ TRASY ---
         if isinstance(points, tuple) and points[0] == "route_update":
             route_points = points[1]
-            # Vykreslíme čáru
+            # Vykreslíme čáru s převedenými souřadnicemi
             self.route_layer.polylines = [
                             ftm.PolylineMarker(
-                                coordinates=[ftm.MapLatitudeLongitude(p[0], p[1]) for p in route_points],
+                                coordinates=[ftm.MapLatitudeLongitude(*self._get_visual_coords(p)) for p in route_points],
                                 color=ft.Colors.BLUE,
                                 border_color=ft.Colors.BLUE_900, # Volitelné: okraj čáry
                                 stroke_width=3,
@@ -63,15 +81,20 @@ class MapViewer(ftm.Map):
         if new_points_count > current_markers_count:
             # PŘIDÁVÁNÍ: Přidáme pouze nové body od indexu, kde jsme skončili
             for i in range(current_markers_count, new_points_count):
-                lat, lon = points[i]
-                self._add_single_marker(lat, lon, i)
+                pt = points[i]
+                # PŘEVOD SOUŘADNIC:
+                viz_lat, viz_lon = self._get_visual_coords(pt)
+                self._add_single_marker(viz_lat, viz_lon, i)
                 
         elif new_points_count < current_markers_count or new_points_count == 0:
             # MAZÁNÍ/RESET: Tady musíme seznam vyčistit a sestavit znovu, 
             # protože se změnily indexy pro funkci _remove_point(index)
             self.marker_layer.markers.clear()
-            for i, (lat, lon) in enumerate(points):
-                self._add_single_marker(lat, lon, i)
+            for i, pt in enumerate(points):
+                # PŘEVOD SOUŘADNIC:
+                viz_lat, viz_lon = self._get_visual_coords(pt)
+                self._add_single_marker(viz_lat, viz_lon, i)
+                
         # Pokud se počty rovnají (např. jen změna URL), nic s markery neděláme
         self.update()
 
@@ -105,3 +128,33 @@ class MapViewer(ftm.Map):
             
             self.update()
             print(f"Bod {index} odstraněn")
+
+
+
+
+    def _get_visual_coords(self, pt):
+        """
+        Pokud je to mapa, vrátí reálné GPS.
+        Pokud je to čisté plátno (EUC_2D), zmenší a vycentruje data na rovník.
+        """
+        if state.is_geo():
+            return pt[0], pt[1]
+
+        points = state.get_points()
+        if not points:
+            return 0, 0
+
+        # Zjistíme rozpětí všech bodů
+        lats = [p[0] for p in points]
+        lons = [p[1] for p in points]
+        lat_span = max(lats) - min(lats) or 1
+        lon_span = max(lons) - min(lons) or 1
+
+        # Vypočítáme měřítko, aby se instance vešla do bezpečných +- 60 stupňů
+        scale = 100.0 / max(lat_span, lon_span)
+
+        # Zmenšíme a posuneme těžiště instance na nultý poledník a rovník (0, 0)
+        viz_lat = (pt[0] - min(lats) - lat_span / 2) * scale
+        viz_lon = (pt[1] - min(lons) - lon_span / 2) * scale
+
+        return viz_lat, viz_lon   

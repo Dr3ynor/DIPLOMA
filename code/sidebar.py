@@ -180,6 +180,10 @@ class Sidebar(ft.Container):
             state.set_map_url(self.map_selector.value)
 
     def update_ui(self, data):
+
+        if isinstance(data, tuple) and data[0] == "center_map":
+            return
+
 # 1. OCHRANA PRO TRASU A VYNULOVÁNÍ KILOMETRŮ
         if isinstance(data, tuple) and data[0] == "route_update":
             route_points = data[1]
@@ -304,7 +308,7 @@ class Sidebar(ft.Container):
             if new_points:
                 state.clear_all()
                 state.set_points(new_points, is_geographic=is_geo)
-                
+                state.notify(("center_map", new_points[0]))
                 self.import_btn.text = "NAČTENO"
                 self.import_btn.bgcolor = ft.Colors.GREEN_200
                 self.update()
