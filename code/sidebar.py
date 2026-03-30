@@ -94,6 +94,13 @@ class Sidebar(ft.Container):
             width=float("inf"),
             on_click=self._on_solve_click,
         )
+        # --- NOVÝ PRVEK PRO ZOBRAZENÍ VZDÁLENOSTI ---
+        self.distance_text = ft.Text(
+            "Celková vzdálenost: -- km", 
+            size=16, 
+            weight="bold", 
+            color=ft.Colors.BLUE_700
+        )
         # ----------------------------------------
 
         # 4. Seznam bodů
@@ -149,6 +156,7 @@ class Sidebar(ft.Container):
             self.solver_dropdown,
             self.metric_dropdown,
             self.solve_btn,
+            self.distance_text, # Zobrazí vzdálenost trasy
 
             ft.Divider(color=ft.Colors.GREY_600),
 
@@ -172,7 +180,15 @@ class Sidebar(ft.Container):
             state.set_map_url(self.map_selector.value)
 
     def update_ui(self, data):
+# 1. OCHRANA PRO TRASU A VYNULOVÁNÍ KILOMETRŮ
         if isinstance(data, tuple) and data[0] == "route_update":
+            route_points = data[1]
+            
+            # Pokud přijde prázdná trasa (kliknuto na Vymazat vše, nebo zbylo málo bodů)
+            if not route_points:
+                self.distance_text.value = "Celková vzdálenost: -- km"
+                self.update()
+                
             return
 
 
@@ -313,18 +329,17 @@ class Sidebar(ft.Container):
                 distance_metric=self.metric_dropdown.value
             )
             
-            # DEBUG: Tohle nám v konzoli konečně řekne pravdu!
             print(f"DEBUG: Skutečný obsah 'res' je: {res}")
             
-            # Defenzivní rozbalení: vezmeme první dva prvky, ať už jich přišlo kolikkoliv
             ordered_route = res[0]
             total_dist = res[1]
 
             state.set_route(ordered_route)
             print(f"Trasa nalezena! Délka: {total_dist:.2f} km")
+            self.distance_text.value = f"Celková vzdálenost: {total_dist:.2f} km"
+            self.update()
             
         except Exception as ex:
             print(f"CHYBA PŘI VÝPOČTU: {ex}")
-            # Pokud to spadne i tady, vypiš celou chybu:
             import traceback
             traceback.print_exc()

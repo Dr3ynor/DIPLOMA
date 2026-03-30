@@ -72,7 +72,6 @@ class MapViewer(ftm.Map):
             self.marker_layer.markers.clear()
             for i, (lat, lon) in enumerate(points):
                 self._add_single_marker(lat, lon, i)
-        
         # Pokud se počty rovnají (např. jen změna URL), nic s markery neděláme
         self.update()
 
