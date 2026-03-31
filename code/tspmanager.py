@@ -39,12 +39,12 @@ class TSPManager:
         
         print(f"{self.matrix_builder.__class__.__name__} vrátil matici {len(matrix)}x{len(matrix[0])}.")
 
-        for row in matrix:
-            print(" ".join(f"{d:.2f}" for d in row))
+        #for row in matrix:
+         #   print(" ".join(f"{d:.2f}" for d in row))
 
         # 3. Krok: Spuštění algoritmu (vrátí seznam indexů, např. [0, 15, 3...])
         route_indices = self.engine.run(solver_type, matrix)
-        print(f"INDECES: {route_indices}")
+        # print(f"INDECES: {route_indices}")
 
         # 4. Krok: Výpočet celkové délky trasy (pro zobrazení v UI)
         total_distance = self._calculate_total_tour_distance(route_indices, matrix)

@@ -160,8 +160,8 @@ class Sidebar(ft.Container):
 
             ft.Divider(color=ft.Colors.GREY_600),
 
-            ft.Text("Vybrané lokality:", weight="bold", color=ft.Colors.BLACK54),
-            self.list_container,
+            # ft.Text("Vybrané lokality:", weight="bold", color=ft.Colors.BLACK54),
+            #self.list_container,
             
             ft.Divider(color=ft.Colors.GREY_600),
             
@@ -333,7 +333,6 @@ class Sidebar(ft.Container):
                 distance_metric=self.metric_dropdown.value
             )
             
-            print(f"DEBUG: Skutečný obsah 'res' je: {res}")
             
             ordered_route = res[0]
             total_dist = res[1]
