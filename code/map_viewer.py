@@ -30,7 +30,7 @@ class MapViewer(ftm.Map):
             state.add_point(e.coordinates.latitude, e.coordinates.longitude)
 
     def sync_with_state(self, points):
-        # --- 1. NATVRDO PŘESUN KAMERY ---
+        # PŘESUN KAMERY
         if isinstance(points, tuple) and points[0] == "center_map":
             pt = points[1]
             # PŘEVOD SOUŘADNIC:
@@ -41,13 +41,13 @@ class MapViewer(ftm.Map):
                 try:
                     await self.center_on(ftm.MapLatitudeLongitude(viz_lat, viz_lon), new_zoom)
                 except Exception as e:
-                    print(f"Chyba při animaci kamery: {e}")
+                    print(f"Error occurred while animating camera: {e}")
 
             if self.page:
                 self.page.run_task(_do_fly)
             return
 
-        # --- 2. VYKRESLENÍ TRASY ---
+        # VYKRESLENÍ TRASY
         if isinstance(points, tuple) and points[0] == "route_update":
             route_points = points[1]
             # Vykreslíme čáru s převedenými souřadnicemi
@@ -55,7 +55,7 @@ class MapViewer(ftm.Map):
                             ftm.PolylineMarker(
                                 coordinates=[ftm.MapLatitudeLongitude(*self._get_visual_coords(p)) for p in route_points],
                                 color=ft.Colors.BLUE,
-                                border_color=ft.Colors.BLUE_900, # Volitelné: okraj čáry
+                                border_color=ft.Colors.BLUE_900,
                                 stroke_width=3,
                             )
                         ]
@@ -66,7 +66,7 @@ class MapViewer(ftm.Map):
             return
 
 
-        # 1. Řízení viditelnosti mapového podkladu podle typu instance
+        # řízení viditelnosti mapového podkladu podle typu instance
         self.tile_layer.visible = state.is_geo()
 
         # 2. Update URL mapy (pokud je podklad viditelný)
@@ -74,7 +74,7 @@ class MapViewer(ftm.Map):
         if self.tile_layer.url_template != new_url:
             self.tile_layer.url_template = new_url
 
-        # 3. Optimalizace vykreslování markerů (tvoje původní logika 1:1)
+        # 3. Optimalizace vykreslování markerů
         current_markers_count = len(self.marker_layer.markers)
         new_points_count = len(points)
 
@@ -87,15 +87,14 @@ class MapViewer(ftm.Map):
                 self._add_single_marker(viz_lat, viz_lon, i)
                 
         elif new_points_count < current_markers_count or new_points_count == 0:
-            # MAZÁNÍ/RESET: Tady musíme seznam vyčistit a sestavit znovu, 
-            # protože se změnily indexy pro funkci _remove_point(index)
+            # optimalizace pro mazání, protože indexy se změnily
             self.marker_layer.markers.clear()
             for i, pt in enumerate(points):
                 # PŘEVOD SOUŘADNIC:
                 viz_lat, viz_lon = self._get_visual_coords(pt)
                 self._add_single_marker(viz_lat, viz_lon, i)
                 
-        # Pokud se počty rovnají (např. jen změna URL), nic s markery neděláme
+        # Pokud se počty rovnají (např. jen změna URL), nic se s markery nestalo 
         self.update()
 
     def _add_single_marker(self, lat, lon, index):
@@ -115,10 +114,8 @@ class MapViewer(ftm.Map):
             )
     
     def _remove_point(self, index):
-        # 1. Zavoláme AppState, který pošle signál ("delete", index) Sidebaru
         state.remove_point_at(index)
 
-        # 2. Chirurgicky vyndáme marker z mapy (tvoje funkční část)
         if 0 <= index < len(self.marker_layer.markers):
             self.marker_layer.markers.pop(index)
             
@@ -144,16 +141,16 @@ class MapViewer(ftm.Map):
         if not points:
             return 0, 0
 
-        # Zjistíme rozpětí všech bodů
+        # rozpětí všech bodů
         lats = [p[0] for p in points]
         lons = [p[1] for p in points]
         lat_span = max(lats) - min(lats) or 1
         lon_span = max(lons) - min(lons) or 1
 
-        # Vypočítáme měřítko, aby se instance vešla do bezpečných +- 60 stupňů
+        # měřítko, aby se instance vešla na canvas o velikosti 100x100
         scale = 100.0 / max(lat_span, lon_span)
 
-        # Zmenšíme a posuneme těžiště instance na nultý poledník a rovník (0, 0)
+        # zmenšíme a posuneme těžiště instance na nultý poledník a rovník (0, 0)
         viz_lat = (pt[0] - min(lats) - lat_span / 2) * scale
         viz_lon = (pt[1] - min(lons) - lon_span / 2) * scale
 

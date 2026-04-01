@@ -9,7 +9,6 @@ class AppState(Subject):
         self._is_geographic = True
 
     def add_point(self, lat, lon):
-        # kliknutí do mapy
         self._points.append((lat, lon))
         self.notify(self._points)
 
@@ -22,11 +21,9 @@ class AppState(Subject):
     def clear_all(self):
         state._is_geographic = True
         self._points.clear()
-        self._route.clear() # Smažeme trasu z paměti stavu
-        # 1. Řekneme UI a mapě, že body jsou prázdné (smaže markery a seznam)
+        self._route.clear()
+
         self.notify(self._points) 
-        
-        # 2. Řekneme mapě, že trasa je prázdná (smaže modrou čáru)
         self.notify(("route_update", []))
 
     def get_points(self):
@@ -56,11 +53,14 @@ class AppState(Subject):
     def set_route(self, route_points):
         """Uloží vypočítanou trasu a upozorní MapViewer."""
         self._route = route_points
-        # Pošleme speciální zprávu o trase
         self.notify(("route_update", self._route))
 
     def get_route(self):
         return self._route
+
+    def update_route(self, points):
+        self.current_route = points
+        self.notify(("route_update", points))
 
 
 state = AppState()

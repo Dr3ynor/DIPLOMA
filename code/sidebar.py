@@ -13,7 +13,7 @@ class Sidebar(ft.Container):
             expand=True
         )
 
-        # 1. Definice mapových zdrojů
+        # Definice mapových zdrojů
         self.map_sources = {
             "OpenStreetMap (DE)": "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
             "CartoDB (Light)": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
@@ -21,7 +21,7 @@ class Sidebar(ft.Container):
             "OpenTopoMap": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
         }
 
-        # 2. Dropdown pro mapu
+        # Dropdown pro mapu
         self.map_selector = ft.Dropdown(
             label="Mapový podklad",
             value=state.get_map_url(),
@@ -37,7 +37,7 @@ class Sidebar(ft.Container):
             style=ft.ButtonStyle(color=ft.Colors.BLACK)
         )
 
-        # 3. EXPORT SEKCE (Nový přístup bez FilePickeru)
+        # EXPORT SEKCE
         self.file_name_input = ft.TextField(
             label="Název souboru",
             value="moje_instance",
@@ -82,7 +82,8 @@ class Sidebar(ft.Container):
             label="Metrika vzdálenosti",
             options=[
                 ft.dropdown.Option("haversine", text="Letecká (Haversine)"),
-                ft.dropdown.Option("routing", text="Silniční (OSRM)"),
+                ft.dropdown.Option("routing_dist", text="Silniční vzdálenost (OSRM)"),
+                ft.dropdown.Option("routing_time", text="Silniční čas (OSRM)"),
             ],
             value="haversine",
             border_color=ft.Colors.WHITE,
@@ -96,14 +97,14 @@ class Sidebar(ft.Container):
         )
         # --- NOVÝ PRVEK PRO ZOBRAZENÍ VZDÁLENOSTI ---
         self.distance_text = ft.Text(
-            "Celková vzdálenost: -- km", 
+            "Celkem: -- km", 
             size=16, 
             weight="bold", 
             color=ft.Colors.BLUE_700
         )
         # ----------------------------------------
 
-        # 4. Seznam bodů
+        # seznam bodů
         self.points_list = ft.ListView(
             expand=True,
             spacing=5,
@@ -119,7 +120,7 @@ class Sidebar(ft.Container):
             expand=True
         )
         
-        # 5. Sestavení obsahu
+        # sestavení obsahu
         self.content = ft.Column([
             ft.Text("TSP Konfigurátor", size=22, weight="bold", color=ft.Colors.BLACK87),
             ft.Divider(color=ft.Colors.GREY_600),
@@ -184,7 +185,7 @@ class Sidebar(ft.Container):
         if isinstance(data, tuple) and data[0] == "center_map":
             return
 
-# 1. OCHRANA PRO TRASU A VYNULOVÁNÍ KILOMETRŮ
+        # OCHRANA PRO TRASU A VYNULOVÁNÍ KILOMETRŮ
         if isinstance(data, tuple) and data[0] == "route_update":
             route_points = data[1]
             
@@ -207,14 +208,13 @@ class Sidebar(ft.Container):
                 self.update()
 
 
-# --- PŘIDÁNO: Automatický přepočet trasy ---
+                # --- PŘIDÁNO: Automatický přepočet trasy --- (!!! NEFUNGUJE !!!)
                 # Pokud už nějaká trasa existuje, chceme ji po smazání bodu hned přepočítat
                 if state.get_route(): 
                     if len(state.get_points()) >= 2:
                         print("DEBUG: Automatický přepočet po smazání bodu...")
-                        self._on_solve_click(None) # Virtuální kliknutí na tlačítko výpočtu
+                        self._on_solve_click(None)
                     else:
-                        # Pokud zbyl jen 1 bod (nebo nula), trasa už nedává smysl, tak ji smažeme
                         state.set_route([])
                 # -------------------------------------------
 
@@ -223,27 +223,21 @@ class Sidebar(ft.Container):
 
             return
 
-        points = data # V tomhle případě je data seznam bodů
+        points = data
         current_count = len(self.points_list.controls)
         new_count = len(points)
 
         if new_count == current_count + 1:
-            # 1. Bod se přidá do textového seznamu v Sidebaru
             lat, lon = points[-1]
             self.points_list.controls.append(
                 ft.Text(f"{new_count}. {lat:.4f}, {lon:.4f}", size=12, color="black")
             )
             
-            # --- PŘIDÁNO: Automatický přepočet trasy při přidání ---
-            # Pokud už nějaká trasa na mapě existuje, hned ji přepočítáme
             if state.get_route() and new_count >= 2:
                 print("DEBUG: Automatický přepočet po přidání bodu...")
-                self._on_solve_click(None) # Virtuální kliknutí na tlačítko
-            # -------------------------------------------------------
+                self._on_solve_click(None)
             
         else:
-            # Import celé instance (zde nepřepočítáváme automaticky, 
-            # necháme uživatele, ať si klikne na tlačítko sám)
             self.points_list.controls.clear()
             for i, (lat, lon) in enumerate(points):
                 self.points_list.controls.append(
@@ -274,17 +268,17 @@ class Sidebar(ft.Container):
             self.export_btn.text = "ULOŽENO!"
             self.export_btn.bgcolor = ft.Colors.GREEN_200
             self.update()
-            print(f"DEBUG: Soubor uložen do {filepath}")
+            print(f"DEBUG: File saved to {filepath}")
             
         except Exception as ex:
-            print(f"CHYBA EXPORTU: {ex}")
+            print(f"ERROR WITH EXPORT: {ex}")
 
     def _on_import_click(self, e):
         filename = f"{self.file_name_input.value}.tsp"
         filepath = os.path.join("instances", filename)
         
         if not os.path.exists(filepath):
-            print(f"CHYBA: Soubor {filepath} nebyl nalezen!")
+            print(f"ERROR: File {filepath} not found!")
             self.import_btn.text = "SOUBOR NENALEZEN"
             self.import_btn.bgcolor = ft.Colors.RED_200
             self.update()
@@ -301,7 +295,7 @@ class Sidebar(ft.Container):
                             is_geo = True
                             break
             except Exception as e:
-                print(f"Chyba při čtení hlavičky: {e}")
+                print(f"Error reading the header: {e}")
 
             new_points = tsp_manager.load_instance(filepath)
             
@@ -313,10 +307,10 @@ class Sidebar(ft.Container):
                 self.import_btn.bgcolor = ft.Colors.GREEN_200
                 self.update()
             else:
-                print("VAROVÁNÍ: Soubor byl prázdný nebo chybně formátovaný.")
+                print("WARNING: No points loaded from file.")
                 
         except Exception as ex:
-            print(f"KRITICKÁ CHYBA PŘI IMPORTU: {ex}")
+            print(f"ERROR WITH IMPORT: {ex}")
             self.import_btn.text = "CHYBA IMPORTU"
             self.import_btn.bgcolor = ft.Colors.RED_200
             self.update()
@@ -327,22 +321,38 @@ class Sidebar(ft.Container):
             return
 
         try:
-            res = tsp_manager.solve(
+            # 1. ordered_cities: seznam zastávek (města)
+            # 2. visual_route: detailní body pro čáru (silnice)
+            # 3. total_dist: délka v km/min
+            ordered_cities, visual_route, total_dist = tsp_manager.solve(
                 points=points,
                 solver_type=self.solver_dropdown.value,
                 distance_metric=self.metric_dropdown.value
             )
             
-            
-            ordered_route = res[0]
-            total_dist = res[1]
+            # --- AKTUALIZACE MAPY ---
+            state.update_route(visual_route)
 
-            state.set_route(ordered_route)
-            print(f"Trasa nalezena! Délka: {total_dist:.2f} km")
-            self.distance_text.value = f"Celková vzdálenost: {total_dist:.2f} km"
+            # --- AKTUALIZACE UI ---
+            print(f"Route found!: {total_dist:.2f}")
+            
+            if self.metric_dropdown.value == "routing_time":
+                # Pokud je to víc než 120 minut (2 hodiny), přidáme závorku s hodinama
+                if total_dist >= 120:
+                    hours = total_dist / 60
+                    self.distance_text.value = f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
+                else:
+                    self.distance_text.value = f"Celkem: {total_dist:.1f} minut"
+            else:
+                # Standardní zobrazení pro kilometry (Haversine nebo OSRM Dist)
+                self.distance_text.value = f"Celkem: {total_dist:.2f} km"
+            
+            # opt: Pokud v state držet i seznam měst v pořadí (např. pro tabulku)
+            # state.set_route(ordered_cities) 
+
             self.update()
             
         except Exception as ex:
-            print(f"CHYBA PŘI VÝPOČTU: {ex}")
+            print(f"ERROR WHILE SOLVING: {ex}")
             import traceback
             traceback.print_exc()

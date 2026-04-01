@@ -9,7 +9,6 @@ class OptimizationEngine:
     def __init__(self):
         self.last_execution_time = 0
         
-        # 1. ČITELNÉ NÁZVY: Klíče a popisky pro Dropdown (pouze stringy)
         self._solver_names = {
             "NN": "Nearest Neighbor",
             "ACO": "Ant Colony Optimization",
@@ -18,8 +17,7 @@ class OptimizationEngine:
             "3OPT": "3-Opt (Local Search)"
         }
 
-        # 2. MAPOVÁNÍ FUNKCÍ: Interní slovník, který propojuje klíče s metodami.
-        # Tento slovník nikdy neposíláme do UI, slouží jen pro vnitřní potřebu Enginu.
+        # MAPOVÁNÍ FUNKCÍ: Interní slovník, který propojuje klíče s metodami.
         self._solver_functions = {
             "NN": _nearest_neighbor,
             "ACO": _ant_colony,
@@ -30,7 +28,6 @@ class OptimizationEngine:
 
     def get_solver_options(self):
         """Vrátí seznam dvojic (klíč, název) pro naplnění Dropdownu v Sidebaru."""
-        # Vracíme seznam tuplů, kde oba prvky jsou stringy.
         return [(k, v) for k, v in self._solver_names.items()]
 
     def run(self, solver_type, matrix):
@@ -42,15 +39,12 @@ class OptimizationEngine:
 
         start_time = time.time()
 
-        # Vyhledáme funkci v interním slovníku. 
-        # Pokud klíč neexistuje, použijeme jako fallback Nearest Neighbor.
         solver_func = self._solver_functions.get(solver_type, _nearest_neighbor)
         
-        # Spuštění výpočtu
         route = solver_func(matrix)
 
         self.last_execution_time = time.time() - start_time
-        print(f"DEBUG: Engine dokončil {solver_type} za {self.last_execution_time:.4f} s")
+        print(f"DEBUG: Engine finished {solver_type} | {self.last_execution_time:.4f} s")
         
         return route
 

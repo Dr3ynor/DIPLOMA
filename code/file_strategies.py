@@ -2,9 +2,6 @@ import math
 import os
 from abc import ABC, abstractmethod
 
-# ==========================================
-# POMOCNÉ FUNKCE
-# ==========================================
 def tsplib_geo_to_decimal(coord):
     """
     Převede TSPLIB GEO formát (DDD.MM) na desetinné stupně (Decimal Degrees).
@@ -22,9 +19,9 @@ def _parse_tsp_file(filepath: str) -> tuple:
     Univerzální logika pro čtení TSP souborů.
     Vrací tuple: (seznam_bodu, je_to_vlastni_export)
     """
-    print(f"DEBUG: Spouštím parser pro soubor {filepath}...")
+    print(f"DEBUG: Parsing file: {filepath}...")
     points = []
-    is_custom_export = False # Detekce tvého vlastního moderního formátu
+    is_custom_export = False # hledání custom commentu
     
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -35,7 +32,7 @@ def _parse_tsp_file(filepath: str) -> tuple:
             line = line.strip()
             if not line: continue
             
-            # Detekce, jestli to je tvůj export z aplikace
+            # Detekce, jestli to je custom export z aplikace
             if "COMMENT: MODERN_GPS_DIPLOMA" in line:
                 is_custom_export = True
 
@@ -56,15 +53,12 @@ def _parse_tsp_file(filepath: str) -> tuple:
                     except ValueError:
                         continue
                         
-        print(f"DEBUG: Parser načetl {len(points)} bodů. Vlastní formát: {is_custom_export}")
+        print(f"DEBUG: Parser loaded {len(points)} points. Custom: {is_custom_export}")
         return points, is_custom_export
     except Exception as e:
-        print(f"Chyba při parsování souboru {filepath}: {e}")
+        print(f"Error parsing file {filepath}: {e}")
         return [], False
 
-# ==========================================
-# 1. ROZHRANÍ
-# ==========================================
 class TspFileStrategy(ABC):
     @abstractmethod
     def export(self, filepath: str, points: list):
@@ -74,9 +68,6 @@ class TspFileStrategy(ABC):
     def load(self, filepath: str) -> list:
         pass
 
-# ==========================================
-# 2. KONKRÉTNÍ STRATEGIE
-# ==========================================
 class TspGeoStrategy(TspFileStrategy):
     """Strategie pro geografické souřadnice (Zeměkoule)."""
     
@@ -102,7 +93,7 @@ class TspGeoStrategy(TspFileStrategy):
         
         # Pokud je to historický TSPLIB (nemá náš comment), musíme to přepočítat
         if not is_custom:
-            print("DEBUG: Detekován TSPLIB formát (DDD.MM), spouštím přepočet na GPS...")
+            print("DEBUG:  TSPLIB format detected (DDD.MM), recalculating for GPS...")
             converted_points = []
             for lat, lon in raw_points:
                 converted_points.append((
@@ -111,11 +102,10 @@ class TspGeoStrategy(TspFileStrategy):
                 ))
             return converted_points
             
-        # Pokud je to tvůj export, vrátíme to tak, jak to je
         return raw_points
 
 class TspEuc2DStrategy(TspFileStrategy):
-    """Strategie pro euklidovské souřadnice (Rovina)."""
+    """Strategie pro euklidovské souřadnice"""
     
     def export(self, filepath: str, points: list):
         name = os.path.splitext(os.path.basename(filepath))[0]
@@ -135,4 +125,4 @@ class TspEuc2DStrategy(TspFileStrategy):
 
     def load(self, filepath: str) -> list:
         raw_points, _ = _parse_tsp_file(filepath)
-        return raw_points # Zde žádný přepočet nikdy neděláme
+        return raw_points
