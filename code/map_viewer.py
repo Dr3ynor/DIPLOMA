@@ -1,157 +1,364 @@
-import flet as ft
-import flet_map as ftm
+import json
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineSettings
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import QObject, pyqtSlot, QUrl
+
 from app_state import state
 
-class MapViewer(ftm.Map):
-    def __init__(self):
-        self.marker_layer = ftm.MarkerLayer(markers=[])
-        self.route_layer = ftm.PolylineLayer(polylines=[])
-        self.tile_layer = ftm.TileLayer(url_template=state.get_map_url(),additional_options={
-        "User-Agent": "JakubDiplomaApp/1.0 (contact: RUZ0096@vsb.cz)",
-        "Referer": "https://localhost" 
-    })
+# ---------------------------------------------------------------------------
+# HTML šablona s Leaflet mapou a QWebChannel mostem
+# ---------------------------------------------------------------------------
+MAP_HTML = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #map { width: 100%; height: 100vh; }
 
-        super().__init__(
-            expand=True,
-            initial_center=ftm.MapLatitudeLongitude(49.82, 18.26),
-            min_zoom=2,
-            initial_zoom=10,
-            on_tap=self._handle_tap,
-            layers=[
-                self.tile_layer,
-                self.route_layer,
-                self.marker_layer
-            ]
+        /* Vlastní marker styly */
+        .tsp-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Segoe UI', sans-serif;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.45);
+            cursor: pointer;
+            transition: transform 0.15s;
+            user-select: none;
+        }
+        .tsp-marker:hover { transform: scale(1.2); }
+
+        /* Leaflet popup */
+        .leaflet-popup-content-wrapper {
+            background: #1a1d2e;
+            color: #f1f5f9;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+        .leaflet-popup-tip { background: #1a1d2e; }
+        .leaflet-popup-content { margin: 10px 14px; font-size: 12px; }
+
+        /* Leaflet controls */
+        .leaflet-control-zoom a {
+            background: #1a1d2e !important;
+            color: #f1f5f9 !important;
+            border-color: #2d3148 !important;
+        }
+        .leaflet-control-zoom a:hover { background: #252841 !important; }
+        .leaflet-control-attribution {
+            background: rgba(15,17,23,0.75) !important;
+            color: #94a3b8 !important;
+        }
+        .leaflet-control-attribution a { color: #6366f1 !important; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    // ── Inicializace mapy ───────────────────────────────────────────────────
+    var map = L.map('map', {
+        zoomControl: true,
+        preferCanvas: false
+    }).setView([49.82, 18.26], 10);
+
+    var tileLayer = L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    var markers   = [];
+    var routeLayer = null;
+    var bridge     = null;
+
+    // ── QWebChannel most ───────────────────────────────────────────────────
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        bridge = channel.objects.bridge;
+        console.log('[MapViewer] Bridge ready.');
+    });
+
+    // ── Klik na mapu → přidej bod ──────────────────────────────────────────
+    map.on('click', function(e) {
+        if (bridge) bridge.onMapClick(e.latlng.lat, e.latlng.lng);
+    });
+
+    // ── Pomocná: vytvoř divIcon pro marker (s číslem) ──────────────────────
+    function makeIcon(index) {
+        return L.divIcon({
+            className: '',
+            html: '<div class="tsp-marker">' + (index + 1) + '</div>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+            popupAnchor: [0, -16]
+        });
+    }
+
+    // ── Přidej jeden marker ────────────────────────────────────────────────
+    function addMarker(lat, lon, index) {
+        var m = L.marker([lat, lon], { icon: makeIcon(index) });
+
+        // Pravý klik (desktop) nebo long-press (mobile) → odstraň bod
+        m.on('contextmenu', (function(idx) {
+            return function(e) {
+                L.DomEvent.stopPropagation(e);
+                if (bridge) bridge.onMarkerRightClick(idx);
+            };
+        })(index));
+
+        // Popup s souřadnicemi
+        m.bindPopup(
+            '<b>Bod ' + (index+1) + '</b><br>' +
+            lat.toFixed(5) + ', ' + lon.toFixed(5) +
+            '<br><small style="color:#94a3b8">Pravý klik = odstranit</small>'
+        );
+
+        m.addTo(map);
+        markers.push(m);
+    }
+
+    // ── Smaž všechny markery ───────────────────────────────────────────────
+    function clearMarkers() {
+        markers.forEach(function(m) { map.removeLayer(m); });
+        markers = [];
+    }
+
+    // ── Smaž jeden marker + oprav indexy zbývajících ──────────────────────
+    function removeMarker(index) {
+        if (index < 0 || index >= markers.length) return;
+        map.removeLayer(markers[index]);
+        markers.splice(index, 1);
+
+        // Aktualizuj ikony a listenery zbývajících markerů
+        for (var i = index; i < markers.length; i++) {
+            markers[i].setIcon(makeIcon(i));
+            markers[i].off('contextmenu');
+
+            // Uzavření přes IIFE, aby 'i' bylo správné
+            (function(idx) {
+                markers[idx].on('contextmenu', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    if (bridge) bridge.onMarkerRightClick(idx);
+                });
+                // Aktualizuj popup
+                markers[idx].setPopupContent(
+                    '<b>Bod ' + (idx+1) + '</b><br>' +
+                    markers[idx].getLatLng().lat.toFixed(5) + ', ' +
+                    markers[idx].getLatLng().lng.toFixed(5) +
+                    '<br><small style="color:#94a3b8">Pravý klik = odstranit</small>'
+                );
+            })(i);
+        }
+    }
+
+    // ── Překresli všechny markery (pole [[lat,lon], ...]) ─────────────────
+    function redrawAllMarkers(points) {
+        clearMarkers();
+        points.forEach(function(p, i) { addMarker(p[0], p[1], i); });
+    }
+
+    // ── Nakresli trasu (pole [[lat,lon], ...]) ────────────────────────────
+    function drawRoute(points) {
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+        if (points.length < 2) return;
+        var latlngs = points.map(function(p) { return [p[0], p[1]]; });
+        routeLayer = L.polyline(latlngs, {
+            color: '#6366f1',
+            weight: 4,
+            opacity: 0.85,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(map);
+    }
+
+    // ── Smaž trasu ────────────────────────────────────────────────────────
+    function clearRoute() {
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+    }
+
+    // ── Přesuň kameru ─────────────────────────────────────────────────────
+    function centerMap(lat, lon, zoom) {
+        map.flyTo([lat, lon], zoom, { duration: 0.9, easeLinearity: 0.35 });
+    }
+
+    // ── Změň tile URL ─────────────────────────────────────────────────────
+    function setTileLayer(url) {
+        tileLayer.setUrl(url);
+    }
+
+    // ── Zobraz/skryj tile vrstvu ──────────────────────────────────────────
+    function setTileVisible(visible) {
+        if (visible && !map.hasLayer(tileLayer)) tileLayer.addTo(map);
+        else if (!visible && map.hasLayer(tileLayer)) map.removeLayer(tileLayer);
+    }
+</script>
+</body>
+</html>"""
+
+
+# ---------------------------------------------------------------------------
+# Python ↔ JavaScript most (přes QWebChannel)
+# ---------------------------------------------------------------------------
+class _MapBridge(QObject):
+    """Objekt registrovaný jako 'bridge' v JS – přijímá signály z Leaflet mapy."""
+
+    def __init__(self, on_click, on_remove):
+        super().__init__()
+        self._on_click = on_click
+        self._on_remove = on_remove
+
+    @pyqtSlot(float, float)
+    def onMapClick(self, lat: float, lon: float):
+        self._on_click(lat, lon)
+
+    @pyqtSlot(int)
+    def onMarkerRightClick(self, index: int):
+        self._on_remove(index)
+
+
+# ---------------------------------------------------------------------------
+# Hlavní widget MapViewer
+# ---------------------------------------------------------------------------
+class MapViewer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self._marker_count = 0
+
+        # Layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # WebEngine view
+        self.view = QWebEngineView()
+        self.view.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptEnabled, True
         )
+        layout.addWidget(self.view)
+
+        # QWebChannel – most Python ↔ JS
+        self._channel = QWebChannel()
+        self._bridge = _MapBridge(
+            on_click=self._handle_click,
+            on_remove=self._handle_remove
+        )
+        self._channel.registerObject("bridge", self._bridge)
+        self.view.page().setWebChannel(self._channel)
+
+        # Nastavit HTML (base URL = https://localhost/ aby šly CDN resources)
+        self.view.setHtml(MAP_HTML, QUrl("https://localhost/"))
+
+        # Přihlásit se k AppState notifikacím
         state.attach(self.sync_with_state)
 
-    def _handle_tap(self, e: ftm.MapTapEvent):
-        if e.name == "tap":
-            state.add_point(e.coordinates.latitude, e.coordinates.longitude)
+    # ── Interní pomocníci ──────────────────────────────────────────────────
 
-    def sync_with_state(self, points):
-        # PŘESUN KAMERY
-        if isinstance(points, tuple) and points[0] == "center_map":
-            pt = points[1]
-            # PŘEVOD SOUŘADNIC:
-            viz_lat, viz_lon = self._get_visual_coords(pt)
-            new_zoom = 8 if state.is_geo() else 2 
-            
-            async def _do_fly():
-                try:
-                    await self.center_on(ftm.MapLatitudeLongitude(viz_lat, viz_lon), new_zoom)
-                except Exception as e:
-                    print(f"Error occurred while animating camera: {e}")
+    def _js(self, script: str):
+        """Spustí JS v mapě (asynchronně)."""
+        self.view.page().runJavaScript(script)
 
-            if self.page:
-                self.page.run_task(_do_fly)
-            return
-
-        # VYKRESLENÍ TRASY
-        if isinstance(points, tuple) and points[0] == "route_update":
-            route_points = points[1]
-            # Vykreslíme čáru s převedenými souřadnicemi
-            self.route_layer.polylines = [
-                            ftm.PolylineMarker(
-                                coordinates=[ftm.MapLatitudeLongitude(*self._get_visual_coords(p)) for p in route_points],
-                                color=ft.Colors.BLUE,
-                                border_color=ft.Colors.BLUE_900,
-                                stroke_width=3,
-                            )
-                        ]
-            self.update()
-            return
-
-        if isinstance(points, tuple) and points[0] == "delete":
-            return
-
-
-        # řízení viditelnosti mapového podkladu podle typu instance
-        self.tile_layer.visible = state.is_geo()
-
-        # 2. Update URL mapy (pokud je podklad viditelný)
-        new_url = state.get_map_url()
-        if self.tile_layer.url_template != new_url:
-            self.tile_layer.url_template = new_url
-
-        # 3. Optimalizace vykreslování markerů
-        current_markers_count = len(self.marker_layer.markers)
-        new_points_count = len(points)
-
-        if new_points_count > current_markers_count:
-            # PŘIDÁVÁNÍ: Přidáme pouze nové body od indexu, kde jsme skončili
-            for i in range(current_markers_count, new_points_count):
-                pt = points[i]
-                # PŘEVOD SOUŘADNIC:
-                viz_lat, viz_lon = self._get_visual_coords(pt)
-                self._add_single_marker(viz_lat, viz_lon, i)
-                
-        elif new_points_count < current_markers_count or new_points_count == 0:
-            # optimalizace pro mazání, protože indexy se změnily
-            self.marker_layer.markers.clear()
-            for i, pt in enumerate(points):
-                # PŘEVOD SOUŘADNIC:
-                viz_lat, viz_lon = self._get_visual_coords(pt)
-                self._add_single_marker(viz_lat, viz_lon, i)
-                
-        # Pokud se počty rovnají (např. jen změna URL), nic se s markery nestalo 
-        self.update()
-
-    def _add_single_marker(self, lat, lon, index):
-            coord = ftm.MapLatitudeLongitude(lat, lon)
-            marker_content = ft.GestureDetector(
-                on_secondary_tap=lambda e, idx=index: self._remove_point(idx),
-                content=ft.Container(
-                    width=15,
-                    height=15,
-                    bgcolor="#EE4444",
-                    border_radius=5,
-                    border=ft.border.all(1, "white"),
-                )
-            )
-            self.marker_layer.markers.append(
-                ftm.Marker(content=marker_content, coordinates=coord)
-            )
-    
-    def _remove_point(self, index):
-        state.remove_point_at(index)
-
-        if 0 <= index < len(self.marker_layer.markers):
-            self.marker_layer.markers.pop(index)
-            
-            # Oprava indexů u zbývajících markerů
-            for i in range(index, len(self.marker_layer.markers)):
-                self.marker_layer.markers[i].content.on_secondary_tap = lambda e, idx=i: self._remove_point(idx)
-            
-            self.update()
-            print(f"Bod {index} odstraněn")
-
-
-
-
-    def _get_visual_coords(self, pt):
+    def _js_call(self, func: str, data):
         """
-        Pokud je to mapa, vrátí reálné GPS.
-        Pokud je to čisté plátno (EUC_2D), zmenší a vycentruje data na rovník.
+        Předá Python data do JS funkce.
+        Data se vloží jako JS literál (JSON) – bezpečné pro čísla a seznamy.
+        """
+        json_literal = json.dumps(data)
+        self._js(f"var _d = {json_literal}; {func}(_d);")
+
+    def _get_visual_coords(self, pt) -> tuple:
+        """
+        Pro geo instanci: reálné GPS.
+        Pro EUC_2D instanci: normalizované souřadnice na [-50, 50].
+        Zachovává logiku z původního map_viewer.py 1:1.
         """
         if state.is_geo():
             return pt[0], pt[1]
 
         points = state.get_points()
         if not points:
-            return 0, 0
+            return 0.0, 0.0
 
-        # rozpětí všech bodů
         lats = [p[0] for p in points]
         lons = [p[1] for p in points]
-        lat_span = max(lats) - min(lats) or 1
-        lon_span = max(lons) - min(lons) or 1
-
-        # měřítko, aby se instance vešla na canvas o velikosti 100x100
+        lat_span = max(lats) - min(lats) or 1.0
+        lon_span = max(lons) - min(lons) or 1.0
         scale = 100.0 / max(lat_span, lon_span)
 
-        # zmenšíme a posuneme těžiště instance na nultý poledník a rovník (0, 0)
         viz_lat = (pt[0] - min(lats) - lat_span / 2) * scale
         viz_lon = (pt[1] - min(lons) - lon_span / 2) * scale
+        return viz_lat, viz_lon
 
-        return viz_lat, viz_lon   
+    # ── Callbacky z JS mostu ───────────────────────────────────────────────
+
+    def _handle_click(self, lat: float, lon: float):
+        """Uživatel klikl na mapu → přidej bod do state."""
+        state.add_point(lat, lon)
+
+    def _handle_remove(self, index: int):
+        """Uživatel pravým klikl na marker → odstraň bod."""
+        state.remove_point_at(index)          # informuje sidebar přes notify
+        self._js(f"removeMarker({index})")     # aktualizuje JS markery
+        self._marker_count = max(0, self._marker_count - 1)
+
+    # ── Observer callback z AppState ──────────────────────────────────────
+
+    def sync_with_state(self, data):
+        """Hlavní observer – reaguje na všechny notifikace z AppState."""
+
+        # --- Přesun kamery ---
+        if isinstance(data, tuple) and data[0] == "center_map":
+            pt = data[1]
+            viz_lat, viz_lon = self._get_visual_coords(pt)
+            zoom = 8 if state.is_geo() else 2
+            self._js(f"centerMap({viz_lat}, {viz_lon}, {zoom})")
+            return
+
+        # --- Aktualizace trasy ---
+        if isinstance(data, tuple) and data[0] == "route_update":
+            route_points = data[1]
+            if route_points:
+                visual = [list(self._get_visual_coords(p)) for p in route_points]
+                self._js_call("drawRoute", visual)
+            else:
+                self._js("clearRoute()")
+            return
+
+        # --- Smazání bodu (handled v _handle_remove přímo) ---
+        if isinstance(data, tuple) and data[0] == "delete":
+            return
+
+        # --- Plná aktualizace seznamu bodů ---
+        points = data
+        new_count = len(points)
+
+        # Aktualizuj tile vrstvu
+        self._js(f"setTileVisible({'true' if state.is_geo() else 'false'})")
+        url = state.get_map_url()
+        self._js(f"setTileLayer('{url}')")
+
+        if new_count > self._marker_count:
+            # Optimalizace: přidej jen nové body
+            for i in range(self._marker_count, new_count):
+                viz_lat, viz_lon = self._get_visual_coords(points[i])
+                self._js(f"addMarker({viz_lat}, {viz_lon}, {i})")
+        elif new_count < self._marker_count or new_count == 0:
+            # Plné překreslení (import / clear all)
+            visual = [list(self._get_visual_coords(pt)) for pt in points]
+            self._js_call("redrawAllMarkers", visual)
+
+        self._marker_count = new_count
