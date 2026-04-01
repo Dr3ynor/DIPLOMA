@@ -30,7 +30,7 @@ class OptimizationEngine:
         """Vrátí seznam dvojic (klíč, název) pro naplnění Dropdownu v Sidebaru."""
         return [(k, v) for k, v in self._solver_names.items()]
 
-    def run(self, solver_type, matrix):
+    def run(self, solver_type, matrix, **kwargs):
         """
         Spustí vybraný algoritmus na základě textového klíče (solver_type).
         """
@@ -41,7 +41,7 @@ class OptimizationEngine:
 
         solver_func = self._solver_functions.get(solver_type, _nearest_neighbor)
         
-        route = solver_func(matrix)
+        route = solver_func(matrix, **kwargs)
 
         self.last_execution_time = time.time() - start_time
         print(f"DEBUG: Engine finished {solver_type} | {self.last_execution_time:.4f} s")

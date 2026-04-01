@@ -2,13 +2,37 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QListWidget, QScrollArea, QFrame,
-    QSizePolicy, QApplication, QSpacerItem
+    QSizePolicy, QApplication, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
 from tspmanager import tsp_manager
+
+SOLVER_PARAMS = {
+    "NN":   [],
+    "2OPT": [],
+    "3OPT": [],
+    "ACO": [
+        {"key": "num_iterations",     "label": "Počet iterací",      "type": "int",   "default": 50,   "min": 5,    "max": 2000, "step": 10,   "tip": "Kolik cyklů ACO proběhne"},
+        {"key": "num_ants",           "label": "Počet mravenců",     "type": "int",   "default": 20,   "min": 2,    "max": 200,  "step": 1,    "tip": "Počet agentů na iteraci"},
+        {"key": "alpha",              "label": "Alpha α (feromonů)", "type": "float", "default": 1.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "tip": "Vliv feromonové stopy"},
+        {"key": "beta",               "label": "Beta β (vzdálenost)","type": "float", "default": 2.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "tip": "Vliv vzdálenosti uzlu"},
+        {"key": "vaporization_coeff", "label": "Odpařování ρ",       "type": "float", "default": 0.5,  "min": 0.01, "max": 0.99, "step": 0.05, "tip": "Jak rychle feromony mizí"},
+        {"key": "Q",                  "label": "Q (konstanta)",      "type": "float", "default": 1.0,  "min": 0.1,  "max": 50.0, "step": 0.5,  "tip": "Množství depozitovaného feromonu"},
+    ],
+    "GA": [
+        {"key": "pop_size",      "label": "Velikost populace", "type": "int",   "default": 20,   "min": 4,    "max": 500,  "step": 5,    "tip": "Počet jedinců v populaci"},
+        {"key": "generations",   "label": "Max. generace",     "type": "int",   "default": 2500, "min": 100,  "max": 20000,"step": 100,  "tip": "Maximální počet generací"},
+        {"key": "mutation_rate", "label": "Pravděp. mutace",   "type": "float", "default": 0.66, "min": 0.01, "max": 1.0,  "step": 0.01, "tip": "Šance na mutaci chromozomu"},
+    ],
+}
+
+
+
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Barevná paleta
@@ -130,27 +154,36 @@ QLineEdit::placeholder {{
 
 /* ── Hlavní tlačítko (Solve) ─────────────────────────── */
 QPushButton#PrimaryBtn {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                stop:0 {C['primary']}, stop:1 {C['primary_h']});
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #7c7ff5, stop:1 #4f52e0);
     color: white;
-    border: none;
+    border: 2px solid #818cf8;
+    border-bottom: 3px solid #3730a3;
     border-radius: 10px;
-    padding: 12px 20px;
+    padding: 11px 20px;
     font-size: 14px;
-    font-weight: 700;
-    min-height: 46px;
-    letter-spacing: 0.5px;
+    font-weight: 800;
+    min-height: 48px;
+    letter-spacing: 1px;
 }}
 QPushButton#PrimaryBtn:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                stop:0 {C['primary_h']}, stop:1 {C['primary']});
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #818cf8, stop:1 #6366f1);
+    border-color: #a5b4fc;
+    border-bottom-color: #4338ca;
 }}
 QPushButton#PrimaryBtn:pressed {{
-    background-color: {C['primary_d']};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4f46e5, stop:1 #4338ca);
+    border-color: #6366f1;
+    border-bottom-width: 2px;
+    padding-top: 12px;
+    padding-bottom: 11px;
 }}
 QPushButton#PrimaryBtn:disabled {{
-    background-color: {C['border']};
+    background: {C['border']};
     color: {C['text_faint']};
+    border-color: {C['border']};
 }}
 
 /* ── Sekundární tlačítko ─────────────────────────────── */
@@ -377,10 +410,6 @@ class Sidebar(QWidget):
         # ═══ SEKCE: Správa instancí ═══════════════════════════════════════
         layout.addWidget(_section_label("Správa instancí"))
 
-        self.file_name_input = QLineEdit("moje_instance")
-        self.file_name_input.setPlaceholderText("Název souboru bez přípony…")
-        layout.addWidget(self.file_name_input)
-
         self.export_dropdown = QComboBox()
         for fmt in tsp_manager.get_export_formats():
             self.export_dropdown.addItem(fmt)
@@ -408,6 +437,25 @@ class Sidebar(QWidget):
             self.solver_dropdown.addItem(v, k)   # text = název, data = klíč
         layout.addWidget(self.solver_dropdown)
 
+        # --- Dynamický panel parametrů ---
+        self.params_container = QWidget()
+        self.params_container.setStyleSheet(
+            f"background-color: {C['surface']}; border-radius: 8px; border: 1px solid {C['border']};"
+        )
+        self._params_form_layout = QFormLayout(self.params_container)
+        self._params_form_layout.setContentsMargins(12, 10, 12, 10)
+        self._params_form_layout.setSpacing(8)
+        self._params_form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._param_widgets: dict = {}   # key → spinbox widget
+
+        layout.addWidget(self.params_container)
+
+        # Inicializuj panel pro výchozí solver a připoj změnu solveru
+        self._update_params_panel(self.solver_dropdown.currentData())
+        self.solver_dropdown.currentIndexChanged.connect(
+            lambda _: self._update_params_panel(self.solver_dropdown.currentData())
+        )
+
         self.metric_dropdown = QComboBox()
         self.metric_dropdown.addItem("Letecká vzdálenost (Haversine)", "haversine")
         self.metric_dropdown.addItem("Silniční vzdálenost – km (OSRM)", "routing_dist")
@@ -432,7 +480,6 @@ class Sidebar(QWidget):
 
         # ═══ SEKCE: Vybrané lokality ═══════════════════════════════════════
         layout.addWidget(_section_label("Vybrané lokality"))
-
         self.points_list = QListWidget()
         self.points_list.setMinimumHeight(130)
         self.points_list.setSizePolicy(QSizePolicy.Policy.Expanding,
@@ -442,7 +489,6 @@ class Sidebar(QWidget):
         layout.addSpacing(4)
         layout.addWidget(_divider())
         layout.addSpacing(4)
-
         # ═══ Vymazat vše ═══════════════════════════════════════════════════
         clear_btn = _make_btn("🗑  Vymazat vše", "DangerBtn",
                               lambda: state.clear_all())
@@ -461,39 +507,46 @@ class Sidebar(QWidget):
     # ── Akce: export ──────────────────────────────────────────────────────
 
     def _on_export_click(self):
-        try:
-            os.makedirs("instances", exist_ok=True)
-            filename = f"{self.file_name_input.text().strip() or 'instance'}.tsp"
-            filepath = os.path.join("instances", filename)
+        fmt = self.export_dropdown.currentText()
 
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportovat instanci",
+            f"instance.tsp",
+            "TSP soubory (*.tsp);;Všechny soubory (*)"
+        )
+        if not filepath:
+            return  # uživatel zrušil dialog
+
+        if not filepath.endswith(".tsp"):
+            filepath += ".tsp"
+
+        try:
             points = state.get_points()
             if not points:
                 self._flash_btn(self.export_btn, "ErrorBtn", "✗  Žádné body!", 2500)
                 return
 
-            fmt = self.export_dropdown.currentText()
             tsp_manager.export_instance(filepath, points, fmt)
-
             self._flash_btn(self.export_btn, "SuccessBtn", "✓  Uloženo!", 2500)
-            print(f"DEBUG: Soubor uložen: {filepath}")
+            print(f"DEBUG: Uloženo do {filepath}")
 
         except Exception as ex:
             print(f"ERROR EXPORT: {ex}")
             self._flash_btn(self.export_btn, "ErrorBtn", "✗  Chyba!", 2500)
-
     # ── Akce: import ──────────────────────────────────────────────────────
 
     def _on_import_click(self):
-        filename = f"{self.file_name_input.text().strip() or 'instance'}.tsp"
-        filepath = os.path.join("instances", filename)
-
-        if not os.path.exists(filepath):
-            print(f"ERROR: Soubor nenalezen: {filepath}")
-            self._flash_btn(self.import_btn, "ErrorBtn", "✗  Nenalezen!", 2500)
-            return
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Načíst instanci",
+            "",
+            "TSP soubory (*.tsp);;Všechny soubory (*)"
+        )
+        if not filepath:
+            return  # uživatel zrušil dialog
 
         try:
-            # Detekce GEO formátu podle hlavičky
             is_geo = False
             with open(filepath, "r", encoding="utf-8") as f:
                 for _ in range(20):
@@ -512,13 +565,11 @@ class Sidebar(QWidget):
                 state.notify(("center_map", new_points[0]))
                 self._flash_btn(self.import_btn, "SuccessBtn", "✓  Načteno!", 2500)
             else:
-                print("WARNING: Soubor neobsahuje žádné body.")
                 self._flash_btn(self.import_btn, "ErrorBtn", "✗  Prázdný soubor!", 2500)
 
         except Exception as ex:
             print(f"ERROR IMPORT: {ex}")
             self._flash_btn(self.import_btn, "ErrorBtn", "✗  Chyba importu!", 2500)
-
     # ── Akce: výpočet trasy ───────────────────────────────────────────────
 
     def _on_solve_click(self):
@@ -534,11 +585,13 @@ class Sidebar(QWidget):
             solver_key = self.solver_dropdown.currentData()
             metric_key = self.metric_dropdown.currentData()
 
+            solver_kwargs = self._get_solver_params()
             ordered_cities, visual_route, total_dist = tsp_manager.solve(
-                points=points,
-                solver_type=solver_key,
-                distance_metric=metric_key
-            )
+            points=points,
+            solver_type=solver_key,
+            distance_metric=metric_key,
+            **solver_kwargs
+        )
 
             # Aktualizuj mapu přes AppState
             state.update_route(visual_route)
@@ -619,11 +672,6 @@ class Sidebar(QWidget):
             for i, (lat, lon) in enumerate(points):
                 self.points_list.addItem(f"{i + 1}. {lat:.4f}, {lon:.4f}")
 
-        # Reset export tlačítka (mohlo být v success stavu)
-        self.export_btn.setObjectName("SecondaryBtn")
-        self.export_btn.setText("⬆  Export")
-        self.export_btn.setStyleSheet("")     # obnov stylesheet z rodiče
-
     # ── Pomocná: dočasně změní styl tlačítka a pak ho resetuje ───────────
 
     def _flash_btn(self, btn: QPushButton, obj_name: str, text: str, ms: int):
@@ -644,3 +692,53 @@ class Sidebar(QWidget):
             btn.style().polish(btn)
 
         QTimer.singleShot(ms, _reset)
+
+    def _update_params_panel(self, solver_key: str):
+        """Dynamicky zobrazí/skryje parametry podle zvoleného solveru."""
+        params = SOLVER_PARAMS.get(solver_key, [])
+
+        # Smazat staré widgety z formu
+        while self._params_form_layout.rowCount():
+            self._params_form_layout.removeRow(0)
+        self._param_widgets.clear()
+
+        if not params:
+            self.params_container.setVisible(False)
+            return
+
+        self.params_container.setVisible(True)
+
+        label_style = f"color: {C['text_dim']}; font-size: 12px;"
+        spin_style = (
+            f"background-color: {C['surface2']}; color: {C['text']};"
+            f"border: 1px solid {C['border']}; border-radius: 6px;"
+            f"padding: 4px 8px; min-height: 28px; font-size: 12px;"
+        )
+
+        for p in params:
+            if p["type"] == "int":
+                spin = QSpinBox()
+                spin.setRange(p["min"], p["max"])
+                spin.setSingleStep(p["step"])
+                spin.setValue(p["default"])
+            else:
+                spin = QDoubleSpinBox()
+                spin.setRange(p["min"], p["max"])
+                spin.setSingleStep(p["step"])
+                spin.setValue(p["default"])
+                spin.setDecimals(2)
+
+            spin.setToolTip(p["tip"])
+            spin.setStyleSheet(spin_style)
+            spin.setFixedHeight(30)
+
+            lbl = QLabel(p["label"])
+            lbl.setStyleSheet(label_style)
+            lbl.setToolTip(p["tip"])
+
+            self._params_form_layout.addRow(lbl, spin)
+            self._param_widgets[p["key"]] = spin
+
+    def _get_solver_params(self) -> dict:
+        """Přečte aktuální hodnoty ze spinboxů a vrátí jako kwargs pro solver."""
+        return {key: widget.value() for key, widget in self._param_widgets.items()}

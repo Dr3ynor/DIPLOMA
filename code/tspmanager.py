@@ -19,7 +19,7 @@ class TSPManager:
     def export_instance(self, filepath, points, strategy_name):
         self.io_handler.export(filepath, points, strategy_name)
 
-    def solve(self, points, solver_type="NN", distance_metric="haversine"):
+    def solve(self, points, solver_type="NN", distance_metric="haversine", **solver_kwargs):
         """
         Hlavní metoda pro výpočet trasy.
         Vrací tuple (uspořádané_zastávky, vizuální_trasa, celková_vzdálenost).
@@ -35,7 +35,8 @@ class TSPManager:
         matrix = self.matrix_builder.build(points, mode=actual_metric)
         
         # 3. Spuštění algoritmu (indexy měst)
-        route_indices = self.engine.run(solver_type, matrix)
+        print(f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}' and kwargs: {solver_kwargs}")
+        route_indices = self.engine.run(solver_type, matrix, **solver_kwargs)
 
         # 4. Výpočet celkové délky trasy
         total_distance = self._calculate_total_tour_distance(route_indices, matrix)
