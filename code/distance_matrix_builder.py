@@ -37,7 +37,7 @@ class DistanceMatrixBuilder:
         - Haversine: Vrátí jen původní body (vykreslí se přímky).
         - OSRM: Vrátí detailní body silnice (vykreslí se zatáčky).
         """
-        if mode == "haversine" or not ordered_points:
+        if mode in ["haversine", "euc_2d"] or not ordered_points:
             # Pro vzdušnou čáru nepotřebujeme extra body, stačí propojit města
             return ordered_points
 
