@@ -7,6 +7,7 @@ class AppState(Subject):
         self._route = []
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
         self._is_geographic = True
+        self._show_waypoint_indices = True
 
     def add_point(self, lat, lon):
         self._points.append((lat, lon))
@@ -41,6 +42,14 @@ class AppState(Subject):
 
     def get_map_url(self):
         return self._map_url
+
+    def get_show_waypoint_indices(self):
+        return self._show_waypoint_indices
+
+    def set_show_waypoint_indices(self, show: bool, notify_change: bool = True):
+        self._show_waypoint_indices = bool(show)
+        if notify_change:
+            self.notify(("waypoint_indices", self._show_waypoint_indices))
 
     def is_geo(self):
         return self._is_geographic

@@ -1,12 +1,14 @@
 import json
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineSettings
-from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt
 
+from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtWebEngineCore import QWebEngineSettings
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+
+from api_status import ApiStatusPanel
 from app_state import state
-from theme import PALETTES, build_map_settings_button_style
+from theme import PALETTES, build_api_status_panel_style, build_map_settings_button_style
 
 # ---------------------------------------------------------------------------
 # HTML šablona s Leaflet mapou a QWebChannel mostem
@@ -87,6 +89,7 @@ MAP_HTML = """<!DOCTYPE html>
     var markers   = [];
     var routeLayer = null;
     var bridge     = null;
+    var showWaypointIndices = true;
 
     // ── QWebChannel most ───────────────────────────────────────────────────
     new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -99,15 +102,23 @@ MAP_HTML = """<!DOCTYPE html>
         if (bridge) bridge.onMapClick(e.latlng.lat, e.latlng.lng);
     });
 
-    // ── Pomocná: vytvoř divIcon pro marker (s číslem) ──────────────────────
+    // ── Pomocná: vytvoř divIcon pro marker (s číslem nebo čistý kroužek) ──
     function makeIcon(index) {
+        var label = showWaypointIndices ? String(index + 1) : '';
         return L.divIcon({
             className: '',
-            html: '<div class="tsp-marker">' + (index + 1) + '</div>',
+            html: '<div class="tsp-marker">' + label + '</div>',
             iconSize: [26, 26],
             iconAnchor: [13, 13],
             popupAnchor: [0, -16]
         });
+    }
+
+    function setShowWaypointIndices(show) {
+        showWaypointIndices = !!show;
+        for (var i = 0; i < markers.length; i++) {
+            markers[i].setIcon(makeIcon(i));
+        }
     }
 
     // ── Přidej jeden marker ────────────────────────────────────────────────
@@ -265,22 +276,34 @@ class MapViewer(QWidget):
 
         # Nastavit HTML (base URL = https://localhost/ aby šly CDN resources)
         self.view.setHtml(MAP_HTML, QUrl("https://localhost/"))
+        self.view.loadFinished.connect(self._on_map_html_ready)
 
         # Přihlásit se k AppState notifikacím
         state.attach(self.sync_with_state)
 
-        self._settings_btn = QPushButton("⚙", self)
+        # U+2699 + VS15 = textová varianta kolečka (emoji bývá vizuálně níž v rámečku)
+        self._settings_btn = QPushButton("\u2699\ufe0e", self)
         self._settings_btn.setObjectName("MapSettingsBtn")
         self._settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._settings_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._settings_btn.clicked.connect(self.settings_requested.emit)
+
+        self._api_panel = ApiStatusPanel(parent=self)
+
         self.set_chrome_palette(PALETTES["dark"])
+        self._api_panel.raise_()
+        self._api_panel.show()
         self._settings_btn.raise_()
         self._settings_btn.show()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         m = 14
+        self._api_panel.adjustSize()
+        self._api_panel.move(
+            self.width() - self._api_panel.width() - m,
+            m,
+        )
         self._settings_btn.move(
             self.width() - self._settings_btn.width() - m,
             self.height() - self._settings_btn.height() - m,
@@ -288,6 +311,19 @@ class MapViewer(QWidget):
 
     def set_chrome_palette(self, palette: dict):
         self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
+        self._api_panel.apply_chrome_palette(
+            build_api_status_panel_style(palette), palette
+        )
+
+    def _on_map_html_ready(self, ok: bool):
+        if not ok:
+            return
+        try:
+            self.view.loadFinished.disconnect(self._on_map_html_ready)
+        except TypeError:
+            pass
+        show = state.get_show_waypoint_indices()
+        self._js(f"setShowWaypointIndices({str(show).lower()});")
 
     # ── Interní pomocníci ──────────────────────────────────────────────────
 
@@ -363,6 +399,11 @@ class MapViewer(QWidget):
 
         # --- Smazání bodu (handled v _handle_remove přímo) ---
         if isinstance(data, tuple) and data[0] == "delete":
+            return
+
+        if isinstance(data, tuple) and data[0] == "waypoint_indices":
+            show = data[1]
+            self._js(f"setShowWaypointIndices({str(show).lower()});")
             return
 
         # --- Plná aktualizace seznamu bodů ---

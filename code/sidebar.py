@@ -217,8 +217,8 @@ class Sidebar(QWidget):
         layout.addSpacing(4)
 
         # ═══ SEKCE: Vybrané lokality (rozbalitelné) ═══════════════════════
-        self._points_section_expanded = True
-        self.points_section_toggle = QPushButton("▼  VYBRANÉ LOKALITY")
+        self._points_section_expanded = False
+        self.points_section_toggle = QPushButton("▶  VYBRANÉ LOKALITY")
         self.points_section_toggle.setObjectName("SectionToggleBtn")
         self.points_section_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.points_section_toggle.setSizePolicy(
@@ -232,6 +232,7 @@ class Sidebar(QWidget):
         self.points_list.setSizePolicy(QSizePolicy.Policy.Expanding,
                                        QSizePolicy.Policy.Expanding)
         layout.addWidget(self.points_list, 1)   # stretchable
+        self.points_list.setVisible(False)
 
         layout.addSpacing(4)
         layout.addWidget(self._make_divider())
@@ -426,6 +427,10 @@ class Sidebar(QWidget):
 
         # --- Přesun kamery → sidebar nemusí nic dělat ---
         if isinstance(data, tuple) and data[0] == "center_map":
+            return
+
+        # --- Volba zobrazení čísel na mapě ---
+        if isinstance(data, tuple) and data[0] == "waypoint_indices":
             return
 
         # --- Aktualizace trasy ---

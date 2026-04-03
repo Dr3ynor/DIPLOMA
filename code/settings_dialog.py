@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QComboBox,
     QPushButton,
+    QCheckBox,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 
@@ -15,11 +16,12 @@ class SettingsDialog(QDialog):
     """Dialog aplikačního nastavení (rozšiřitelné o další položky)."""
 
     theme_changed = pyqtSignal(str)
+    waypoint_indices_changed = pyqtSignal(bool)
 
-    def __init__(self, parent, initial_mode: str):
+    def __init__(self, parent, initial_mode: str, show_waypoint_indices: bool = True):
         super().__init__(parent)
         self.setWindowTitle("Nastavení")
-        self.resize(360, 200)
+        self.resize(360, 240)
         self._mode = initial_mode if initial_mode in PALETTES else "dark"
 
         root = QVBoxLayout(self)
@@ -37,6 +39,11 @@ class SettingsDialog(QDialog):
         self._theme_combo.currentIndexChanged.connect(self._on_theme_picked)
         row.addWidget(self._theme_combo, 1)
         root.addLayout(row)
+
+        self._indices_check = QCheckBox("Zobrazit pořadí bodů na mapě (čísla v markerech)")
+        self._indices_check.setChecked(show_waypoint_indices)
+        self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
+        root.addWidget(self._indices_check)
 
         root.addStretch(1)
 

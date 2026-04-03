@@ -309,6 +309,25 @@ QLabel {{
     color: {P['text_dim']};
     font-size: 13px;
 }}
+QCheckBox {{
+    color: {P['text']};
+    font-size: 13px;
+    spacing: 10px;
+}}
+QCheckBox::indicator {{
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid {P['border']};
+    background-color: {P['surface2']};
+}}
+QCheckBox::indicator:hover {{
+    border-color: {P['primary']};
+}}
+QCheckBox::indicator:checked {{
+    background-color: {P['primary']};
+    border-color: {P['primary']};
+}}
 """
         + combo_box_qss(P)
         + secondary_button_qss(P)
@@ -322,8 +341,9 @@ QPushButton#MapSettingsBtn {{
     color: {P['text']};
     border: 1px solid {P['border']};
     border-radius: 20px;
-    font-size: 20px;
-    padding: 0;
+    font-size: 18px;
+    text-align: center;
+    padding: 0 0 5px 0;
     min-width: 40px;
     max-width: 40px;
     min-height: 40px;
@@ -333,6 +353,26 @@ QPushButton#MapSettingsBtn:hover {{
     background-color: {P['surface2']};
     border-color: {P['primary']};
     color: {P['primary']};
+}}
+"""
+
+
+def build_api_status_panel_style(P: dict) -> str:
+    """Stejné materiály jako MapSettingsBtn / combobox (surface, border, radius 8)."""
+    return f"""
+QWidget#ApiStatusPanel {{
+    background-color: {P['surface']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QWidget#ApiStatusRow {{
+    background-color: transparent;
+}}
+QLabel#ApiStatusLabel {{
+    color: {P['text_dim']};
+    font-size: 12px;
+    font-weight: 600;
 }}
 """
 
