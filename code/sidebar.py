@@ -79,6 +79,27 @@ QLabel#SectionLabel {{
     letter-spacing: 1.5px;
 }}
 
+/* ── Rozbalovací nadpis sekce (klik) ─────────────────── */
+QPushButton#SectionToggleBtn {{
+    background-color: transparent;
+    color: {C['text_dim']};
+    border: none;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-align: left;
+    padding: 8px 6px 6px 4px;
+    margin: 0;
+}}
+QPushButton#SectionToggleBtn:hover {{
+    color: {C['text']};
+    background-color: {C['surface2']};
+}}
+QPushButton#SectionToggleBtn:pressed {{
+    color: {C['primary']};
+}}
+
 /* ── Vzdálenost výsledek ─────────────────────────────── */
 QLabel#DistanceLabel {{
     color: {C['primary']};
@@ -397,11 +418,10 @@ class Sidebar(QWidget):
         self.map_selector = QComboBox()
         for name, url in self.MAP_SOURCES.items():
             self.map_selector.addItem(name, url)
+        self.map_selector.currentIndexChanged.connect(
+            lambda _idx: self._apply_selected_map_layer()
+        )
         layout.addWidget(self.map_selector)
-
-        apply_map_btn = _make_btn("Použít mapový podklad", "SecondaryBtn",
-                                  lambda: self._on_apply_map_click())
-        layout.addWidget(apply_map_btn)
 
         layout.addSpacing(4)
         layout.addWidget(_divider())
@@ -478,8 +498,17 @@ class Sidebar(QWidget):
         layout.addWidget(_divider())
         layout.addSpacing(4)
 
-        # ═══ SEKCE: Vybrané lokality ═══════════════════════════════════════
-        layout.addWidget(_section_label("Vybrané lokality"))
+        # ═══ SEKCE: Vybrané lokality (rozbalitelné) ═══════════════════════
+        self._points_section_expanded = True
+        self.points_section_toggle = QPushButton("▼  VYBRANÉ LOKALITY")
+        self.points_section_toggle.setObjectName("SectionToggleBtn")
+        self.points_section_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.points_section_toggle.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.points_section_toggle.clicked.connect(self._toggle_points_section)
+        layout.addWidget(self.points_section_toggle)
+
         self.points_list = QListWidget()
         self.points_list.setMinimumHeight(130)
         self.points_list.setSizePolicy(QSizePolicy.Policy.Expanding,
@@ -499,10 +528,16 @@ class Sidebar(QWidget):
 
     # ── Akce: mapový podklad ───────────────────────────────────────────────
 
-    def _on_apply_map_click(self):
+    def _apply_selected_map_layer(self):
         url = self.map_selector.currentData()
         if url:
             state.set_map_url(url)
+
+    def _toggle_points_section(self):
+        self._points_section_expanded = not self._points_section_expanded
+        self.points_list.setVisible(self._points_section_expanded)
+        mark = "▼  " if self._points_section_expanded else "▶  "
+        self.points_section_toggle.setText(mark + "VYBRANÉ LOKALITY")
 
     # ── Akce: export ──────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("TSP Solver")
-        self.setMinimumSize(1100, 650)
+        # self.setMinimumSize(1100, 650)
 
         central = QWidget()
         central.setStyleSheet("background-color: #0f1117;")
