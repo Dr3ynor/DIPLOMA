@@ -1,11 +1,12 @@
 import json
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtCore import QObject, pyqtSlot, QUrl
+from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt
 
 from app_state import state
+from theme import PALETTES, build_map_settings_button_style
 
 # ---------------------------------------------------------------------------
 # HTML šablona s Leaflet mapou a QWebChannel mostem
@@ -235,6 +236,8 @@ class _MapBridge(QObject):
 # Hlavní widget MapViewer
 # ---------------------------------------------------------------------------
 class MapViewer(QWidget):
+    settings_requested = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self._marker_count = 0
@@ -265,6 +268,26 @@ class MapViewer(QWidget):
 
         # Přihlásit se k AppState notifikacím
         state.attach(self.sync_with_state)
+
+        self._settings_btn = QPushButton("⚙", self)
+        self._settings_btn.setObjectName("MapSettingsBtn")
+        self._settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._settings_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._settings_btn.clicked.connect(self.settings_requested.emit)
+        self.set_chrome_palette(PALETTES["dark"])
+        self._settings_btn.raise_()
+        self._settings_btn.show()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        m = 14
+        self._settings_btn.move(
+            self.width() - self._settings_btn.width() - m,
+            self.height() - self._settings_btn.height() - m,
+        )
+
+    def set_chrome_palette(self, palette: dict):
+        self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
 
     # ── Interní pomocníci ──────────────────────────────────────────────────
 
