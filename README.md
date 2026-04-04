@@ -11,7 +11,6 @@
     * **Nové metriky:** Přidat další metriky kromě času/vzdálenosti/haver.
 * **Systémová integrita:**
     * **Check integrity GUI:** Ošetřit stavy, aby uživatel nemohl spouštět akce tam, kde to nedává smysl.
-    * **Automatizace výběru:** Smazat tlačítko výběru podkladu – ať se nastaví samo při zvolení.
     * Implementace cache.
 
 ## 🛠️ GUI & UX (Uživatelské rozhraní)
@@ -21,7 +20,7 @@
     * Nastavení zobrazení/skrytí indexů jednotlivých bodů.
 * **Layout & Design:**
     * Možná upravit GUI (Top bar / Bottom bar).
-    * Settings appky: Dark/light theme, clear cache.
+    * Settings appky: clear cache.
 * **Mapové podklady:**
     * Esri satellite, street.
     * Stamen terrain, Stamen (?).

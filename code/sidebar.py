@@ -2,15 +2,55 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QListWidget, QScrollArea, QFrame,
-    QSizePolicy, QApplication, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox
+    QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
+    QProgressBar,
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
 from tspmanager import tsp_manager
 from theme import PALETTES, build_sidebar_stylesheet
+
+
+class _SolveWorker(QObject):
+    """Běží v QThreadu — neblokuje GUI, aby šel zobrazit indeterministický progress bar."""
+
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        points: list,
+        solver_key,
+        metric_key: str,
+        solver_kwargs: dict,
+        is_geographic: bool,
+    ):
+        super().__init__()
+        self._points = list(points)
+        self._solver_key = solver_key
+        self._metric_key = metric_key
+        self._solver_kwargs = dict(solver_kwargs)
+        self._is_geographic = is_geographic
+
+    def run(self):
+        try:
+            result = tsp_manager.solve(
+                points=self._points,
+                solver_type=self._solver_key,
+                distance_metric=self._metric_key,
+                is_geographic=self._is_geographic,
+                **self._solver_kwargs,
+            )
+            self.finished.emit(result)
+        except Exception as ex:
+            import traceback
+
+            traceback.print_exc()
+            self.failed.emit(str(ex))
+
 
 SOLVER_PARAMS = {
     "NN":   [],
@@ -82,6 +122,7 @@ class Sidebar(QWidget):
         self._palette = dict(PALETTES[mode])
         self._dividers: list = []
         self.setStyleSheet(build_sidebar_stylesheet(self._palette))
+        self._solve_running = False
 
         self._build_ui()
         state.attach(self.update_ui)
@@ -206,6 +247,14 @@ class Sidebar(QWidget):
         self.solve_btn.clicked.connect(lambda: self._on_solve_click())
         layout.addWidget(self.solve_btn)
 
+        self._solve_progress_bar = QProgressBar()
+        self._solve_progress_bar.setRange(0, 0)
+        self._solve_progress_bar.setTextVisible(False)
+        self._solve_progress_bar.setFixedHeight(5)
+        self._solve_progress_bar.setVisible(False)
+        layout.addWidget(self._solve_progress_bar)
+        self._refresh_solve_progress_bar_style()
+
         self.distance_label = QLabel("Celková vzdálenost: — km")
         self.distance_label.setObjectName("DistanceLabel")
         self.distance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -278,6 +327,27 @@ class Sidebar(QWidget):
                 f"background-color: {self._palette['border']}; min-height: 1px; max-height: 1px; border: none;"
             )
         self._refresh_param_widgets_style()
+        self._refresh_solve_progress_bar_style()
+
+    def _refresh_solve_progress_bar_style(self):
+        if not hasattr(self, "_solve_progress_bar"):
+            return
+        p = self._palette
+        self._solve_progress_bar.setStyleSheet(
+            f"""
+            QProgressBar {{
+                border: none;
+                border-radius: 3px;
+                background-color: {p['surface2']};
+                max-height: 6px;
+                min-height: 4px;
+            }}
+            QProgressBar::chunk {{
+                background-color: {p['primary']};
+                border-radius: 3px;
+            }}
+            """
+        )
 
     def _refresh_param_widgets_style(self):
         label_style = f"color: {self._palette['text_dim']}; font-size: 12px;"
@@ -375,50 +445,64 @@ class Sidebar(QWidget):
             self._flash_btn(self.import_btn, "ErrorBtn", "✗  Chyba importu!", 2500)
     # ── Akce: výpočet trasy ───────────────────────────────────────────────
 
+    def _finish_solve_ui(self):
+        self._solve_running = False
+        self.solve_btn.setText("⚡  SPOČÍTAT TRASU")
+        self.solve_btn.setEnabled(True)
+
+    def _on_solve_finished(self, result):
+        self._solve_progress_bar.setVisible(False)
+        _ordered_cities, visual_route, total_dist = result
+        state.update_route(visual_route)
+        metric_key = self._pending_metric_key
+        if metric_key == "routing_time":
+            if total_dist >= 120:
+                hours = total_dist / 60
+                text = f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
+            else:
+                text = f"Celkem: {total_dist:.1f} minut"
+        else:
+            text = f"Celkem: {total_dist:.2f} km"
+        self.distance_label.setText(text)
+        print(f"Trasa nalezena: {total_dist:.2f}")
+        self._finish_solve_ui()
+
+    def _on_solve_failed(self, msg: str):
+        self._solve_progress_bar.setVisible(False)
+        print(f"ERROR SOLVE: {msg}")
+        self._finish_solve_ui()
+
     def _on_solve_click(self):
+        if self._solve_running:
+            return
         points = state.get_points()
         if len(points) < 2:
             return
 
+        is_geographic = state.is_geo()
+        solver_key = self.solver_dropdown.currentData()
+        metric_key = self.metric_dropdown.currentData()
+        solver_kwargs = self._get_solver_params()
+        self._pending_metric_key = metric_key
+
+        self._solve_running = True
         self.solve_btn.setText("⏳  Počítám…")
         self.solve_btn.setEnabled(False)
-        QApplication.processEvents()   # vykresli "Počítám" před blokováním
+        self._solve_progress_bar.setVisible(True)
 
-        try:
-            solver_key = self.solver_dropdown.currentData()
-            metric_key = self.metric_dropdown.currentData()
-
-            solver_kwargs = self._get_solver_params()
-            ordered_cities, visual_route, total_dist = tsp_manager.solve(
-            points=points,
-            solver_type=solver_key,
-            distance_metric=metric_key,
-            **solver_kwargs
+        self._solve_thread = QThread()
+        self._solve_worker = _SolveWorker(
+            points, solver_key, metric_key, solver_kwargs, is_geographic
         )
-
-            # Aktualizuj mapu přes AppState
-            state.update_route(visual_route)
-
-            # Zobraz výsledek
-            if metric_key == "routing_time":
-                if total_dist >= 120:
-                    hours = total_dist / 60
-                    text = f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
-                else:
-                    text = f"Celkem: {total_dist:.1f} minut"
-            else:
-                text = f"Celkem: {total_dist:.2f} km"
-
-            self.distance_label.setText(text)
-            print(f"Trasa nalezena: {total_dist:.2f}")
-
-        except Exception as ex:
-            print(f"ERROR SOLVE: {ex}")
-            import traceback
-            traceback.print_exc()
-        finally:
-            self.solve_btn.setText("⚡  SPOČÍTAT TRASU")
-            self.solve_btn.setEnabled(True)
+        self._solve_worker.moveToThread(self._solve_thread)
+        self._solve_thread.started.connect(self._solve_worker.run)
+        self._solve_worker.finished.connect(self._on_solve_finished)
+        self._solve_worker.failed.connect(self._on_solve_failed)
+        self._solve_worker.finished.connect(self._solve_thread.quit)
+        self._solve_worker.failed.connect(self._solve_thread.quit)
+        self._solve_thread.finished.connect(self._solve_worker.deleteLater)
+        self._solve_thread.finished.connect(self._solve_thread.deleteLater)
+        self._solve_thread.start()
 
     # ── Observer callback z AppState ──────────────────────────────────────
 

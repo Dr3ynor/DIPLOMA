@@ -44,8 +44,8 @@ OSRM_HEALTHCHECK_URL = (
 
 API_STATUS_TARGETS: tuple[ApiStatusTarget, ...] = (
     ApiStatusTarget(
-        id="engine_5000",
-        label="Engine :5000",
+        id="osrm_5000",
+        label="OSRM:5000",
         url=OSRM_HEALTHCHECK_URL,
         timeout_ms=3000,
     ),

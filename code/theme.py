@@ -370,7 +370,7 @@ QWidget#ApiStatusRow {{
     background-color: transparent;
 }}
 QLabel#ApiStatusLabel {{
-    color: {P['text_dim']};
+    color: {P['text']};
     font-size: 12px;
     font-weight: 600;
 }}

@@ -19,16 +19,25 @@ class TSPManager:
     def export_instance(self, filepath, points, strategy_name):
         self.io_handler.export(filepath, points, strategy_name)
 
-    def solve(self, points, solver_type="NN", distance_metric="haversine", **solver_kwargs):
+    def solve(
+        self,
+        points,
+        solver_type="NN",
+        distance_metric="haversine",
+        *,
+        is_geographic=None,
+        **solver_kwargs,
+    ):
         """
         Hlavní metoda pro výpočet trasy.
         Vrací tuple (uspořádané_zastávky, vizuální_trasa, celková_vzdálenost).
+        is_geographic: pokud není None, přepíše čtení z AppState (např. při běhu mimo GUI vlákno).
         """
         if not points or len(points) < 2:
             return [], [], 0.0
 
         # 1. Rozhodnutí o metrice
-        is_geo = state.is_geo()
+        is_geo = state.is_geo() if is_geographic is None else is_geographic
         actual_metric = distance_metric if is_geo else "euc_2d"
         
         # 2. Sestavení matice vzdáleností
