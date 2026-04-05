@@ -387,10 +387,20 @@ QFrame#RoutingProfileBar {{
     border: 1px solid {P['border']};
     border-radius: 8px;
 }}
-QToolButton#RoutingProfileBtn {{
+QWidget#RoutingProfileTrack {{
     background-color: {P['surface2']};
+    border-radius: 8px;
+    border: none;
+}}
+QFrame#RoutingProfileIndicator {{
+    background-color: {P['primary']};
+    border-radius: 7px;
+    border: none;
+}}
+QToolButton#RoutingProfileBtn {{
+    background-color: transparent;
     color: {P['text']};
-    border: 1px solid {P['border']};
+    border: 1px solid transparent;
     border-radius: 8px;
     padding: 0;
     margin: 0;
@@ -404,13 +414,18 @@ QToolButton#RoutingProfileBtn:hover {{
     color: {P['primary']};
 }}
 QToolButton#RoutingProfileBtn:checked {{
-    background-color: {P['primary']};
+    background-color: transparent;
     color: {P['text']};
-    border-color: {P['primary']};
+    border-color: transparent;
+}}
+QToolButton#RoutingProfileBtn:checked:hover {{
+    background-color: transparent;
+    border-color: transparent;
+    color: {P['text']};
 }}
 QToolButton#RoutingProfileBtn:disabled {{
     color: {P['text_faint']};
-    background-color: {P['surface']};
+    background-color: transparent;
 }}
 """
 
