@@ -9,11 +9,13 @@ from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 from api_status import ApiStatusPanel
 from app_state import state
 from map_search_bar import MapSearchBar
+from routing_profile_bar import RoutingProfileBar
 from theme import (
     PALETTES,
     build_api_status_panel_style,
     build_map_search_bar_style,
     build_map_settings_button_style,
+    build_routing_profile_bar_style,
 )
 
 # ---------------------------------------------------------------------------
@@ -299,9 +301,18 @@ class MapViewer(QWidget):
         self._search_bar = MapSearchBar(self)
         self._search_bar.location_picked.connect(self._on_search_location)
 
+        self._routing_bar = RoutingProfileBar(
+            self, current_key=state.get_ors_routing_profile()
+        )
+        self._routing_bar.profile_changed.connect(
+            lambda k: state.set_ors_routing_profile(k, persist=True)
+        )
+
         self.set_chrome_palette(PALETTES["dark"])
         self._search_bar.raise_()
         self._search_bar.show()
+        self._routing_bar.raise_()
+        self._routing_bar.show()
         self._api_panel.raise_()
         self._api_panel.show()
         self._settings_btn.raise_()
@@ -312,7 +323,10 @@ class MapViewer(QWidget):
         m = 14
         # Odstup od Leaflet zoom (vlevo nahoře), aby se panel nepřekrýval s +/−
         leaflet_zoom_spacer = 56
-        self._search_bar.move(m + leaflet_zoom_spacer, m)
+        sb_x = m + leaflet_zoom_spacer
+        self._search_bar.move(sb_x, m)
+        gap = 8
+        self._routing_bar.move(sb_x + self._search_bar.width() + gap, m)
         self._api_panel.adjustSize()
         self._api_panel.move(
             self.width() - self._api_panel.width() - m,
@@ -323,12 +337,14 @@ class MapViewer(QWidget):
             self.height() - self._settings_btn.height() - m,
         )
         self._search_bar.raise_()
+        self._routing_bar.raise_()
         self._api_panel.raise_()
         self._settings_btn.raise_()
 
     def set_chrome_palette(self, palette: dict):
         self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
         self._search_bar.apply_palette_stylesheet(build_map_search_bar_style(palette))
+        self._routing_bar.setStyleSheet(build_routing_profile_bar_style(palette))
         self._api_panel.apply_chrome_palette(
             build_api_status_panel_style(palette), palette
         )
@@ -408,6 +424,7 @@ class MapViewer(QWidget):
         """Hlavní observer – reaguje na všechny notifikace z AppState."""
 
         self._search_bar.set_geo_mode(state.is_geo())
+        self._routing_bar.set_geo_enabled(state.is_geo())
 
         # --- Přesun kamery ---
         if isinstance(data, tuple) and data[0] == "center_map":

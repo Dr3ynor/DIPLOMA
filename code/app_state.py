@@ -1,5 +1,8 @@
 from subject import Subject
 
+from openrouteservice_routing import DEFAULT_ORS_PROFILE_KEY
+
+
 class AppState(Subject):
     def __init__(self):
         super().__init__()
@@ -8,6 +11,7 @@ class AppState(Subject):
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
         self._is_geographic = True
         self._show_waypoint_indices = True
+        self._ors_routing_profile = DEFAULT_ORS_PROFILE_KEY
 
     def add_point(self, lat, lon):
         self._points.append((lat, lon))
@@ -42,6 +46,19 @@ class AppState(Subject):
 
     def get_map_url(self):
         return self._map_url
+
+    def get_ors_routing_profile(self) -> str:
+        return self._ors_routing_profile
+
+    def set_ors_routing_profile(self, key: str, *, persist: bool = True) -> None:
+        from app_settings import normalize_ors_routing_profile, save_ors_routing_profile
+
+        k = normalize_ors_routing_profile(key)
+        if k == self._ors_routing_profile:
+            return
+        self._ors_routing_profile = k
+        if persist:
+            save_ors_routing_profile(k)
 
     def get_show_waypoint_indices(self):
         return self._show_waypoint_indices

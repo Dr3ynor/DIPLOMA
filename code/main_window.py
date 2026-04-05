@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QMainWindow, QHBoxLayout, QWidget
 from app_state import state
 from app_settings import (
     load_map_tile_url,
+    load_ors_routing_profile,
     load_show_waypoint_indices,
     load_theme,
     save_map_tile_url,
@@ -25,6 +26,7 @@ class MainWindow(QMainWindow):
             load_show_waypoint_indices(), notify_change=False
         )
         state.set_map_url(load_map_tile_url())
+        state.set_ors_routing_profile(load_ors_routing_profile(), persist=False)
 
         self._central_widget = QWidget()
         layout = QHBoxLayout(self._central_widget)

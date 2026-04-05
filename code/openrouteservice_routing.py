@@ -16,15 +16,30 @@ import requests
 
 DEFAULT_ORS_BASE_URL = "https://api.openrouteservice.org"
 
-# Lokální OSRM (DistanceMatrixBuilder, ApiStatusPanel healthcheck) – jedna pravda pro host/port/cestu.
-OSRM_LOCAL_TABLE_URL = "http://localhost:5000/table/v1/driving/"
-OSRM_LOCAL_ROUTE_URL = "http://localhost:5000/route/v1/driving/"
+# Lokální OSRM (DistanceMatrixBuilder, ApiStatusPanel healthcheck) – výchozí = driving.
+OSRM_LOCAL_HOST = "http://localhost:5000"
+OSRM_LOCAL_TABLE_URL = f"{OSRM_LOCAL_HOST}/table/v1/driving/"
+OSRM_LOCAL_ROUTE_URL = f"{OSRM_LOCAL_HOST}/route/v1/driving/"
 
+# Logický klíč aplikace → segment URL u ORS v2 (viz https://openrouteservice.org/dev/#/api-docs/v2/matrix/{profile}/post )
 ORS_PROFILE_SLUGS: dict[str, str] = {
     "car": "driving-car",
-    "hgv": "driving-hgv",
     "bike": "cycling-regular",
     "foot": "foot-walking",
+}
+
+# Pořadí a popisky v UI (xor – vždy právě jeden profil).
+ORS_ROUTING_PROFILE_UI: tuple[tuple[str, str], ...] = (
+    ("Auto", "car"),
+    ("Pěší", "foot"),
+    ("Kolo", "bike"),
+)
+
+# Lokální OSRM používá jiné názvy profilů v cestě (/table/v1/{segment}/).
+OSRM_LOCAL_PROFILE_SEGMENT: dict[str, str] = {
+    "car": "driving",
+    "bike": "cycling",
+    "foot": "foot",
 }
 
 DEFAULT_ORS_PROFILE_KEY = "car"
@@ -45,6 +60,20 @@ def ors_profile_slug(logical_key: str | None) -> str:
         )
         return ORS_PROFILE_SLUGS[DEFAULT_ORS_PROFILE_KEY]
     return slug
+
+
+def osrm_local_table_url(logical_key: str | None) -> str:
+    """URL základ pro OSRM Table API podle stejného logického klíče jako ORS."""
+    key = logical_key if logical_key else DEFAULT_ORS_PROFILE_KEY
+    seg = OSRM_LOCAL_PROFILE_SEGMENT.get(key, "driving")
+    return f"{OSRM_LOCAL_HOST}/table/v1/{seg}/"
+
+
+def osrm_local_route_url(logical_key: str | None) -> str:
+    """URL základ pro OSRM Route API."""
+    key = logical_key if logical_key else DEFAULT_ORS_PROFILE_KEY
+    seg = OSRM_LOCAL_PROFILE_SEGMENT.get(key, "driving")
+    return f"{OSRM_LOCAL_HOST}/route/v1/{seg}/"
 
 
 def _normalize_base_url(base_url: str) -> str:

@@ -3,19 +3,17 @@ import requests
 
 from openrouteservice_routing import (
     DEFAULT_ORS_BASE_URL,
-    OSRM_LOCAL_ROUTE_URL,
-    OSRM_LOCAL_TABLE_URL,
     ors_build_full_matrix,
     ors_profile_slug,
     ors_route_geometry_latlon,
+    osrm_local_route_url,
+    osrm_local_table_url,
 )
 
 
 class DistanceMatrixBuilder:
     def __init__(self):
         self.R = 6371.0
-        self.local_osrm_table_url = OSRM_LOCAL_TABLE_URL
-        self.local_osrm_route_url = OSRM_LOCAL_ROUTE_URL
 
     def _haversine(self, p1, p2):
         lat1, lon1 = p1
@@ -26,9 +24,12 @@ class DistanceMatrixBuilder:
         a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
         return self.R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    def _get_osrm_matrix(self, points, annotation="distance"):
+    def _get_osrm_matrix(
+        self, points, annotation="distance", ors_profile_key: str | None = None
+    ):
         coords = ";".join([f"{p[1]},{p[0]}" for p in points])
-        url = f"{self.local_osrm_table_url}{coords}?annotations={annotation}"
+        base = osrm_local_table_url(ors_profile_key)
+        url = f"{base}{coords}?annotations={annotation}"
         try:
             response = requests.get(url, timeout=60)
             data = response.json()
@@ -107,7 +108,8 @@ class DistanceMatrixBuilder:
                 break
 
             coords = ";".join([f"{p[1]},{p[0]}" for p in chunk])
-            url = f"{self.local_osrm_route_url}{coords}?overview=full&geometries=geojson"
+            route_base = osrm_local_route_url(ors_profile_key)
+            url = f"{route_base}{coords}?overview=full&geometries=geojson"
 
             try:
                 response = requests.get(url, timeout=30)
@@ -170,13 +172,15 @@ class DistanceMatrixBuilder:
                         "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
                     )
             if allow_local_osrm:
-                matrix = self._get_osrm_matrix(points, annotation="distance")
+                matrix = self._get_osrm_matrix(
+                    points, annotation="distance", ors_profile_key=ors_profile_key
+                )
                 if matrix:
                     return matrix
             mode = "haversine"
 
         elif mode == "routing_time":
-            print(f"DEBUG: Požaduji SILNIČNÍ ČAS (min) pro {n} bodů…")
+            print(f"DEBUG: Požaduji ČAS JÍZDY / CHŮZE (min) pro {n} bodů…")
             ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
             if not ors:
                 if allow_local_osrm:
@@ -206,7 +210,9 @@ class DistanceMatrixBuilder:
                         "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
                     )
             if allow_local_osrm:
-                matrix = self._get_osrm_matrix(points, annotation="duration")
+                matrix = self._get_osrm_matrix(
+                    points, annotation="duration", ors_profile_key=ors_profile_key
+                )
                 if matrix:
                     return matrix
             mode = "haversine"

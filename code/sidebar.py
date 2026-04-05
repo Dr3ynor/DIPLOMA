@@ -232,8 +232,14 @@ class Sidebar(QWidget):
 
         self.metric_dropdown = QComboBox()
         self.metric_dropdown.addItem("Letecká vzdálenost (Haversine)", "haversine")
-        self.metric_dropdown.addItem("Silniční vzdálenost – km (OSRM)", "routing_dist")
-        self.metric_dropdown.addItem("Silniční čas – minuty (OSRM)", "routing_time")
+        self.metric_dropdown.addItem(
+            "Trasová vzdálenost – km (dle režimu na mapě, ORS / OSRM)",
+            "routing_dist",
+        )
+        self.metric_dropdown.addItem(
+            "Trasový čas – minuty (dle režimu na mapě, ORS / OSRM)",
+            "routing_time",
+        )
         layout.addWidget(self.metric_dropdown)
 
         self.solve_btn = QPushButton("⚡  SPOČÍTAT TRASU")
@@ -494,7 +500,7 @@ class Sidebar(QWidget):
             is_geographic,
             ors_key or None,
             ors_base or None,
-            None,
+            state.get_ors_routing_profile(),
             use_local_osrm_fallback=use_local_osrm,
         )
         self._solve_worker.moveToThread(self._solve_thread)

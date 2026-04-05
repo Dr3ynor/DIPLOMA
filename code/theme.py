@@ -377,6 +377,39 @@ QLabel#ApiStatusLabel {{
 """
 
 
+def build_routing_profile_bar_style(P: dict) -> str:
+    return f"""
+QFrame#RoutingProfileBar {{
+    background-color: {P['surface']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QToolButton#RoutingProfileBtn {{
+    background-color: {P['surface2']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 58px;
+}}
+QToolButton#RoutingProfileBtn:hover {{
+    border-color: {P['primary']};
+    color: {P['primary']};
+}}
+QToolButton#RoutingProfileBtn:checked {{
+    background-color: {P['primary']};
+    color: {P['text']};
+    border-color: {P['primary']};
+}}
+QToolButton#RoutingProfileBtn:disabled {{
+    color: {P['text_faint']};
+    background-color: {P['surface']};
+}}
+"""
+
+
 def build_map_search_bar_style(P: dict) -> str:
     return f"""
 QFrame#MapSearchBar {{

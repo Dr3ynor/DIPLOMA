@@ -5,7 +5,11 @@ from typing import Set
 
 from PyQt6.QtCore import QSettings
 
-from openrouteservice_routing import DEFAULT_ORS_BASE_URL
+from openrouteservice_routing import (
+    DEFAULT_ORS_BASE_URL,
+    DEFAULT_ORS_PROFILE_KEY,
+    ORS_PROFILE_SLUGS,
+)
 
 _ORG = "TSP Solver"
 _APP = "Diploma"
@@ -16,6 +20,7 @@ _KEY_ORS_BASE = "api/ors_base_url"
 _KEY_USE_LOCAL_OSRM = "routing/use_local_osrm_fallback"
 _KEY_AUTO_RECOMPUTE_ON_ADD_POINT = "map/auto_recompute_on_add_point"
 _KEY_MAP_TILE_URL = "map/tile_url"
+_KEY_ORS_ROUTING_PROFILE = "routing/ors_profile"
 
 # Předvolené mapové podklady (Leaflet tile URL šablony)
 MAP_TILE_SOURCES: dict[str, str] = {
@@ -126,3 +131,18 @@ def load_map_tile_url() -> str:
 def save_map_tile_url(url: str) -> None:
     u = url.strip() if url.strip() else DEFAULT_MAP_TILE_URL
     _store().setValue(_KEY_MAP_TILE_URL, u)
+
+
+def normalize_ors_routing_profile(key: str | None) -> str:
+    if isinstance(key, str) and key in ORS_PROFILE_SLUGS:
+        return key
+    return DEFAULT_ORS_PROFILE_KEY
+
+
+def load_ors_routing_profile() -> str:
+    raw = _store().value(_KEY_ORS_ROUTING_PROFILE, DEFAULT_ORS_PROFILE_KEY)
+    return normalize_ors_routing_profile(raw if isinstance(raw, str) else None)
+
+
+def save_ors_routing_profile(key: str) -> None:
+    _store().setValue(_KEY_ORS_ROUTING_PROFILE, normalize_ors_routing_profile(key))
