@@ -1,6 +1,6 @@
 import json
 
-from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt
+from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt, QSize
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -10,6 +10,7 @@ from api_status import ApiStatusPanel
 from app_state import state
 from map_search_bar import MapSearchBar
 from routing_profile_bar import RoutingProfileBar
+from svg_icons import tinted_svg_icon
 from theme import (
     PALETTES,
     build_api_status_panel_style,
@@ -289,9 +290,9 @@ class MapViewer(QWidget):
         # Přihlásit se k AppState notifikacím
         state.attach(self.sync_with_state)
 
-        # U+2699 + VS15 = textová varianta kolečka (emoji bývá vizuálně níž v rámečku)
-        self._settings_btn = QPushButton("\u2699\ufe0e", self)
+        self._settings_btn = QPushButton(self)
         self._settings_btn.setObjectName("MapSettingsBtn")
+        self._settings_btn.setText("")
         self._settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._settings_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._settings_btn.clicked.connect(self.settings_requested.emit)
@@ -342,9 +343,15 @@ class MapViewer(QWidget):
         self._settings_btn.raise_()
 
     def set_chrome_palette(self, palette: dict):
+        dpr = self.devicePixelRatioF()
         self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
+        self._settings_btn.setIcon(
+            tinted_svg_icon("settings-2.svg", palette["text"], 20, dpr)
+        )
+        self._settings_btn.setIconSize(QSize(20, 20))
         self._search_bar.apply_palette_stylesheet(build_map_search_bar_style(palette))
         self._routing_bar.setStyleSheet(build_routing_profile_bar_style(palette))
+        self._routing_bar.apply_palette(palette, dpr)
         self._api_panel.apply_chrome_palette(
             build_api_status_panel_style(palette), palette
         )

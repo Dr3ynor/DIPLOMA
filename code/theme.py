@@ -49,6 +49,7 @@ QComboBox {{
     padding: 8px 12px;
     font-size: 13px;
     min-height: 38px;
+    min-width: 0;
     selection-background-color: {P['primary']};
 }}
 QComboBox:hover {{
@@ -94,9 +95,10 @@ QPushButton#SecondaryBtn {{
     color: {P['text']};
     border: 1px solid {P['border']};
     border-radius: 8px;
-    padding: 8px 14px;
+    padding: 8px 10px;
     font-size: 13px;
     min-height: 38px;
+    min-width: 0;
 }}
 QPushButton#SecondaryBtn:hover {{
     background-color: {P['border']};
@@ -183,11 +185,12 @@ QPushButton#PrimaryBtn {{
     border: 2px solid #818cf8;
     border-bottom: 3px solid #3730a3;
     border-radius: 10px;
-    padding: 11px 20px;
+    padding: 11px 12px;
     font-size: 14px;
     font-weight: 800;
     min-height: 48px;
-    letter-spacing: 1px;
+    min-width: 0;
+    letter-spacing: 0.5px;
 }}
 QPushButton#PrimaryBtn:hover {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -214,9 +217,10 @@ QPushButton#DangerBtn {{
     color: {P['danger']};
     border: 1px solid {P['danger']};
     border-radius: 8px;
-    padding: 8px 14px;
+    padding: 8px 10px;
     font-size: 13px;
     min-height: 38px;
+    min-width: 0;
 }}
 QPushButton#DangerBtn:hover {{
     background-color: {P['danger']};
@@ -341,9 +345,8 @@ QPushButton#MapSettingsBtn {{
     color: {P['text']};
     border: 1px solid {P['border']};
     border-radius: 20px;
-    font-size: 18px;
     text-align: center;
-    padding: 0 0 5px 0;
+    padding: 0;
     min-width: 40px;
     max-width: 40px;
     min-height: 40px;
@@ -388,11 +391,13 @@ QToolButton#RoutingProfileBtn {{
     background-color: {P['surface2']};
     color: {P['text']};
     border: 1px solid {P['border']};
-    border-radius: 6px;
-    padding: 0 10px;
-    font-size: 12px;
-    font-weight: 600;
-    min-width: 58px;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
 }}
 QToolButton#RoutingProfileBtn:hover {{
     border-color: {P['primary']};

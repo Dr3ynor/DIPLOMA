@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -12,12 +12,22 @@ from PyQt6.QtWidgets import (
 )
 
 from openrouteservice_routing import ORS_ROUTING_PROFILE_UI
+from svg_icons import tinted_svg_icon
+
+_ROUTING_SVG = {
+    "car": "car.svg",
+    "foot": "footprints.svg",
+    "bike": "bike.svg",
+}
 
 _TOOLTIPS = {
-    "car": "Osobní automobil (ORS profil driving-car)",
-    "foot": "Pěší (ORS profil foot-walking)",
-    "bike": "Kolo (ORS profil cycling-regular)",
+    "car": "Auto — osobní automobil (ORS driving-car)",
+    "foot": "Pěší — chůze (ORS foot-walking)",
+    "bike": "Kolo — cyklistika (ORS cycling-regular)",
 }
+_ACCESSIBLE = {"car": "Auto", "foot": "Pěší", "bike": "Kolo"}
+
+_ICON_PX = 22
 
 
 class RoutingProfileBar(QFrame):
@@ -40,16 +50,20 @@ class RoutingProfileBar(QFrame):
 
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
+        self._profile_buttons: dict[str, QToolButton] = {}
 
-        for label, key in ORS_ROUTING_PROFILE_UI:
+        for _label, key in ORS_ROUTING_PROFILE_UI:
             btn = QToolButton()
-            btn.setText(label)
+            btn.setText("")
             btn.setCheckable(True)
             btn.setObjectName("RoutingProfileBtn")
-            btn.setFixedHeight(self._BTN_H)
+            btn.setFixedSize(self._BTN_H, self._BTN_H)
+            btn.setIconSize(QSize(_ICON_PX, _ICON_PX))
             btn.setToolTip(_TOOLTIPS.get(key, ""))
+            btn.setAccessibleName(_ACCESSIBLE.get(key, key))
             btn.setProperty("profileKey", key)
             self._group.addButton(btn)
+            self._profile_buttons[key] = btn
             lay.addWidget(btn)
             if key == current_key:
                 btn.setChecked(True)
@@ -62,6 +76,14 @@ class RoutingProfileBar(QFrame):
         self._group.buttonClicked.connect(self._on_clicked)
 
         self.adjustSize()
+
+    def apply_palette(self, palette: dict, device_pixel_ratio: float = 1.0) -> None:
+        c = palette.get("text", "#f1f5f9")
+        dpr = device_pixel_ratio
+        for key, btn in self._profile_buttons.items():
+            svg = _ROUTING_SVG.get(key)
+            if svg:
+                btn.setIcon(tinted_svg_icon(svg, c, _ICON_PX, dpr))
 
     def _on_clicked(self, btn) -> None:
         key = btn.property("profileKey")

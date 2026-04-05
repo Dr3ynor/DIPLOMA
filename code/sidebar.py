@@ -5,8 +5,8 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
     QProgressBar,
 )
-from PyQt6.QtCore import Qt, QTimer, QObject, QThread, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
@@ -17,7 +17,10 @@ from app_settings import (
     load_use_local_osrm_fallback,
 )
 from tspmanager import tsp_manager
+from svg_icons import tinted_svg_icon
 from theme import PALETTES, build_sidebar_stylesheet
+
+_SOLVE_LABEL = "SPOČÍTAT TRASU"
 
 
 class _SolveWorker(QObject):
@@ -176,6 +179,8 @@ class Sidebar(QWidget):
         self._scroll_content = QWidget()
         self._scroll_content.setObjectName("ScrollContent")
         self._scroll_content.setStyleSheet(f"background-color: {self._palette['bg']};")
+        # Bez toho děti (ComboBox s dlouhými řetězci) umějí roztáhnout min. šířku nad viewport.
+        self._scroll_content.setMinimumWidth(0)
 
         layout = QVBoxLayout(self._scroll_content)
         layout.setContentsMargins(16, 14, 16, 20)
@@ -191,12 +196,20 @@ class Sidebar(QWidget):
 
         io_row = QHBoxLayout()
         io_row.setSpacing(8)
-        self.export_btn = _make_btn("⬆  Export", "SecondaryBtn",
+        self.export_btn = _make_btn("Export", "SecondaryBtn",
                                     lambda: self._on_export_click())
-        self.import_btn = _make_btn("⬇  Import", "SecondaryBtn",
+        self.import_btn = _make_btn("Import", "SecondaryBtn",
                                     lambda: self._on_import_click())
-        io_row.addWidget(self.export_btn)
-        io_row.addWidget(self.import_btn)
+        self.export_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.import_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.export_btn.setMinimumWidth(0)
+        self.import_btn.setMinimumWidth(0)
+        io_row.addWidget(self.export_btn, 1)
+        io_row.addWidget(self.import_btn, 1)
         layout.addLayout(io_row)
 
         layout.addSpacing(4)
@@ -213,6 +226,7 @@ class Sidebar(QWidget):
 
         # --- Dynamický panel parametrů ---
         self.params_container = QWidget()
+        self.params_container.setMinimumWidth(0)
         self.params_container.setStyleSheet(
             f"background-color: {self._palette['surface']}; border-radius: 8px; border: 1px solid {self._palette['border']};"
         )
@@ -242,9 +256,20 @@ class Sidebar(QWidget):
         )
         layout.addWidget(self.metric_dropdown)
 
-        self.solve_btn = QPushButton("⚡  SPOČÍTAT TRASU")
+        for cb in (self.export_dropdown, self.solver_dropdown, self.metric_dropdown):
+            cb.setSizeAdjustPolicy(
+                QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+            )
+            cb.setMinimumContentsLength(12)
+            cb.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+            cb.setMinimumWidth(0)
+
+        self.solve_btn = QPushButton(_SOLVE_LABEL)
         self.solve_btn.setObjectName("PrimaryBtn")
         self.solve_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.solve_btn.setMinimumWidth(0)
         self.solve_btn.clicked.connect(lambda: self._on_solve_click())
         layout.addWidget(self.solve_btn)
 
@@ -260,6 +285,10 @@ class Sidebar(QWidget):
         self.distance_label.setObjectName("DistanceLabel")
         self.distance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.distance_label.setWordWrap(True)
+        self.distance_label.setMinimumWidth(0)
+        self.distance_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
         layout.addWidget(self.distance_label)
 
         layout.addSpacing(4)
@@ -268,17 +297,22 @@ class Sidebar(QWidget):
 
         # ═══ SEKCE: Vybrané lokality (rozbalitelné) ═══════════════════════
         self._points_section_expanded = False
-        self.points_section_toggle = QPushButton("▶  VYBRANÉ LOKALITY")
+        self.points_section_toggle = QPushButton("VYBRANÉ LOKALITY")
         self.points_section_toggle.setObjectName("SectionToggleBtn")
         self.points_section_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.points_section_toggle.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
+        self.points_section_toggle.setMinimumWidth(0)
         self.points_section_toggle.clicked.connect(self._toggle_points_section)
         layout.addWidget(self.points_section_toggle)
 
         self.points_list = QListWidget()
         self.points_list.setMinimumHeight(130)
+        self.points_list.setMinimumWidth(0)
+        self.points_list.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.points_list.setSizePolicy(QSizePolicy.Policy.Expanding,
                                        QSizePolicy.Policy.Expanding)
         layout.addWidget(self.points_list, 1)   # stretchable
@@ -288,12 +322,44 @@ class Sidebar(QWidget):
         layout.addWidget(self._make_divider())
         layout.addSpacing(4)
         # ═══ Vymazat vše ═══════════════════════════════════════════════════
-        clear_btn = _make_btn("🗑  Vymazat vše", "DangerBtn",
-                              lambda: state.clear_all())
-        layout.addWidget(clear_btn)
+        self.clear_btn = _make_btn("Vymazat vše", "DangerBtn",
+                                   lambda: state.clear_all())
+        self.clear_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.clear_btn.setMinimumWidth(0)
+        layout.addWidget(self.clear_btn)
 
         self._scroll_area.setWidget(self._scroll_content)
         outer.addWidget(self._scroll_area, 1)
+
+        self._refresh_chrome_icons()
+
+    def _refresh_chrome_icons(self) -> None:
+        p = self._palette
+        dpr = self.devicePixelRatioF()
+        isize = QSize(20, 20)
+        self.export_btn.setIcon(tinted_svg_icon("export.svg", p["text"], 20, dpr))
+        self.export_btn.setIconSize(isize)
+        self.import_btn.setIcon(tinted_svg_icon("import.svg", p["text"], 20, dpr))
+        self.import_btn.setIconSize(isize)
+        self.solve_btn.setIcon(QIcon())
+        self.clear_btn.setIcon(tinted_svg_icon("trash-2.svg", p["danger"], 20, dpr))
+        self.clear_btn.setIconSize(isize)
+        self._sync_points_toggle_icon()
+
+    def _sync_points_toggle_icon(self) -> None:
+        p = self._palette
+        dpr = self.devicePixelRatioF()
+        svg = (
+            "chevron-down.svg"
+            if self._points_section_expanded
+            else "waypoint_list_closed.svg"
+        )
+        self.points_section_toggle.setIcon(
+            tinted_svg_icon(svg, p["text_dim"], 18, dpr)
+        )
+        self.points_section_toggle.setIconSize(QSize(18, 18))
 
     def _make_divider(self) -> QFrame:
         line = QFrame()
@@ -329,6 +395,7 @@ class Sidebar(QWidget):
             )
         self._refresh_param_widgets_style()
         self._refresh_solve_progress_bar_style()
+        self._refresh_chrome_icons()
 
     def _refresh_solve_progress_bar_style(self):
         if not hasattr(self, "_solve_progress_bar"):
@@ -367,8 +434,8 @@ class Sidebar(QWidget):
     def _toggle_points_section(self):
         self._points_section_expanded = not self._points_section_expanded
         self.points_list.setVisible(self._points_section_expanded)
-        mark = "▼  " if self._points_section_expanded else "▶  "
-        self.points_section_toggle.setText(mark + "VYBRANÉ LOKALITY")
+        self.points_section_toggle.setText("VYBRANÉ LOKALITY")
+        self._sync_points_toggle_icon()
 
     # ── Akce: export ──────────────────────────────────────────────────────
 
@@ -440,7 +507,7 @@ class Sidebar(QWidget):
 
     def _finish_solve_ui(self):
         self._solve_running = False
-        self.solve_btn.setText("⚡  SPOČÍTAT TRASU")
+        self.solve_btn.setText(_SOLVE_LABEL)
         self.solve_btn.setEnabled(True)
 
     def _on_solve_finished(self, result):
@@ -479,7 +546,7 @@ class Sidebar(QWidget):
         self._pending_metric_key = metric_key
 
         self._solve_running = True
-        self.solve_btn.setText("⏳  Počítám…")
+        self.solve_btn.setText("Počítám…")
         self.solve_btn.setEnabled(False)
         self._solve_progress_bar.setVisible(True)
 
