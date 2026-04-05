@@ -15,6 +15,17 @@ _KEY_ORS_API = "api/ors_key"
 _KEY_ORS_BASE = "api/ors_base_url"
 _KEY_USE_LOCAL_OSRM = "routing/use_local_osrm_fallback"
 _KEY_AUTO_RECOMPUTE_ON_ADD_POINT = "map/auto_recompute_on_add_point"
+_KEY_MAP_TILE_URL = "map/tile_url"
+
+# Předvolené mapové podklady (Leaflet tile URL šablony)
+MAP_TILE_SOURCES: dict[str, str] = {
+    "OpenStreetMap (DE)": "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+    "CartoDB (Light)": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    "CartoDB (Dark)": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "OpenTopoMap": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+}
+
+DEFAULT_MAP_TILE_URL = MAP_TILE_SOURCES["OpenStreetMap (DE)"]
 
 
 def _store() -> QSettings:
@@ -103,3 +114,15 @@ def load_auto_recompute_on_add_point(default: bool = False) -> bool:
 
 def save_auto_recompute_on_add_point(enabled: bool) -> None:
     _store().setValue(_KEY_AUTO_RECOMPUTE_ON_ADD_POINT, bool(enabled))
+
+
+def load_map_tile_url() -> str:
+    raw = _store().value(_KEY_MAP_TILE_URL, DEFAULT_MAP_TILE_URL)
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return DEFAULT_MAP_TILE_URL
+
+
+def save_map_tile_url(url: str) -> None:
+    u = url.strip() if url.strip() else DEFAULT_MAP_TILE_URL
+    _store().setValue(_KEY_MAP_TILE_URL, u)

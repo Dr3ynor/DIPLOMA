@@ -2,8 +2,10 @@ from PyQt6.QtWidgets import QMainWindow, QHBoxLayout, QWidget
 
 from app_state import state
 from app_settings import (
+    load_map_tile_url,
     load_show_waypoint_indices,
     load_theme,
+    save_map_tile_url,
     save_show_waypoint_indices,
     save_theme,
 )
@@ -22,6 +24,7 @@ class MainWindow(QMainWindow):
         state.set_show_waypoint_indices(
             load_show_waypoint_indices(), notify_change=False
         )
+        state.set_map_url(load_map_tile_url())
 
         self._central_widget = QWidget()
         layout = QHBoxLayout(self._central_widget)
@@ -54,11 +57,18 @@ class MainWindow(QMainWindow):
             self,
             self._theme_mode,
             state.get_show_waypoint_indices(),
+            map_tile_url=state.get_map_url(),
         )
         dlg.theme_changed.connect(self._apply_theme)
         dlg.waypoint_indices_changed.connect(self._commit_waypoint_indices)
+        dlg.map_tile_changed.connect(self._apply_map_tile_url)
         dlg.exec()
 
     def _commit_waypoint_indices(self, show: bool):
         state.set_show_waypoint_indices(show)
         save_show_waypoint_indices(show)
+
+    def _apply_map_tile_url(self, url: str):
+        if url:
+            state.set_map_url(url)
+            save_map_tile_url(url)

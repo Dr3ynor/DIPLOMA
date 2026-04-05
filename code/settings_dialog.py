@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from app_settings import (
+    MAP_TILE_SOURCES,
     load_auto_recompute_on_add_point,
     load_stored_ors_api_key,
     load_stored_ors_base_url,
@@ -28,8 +29,15 @@ class SettingsDialog(QDialog):
 
     theme_changed = pyqtSignal(str)
     waypoint_indices_changed = pyqtSignal(bool)
+    map_tile_changed = pyqtSignal(str)
 
-    def __init__(self, parent, initial_mode: str, show_waypoint_indices: bool = True):
+    def __init__(
+        self,
+        parent,
+        initial_mode: str,
+        show_waypoint_indices: bool = True,
+        map_tile_url: str = "",
+    ):
         super().__init__(parent)
         self.setWindowTitle("Nastavení")
         self.resize(440, 520)
@@ -55,6 +63,27 @@ class SettingsDialog(QDialog):
         self._indices_check.setChecked(show_waypoint_indices)
         self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
         root.addWidget(self._indices_check)
+
+        tile_row = QHBoxLayout()
+        tile_row.setSpacing(12)
+        tile_row.addWidget(QLabel("Mapový podklad:"), 0)
+        self._map_tile_combo = QComboBox()
+        for name, url in MAP_TILE_SOURCES.items():
+            self._map_tile_combo.addItem(name, url)
+        cur = map_tile_url.strip() if map_tile_url.strip() else next(iter(MAP_TILE_SOURCES.values()))
+        idx = self._map_tile_combo.findData(cur)
+        if idx >= 0:
+            self._map_tile_combo.setCurrentIndex(idx)
+        else:
+            self._map_tile_combo.addItem("Uložený podklad", cur)
+            self._map_tile_combo.setCurrentIndex(self._map_tile_combo.count() - 1)
+        tile_row.addWidget(self._map_tile_combo, 1)
+        root.addLayout(tile_row)
+
+        self._map_tile_url = self._map_tile_combo.currentData()
+        if not isinstance(self._map_tile_url, str) or not self._map_tile_url:
+            self._map_tile_url = next(iter(MAP_TILE_SOURCES.values()))
+        self._map_tile_combo.currentIndexChanged.connect(self._on_map_tile_picked)
 
         self._auto_recompute_add_check = QCheckBox(
             "Po přidání nového bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
@@ -129,6 +158,13 @@ class SettingsDialog(QDialog):
         self._mode = mode
         self._apply_local_style()
         self.theme_changed.emit(mode)
+
+    def _on_map_tile_picked(self, _idx: int):
+        url = self._map_tile_combo.currentData()
+        if not isinstance(url, str) or not url or url == self._map_tile_url:
+            return
+        self._map_tile_url = url
+        self.map_tile_changed.emit(url)
 
     def _apply_local_style(self):
         P = PALETTES[self._mode]

@@ -123,14 +123,6 @@ def _make_btn(text: str, obj_name: str, callback=None) -> QPushButton:
 
 class Sidebar(QWidget):
 
-    # Mapové podklady (stejné jako v originále)
-    MAP_SOURCES = {
-        "OpenStreetMap (DE)":  "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
-        "CartoDB (Light)":     "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "CartoDB (Dark)":      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "OpenTopoMap":         "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    }
-
     def __init__(self, theme_mode: str = "dark"):
         super().__init__()
         self.setObjectName("Sidebar")
@@ -188,21 +180,6 @@ class Sidebar(QWidget):
         layout = QVBoxLayout(self._scroll_content)
         layout.setContentsMargins(16, 14, 16, 20)
         layout.setSpacing(10)
-
-        # ═══ SEKCE: Mapový podklad ════════════════════════════════════════
-        layout.addWidget(_section_label("Mapový podklad"))
-
-        self.map_selector = QComboBox()
-        for name, url in self.MAP_SOURCES.items():
-            self.map_selector.addItem(name, url)
-        self.map_selector.currentIndexChanged.connect(
-            lambda _idx: self._apply_selected_map_layer()
-        )
-        layout.addWidget(self.map_selector)
-
-        layout.addSpacing(4)
-        layout.addWidget(self._make_divider())
-        layout.addSpacing(4)
 
         # ═══ SEKCE: Správa instancí ═══════════════════════════════════════
         layout.addWidget(_section_label("Správa instancí"))
@@ -380,14 +357,6 @@ class Sidebar(QWidget):
             item = self._params_form_layout.itemAt(r, QFormLayout.ItemRole.LabelRole)
             if item is not None and item.widget() is not None:
                 item.widget().setStyleSheet(label_style)
-
-    # ── Akce: mapový podklad ───────────────────────────────────────────────
-
-
-    def _apply_selected_map_layer(self):
-        url = self.map_selector.currentData()
-        if url:
-            state.set_map_url(url)
 
     def _toggle_points_section(self):
         self._points_section_expanded = not self._points_section_expanded

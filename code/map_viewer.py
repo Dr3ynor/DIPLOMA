@@ -342,6 +342,9 @@ class MapViewer(QWidget):
             pass
         show = state.get_show_waypoint_indices()
         self._js(f"setShowWaypointIndices({str(show).lower()});")
+        self._js(f"setTileVisible({'true' if state.is_geo() else 'false'})")
+        url = state.get_map_url()
+        self._js(f"setTileLayer('{url}')")
 
     # ── Interní pomocníci ──────────────────────────────────────────────────
 
