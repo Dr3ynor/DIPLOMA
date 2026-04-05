@@ -7,6 +7,7 @@ Přidání dalšího endpointu: rozšiř seznam API_STATUS_TARGETS o další Api
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 
 from PyQt6.QtCore import QObject, Qt, QTimer, pyqtSignal, QUrl
 from PyQt6.QtNetwork import (
@@ -34,6 +35,9 @@ class ApiStatusTarget:
 
     timeout_ms: int = 3000
 
+    poll_interval_ms: int = 30_000
+    """Jak často znovu dotázat tento cíl (ms)."""
+
 
 # Stejný host a cesta jako DistanceMatrixBuilder (GET na kořen u OSRM často „spadne“ v Qt).
 _OSRM_TABLE_BASE = "http://localhost:5000/table/v1/driving/"
@@ -42,12 +46,22 @@ OSRM_HEALTHCHECK_URL = (
     f"{_OSRM_TABLE_BASE}18.26,49.82;18.26,49.82?annotations=distance"
 )
 
+ORS_CLOUD_ROOT_URL = "https://api.openrouteservice.org/"
+
 API_STATUS_TARGETS: tuple[ApiStatusTarget, ...] = (
     ApiStatusTarget(
         id="osrm_5000",
         label="OSRM:5000",
         url=OSRM_HEALTHCHECK_URL,
         timeout_ms=3000,
+        poll_interval_ms=30_000,
+    ),
+    ApiStatusTarget(
+        id="ors_cloud",
+        label="ORS (cloud)",
+        url=ORS_CLOUD_ROOT_URL,
+        timeout_ms=5000,
+        poll_interval_ms=60_000,
     ),
 )
 
@@ -63,6 +77,9 @@ class _ApiPoller(QObject):
     def poll_all(self) -> None:
         for t in self._targets:
             self._poll_one(t)
+
+    def poll_one(self, target: ApiStatusTarget) -> None:
+        self._poll_one(target)
 
     def _poll_one(self, target: ApiStatusTarget) -> None:
         req = QNetworkRequest(QUrl(target.url))
@@ -139,10 +156,13 @@ class ApiStatusPanel(QWidget):
         self._poller = _ApiPoller(targets, self)
         self._poller.status_changed.connect(self._on_status)
 
-        self._timer = QTimer(self)
-        self._timer.setInterval(30_000)
-        self._timer.timeout.connect(self._poller.poll_all)
-        self._timer.start()
+        self._poll_timers: list[QTimer] = []
+        for t in targets:
+            tm = QTimer(self)
+            tm.setInterval(t.poll_interval_ms)
+            tm.timeout.connect(partial(self._poller.poll_one, t))
+            tm.start()
+            self._poll_timers.append(tm)
         self._poller.poll_all()
 
     def apply_chrome_palette(self, stylesheet: str, palette: dict) -> None:

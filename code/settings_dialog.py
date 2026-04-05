@@ -6,9 +6,16 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QPushButton,
     QCheckBox,
+    QLineEdit,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 
+from app_settings import (
+    load_stored_ors_api_key,
+    load_stored_ors_base_url,
+    save_ors_api_key,
+    save_ors_base_url,
+)
 from theme import PALETTES, build_settings_dialog_stylesheet
 
 
@@ -21,7 +28,7 @@ class SettingsDialog(QDialog):
     def __init__(self, parent, initial_mode: str, show_waypoint_indices: bool = True):
         super().__init__(parent)
         self.setWindowTitle("Nastavení")
-        self.resize(360, 240)
+        self.resize(420, 420)
         self._mode = initial_mode if initial_mode in PALETTES else "dark"
 
         root = QVBoxLayout(self)
@@ -45,14 +52,45 @@ class SettingsDialog(QDialog):
         self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
         root.addWidget(self._indices_check)
 
+        root.addWidget(QLabel("OpenRouteService"))
+        hint = QLabel(
+            "API klíč z openrouteservice.org. Volitelně ORS_API_KEY / ORS_BASE_URL "
+            "v prostředí (mají přednost před údaji níže)."
+        )
+        hint.setWordWrap(True)
+        hint.setObjectName("SettingsHint")
+        root.addWidget(hint)
+
+        key_row = QHBoxLayout()
+        key_row.addWidget(QLabel("API klíč:"), 0)
+        self._ors_key_edit = QLineEdit()
+        self._ors_key_edit.setText(load_stored_ors_api_key())
+        self._ors_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ors_key_edit.setPlaceholderText("(uloženo v QSettings nebo ORS_API_KEY)")
+        key_row.addWidget(self._ors_key_edit, 1)
+        root.addLayout(key_row)
+
+        base_row = QHBoxLayout()
+        base_row.addWidget(QLabel("Base URL:"), 0)
+        self._ors_base_edit = QLineEdit()
+        self._ors_base_edit.setText(load_stored_ors_base_url())
+        self._ors_base_edit.setPlaceholderText("https://api.openrouteservice.org")
+        base_row.addWidget(self._ors_base_edit, 1)
+        root.addLayout(base_row)
+
         root.addStretch(1)
 
         close_btn = QPushButton("Zavřít")
         close_btn.setObjectName("SecondaryBtn")
-        close_btn.clicked.connect(self.accept)
+        close_btn.clicked.connect(self._on_close)
         root.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
         self._apply_local_style()
+
+    def _on_close(self) -> None:
+        save_ors_api_key(self._ors_key_edit.text())
+        save_ors_base_url(self._ors_base_edit.text())
+        self.accept()
 
     def _on_theme_picked(self, _idx: int):
         mode = self._theme_combo.currentData()

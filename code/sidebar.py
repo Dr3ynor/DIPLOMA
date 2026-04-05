@@ -10,6 +10,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
+from app_settings import load_ors_api_key, load_ors_base_url
 from tspmanager import tsp_manager
 from theme import PALETTES, build_sidebar_stylesheet
 
@@ -27,6 +28,9 @@ class _SolveWorker(QObject):
         metric_key: str,
         solver_kwargs: dict,
         is_geographic: bool,
+        ors_api_key: str | None,
+        ors_base_url: str | None,
+        ors_profile_key: str | None = None,
     ):
         super().__init__()
         self._points = list(points)
@@ -34,6 +38,9 @@ class _SolveWorker(QObject):
         self._metric_key = metric_key
         self._solver_kwargs = dict(solver_kwargs)
         self._is_geographic = is_geographic
+        self._ors_api_key = ors_api_key
+        self._ors_base_url = ors_base_url
+        self._ors_profile_key = ors_profile_key
 
     def run(self):
         try:
@@ -42,6 +49,9 @@ class _SolveWorker(QObject):
                 solver_type=self._solver_key,
                 distance_metric=self._metric_key,
                 is_geographic=self._is_geographic,
+                ors_api_key=self._ors_api_key,
+                ors_base_url=self._ors_base_url,
+                ors_profile_key=self._ors_profile_key,
                 **self._solver_kwargs,
             )
             self.finished.emit(result)
@@ -490,9 +500,23 @@ class Sidebar(QWidget):
         self.solve_btn.setEnabled(False)
         self._solve_progress_bar.setVisible(True)
 
+        ors_key = load_ors_api_key()
+        ors_base = load_ors_base_url()
+        if os.environ.get("ORS_API_KEY", "").strip():
+            print("DEBUG: ORS API klíč z proměnné prostředí ORS_API_KEY (přednost před QSettings)")
+        if os.environ.get("ORS_BASE_URL", "").strip():
+            print("DEBUG: ORS base URL z proměnné prostředí ORS_BASE_URL")
+
         self._solve_thread = QThread()
         self._solve_worker = _SolveWorker(
-            points, solver_key, metric_key, solver_kwargs, is_geographic
+            points,
+            solver_key,
+            metric_key,
+            solver_kwargs,
+            is_geographic,
+            ors_key or None,
+            ors_base or None,
+            None,
         )
         self._solve_worker.moveToThread(self._solve_thread)
         self._solve_thread.started.connect(self._solve_worker.run)

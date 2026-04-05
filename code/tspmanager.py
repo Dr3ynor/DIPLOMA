@@ -2,6 +2,7 @@ from iohandler import IOHandler
 # from instancegenerator import InstanceGenerator
 from distance_matrix_builder import DistanceMatrixBuilder
 from optimazation_engine import OptimizationEngine
+from openrouteservice_routing import ors_profile_slug
 
 from app_state import state
 
@@ -26,6 +27,9 @@ class TSPManager:
         distance_metric="haversine",
         *,
         is_geographic=None,
+        ors_api_key=None,
+        ors_base_url=None,
+        ors_profile_key=None,
         **solver_kwargs,
     ):
         """
@@ -41,10 +45,24 @@ class TSPManager:
         actual_metric = distance_metric if is_geo else "euc_2d"
         
         # 2. Sestavení matice vzdáleností
-        matrix = self.matrix_builder.build(points, mode=actual_metric)
-        
+        matrix = self.matrix_builder.build(
+            points,
+            mode=actual_metric,
+            ors_api_key=ors_api_key,
+            ors_base_url=ors_base_url,
+            ors_profile_key=ors_profile_key,
+        )
+
         # 3. Spuštění algoritmu (indexy měst)
-        print(f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}' and kwargs: {solver_kwargs}")
+        ors_hint = ""
+        if actual_metric in ("routing_dist", "routing_time"):
+            slug = ors_profile_slug(ors_profile_key)
+            logical = ors_profile_key or "car"
+            ors_hint = f", ORS profile={slug} (logical={logical})"
+        print(
+            f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}'"
+            f"{ors_hint} and kwargs: {solver_kwargs}"
+        )
         route_indices = self.engine.run(solver_type, matrix, **solver_kwargs)
 
         # 4. Výpočet celkové délky trasy
@@ -56,8 +74,14 @@ class TSPManager:
         if ordered_cities:
             ordered_cities.append(ordered_cities[0])
 
-        print(f"DEBUG: Generating visual route for: {actual_metric}")
-        visual_route = self.matrix_builder.get_route_geometry(ordered_cities, mode=actual_metric)
+        print(f"DEBUG: Generating visual route for: {actual_metric}{ors_hint}")
+        visual_route = self.matrix_builder.get_route_geometry(
+            ordered_cities,
+            mode=actual_metric,
+            ors_api_key=ors_api_key,
+            ors_base_url=ors_base_url,
+            ors_profile_key=ors_profile_key,
+        )
         
         return ordered_cities, visual_route, total_distance
 
