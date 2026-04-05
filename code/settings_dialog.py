@@ -11,10 +11,14 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from app_settings import (
+    load_auto_recompute_on_add_point,
     load_stored_ors_api_key,
     load_stored_ors_base_url,
+    load_use_local_osrm_fallback,
+    save_auto_recompute_on_add_point,
     save_ors_api_key,
     save_ors_base_url,
+    save_use_local_osrm_fallback,
 )
 from theme import PALETTES, build_settings_dialog_stylesheet
 
@@ -28,7 +32,7 @@ class SettingsDialog(QDialog):
     def __init__(self, parent, initial_mode: str, show_waypoint_indices: bool = True):
         super().__init__(parent)
         self.setWindowTitle("Nastavení")
-        self.resize(420, 420)
+        self.resize(440, 520)
         self._mode = initial_mode if initial_mode in PALETTES else "dark"
 
         root = QVBoxLayout(self)
@@ -51,6 +55,20 @@ class SettingsDialog(QDialog):
         self._indices_check.setChecked(show_waypoint_indices)
         self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
         root.addWidget(self._indices_check)
+
+        self._auto_recompute_add_check = QCheckBox(
+            "Po přidání nového bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
+        )
+        self._auto_recompute_add_check.setChecked(load_auto_recompute_on_add_point())
+        root.addWidget(self._auto_recompute_add_check)
+        auto_rec_hint = QLabel(
+            "Pozor: u velké instance může jedno přidání bodu trvat dlouho. Při silniční metrice "
+            "(ORS / OSRM) se při každém přidání posílá spousta požadavků na API — rychleji "
+            "vyčerpáte denní limit nebo kvótu klíče."
+        )
+        auto_rec_hint.setWordWrap(True)
+        auto_rec_hint.setObjectName("SettingsHint")
+        root.addWidget(auto_rec_hint)
 
         root.addWidget(QLabel("OpenRouteService"))
         hint = QLabel(
@@ -78,6 +96,16 @@ class SettingsDialog(QDialog):
         base_row.addWidget(self._ors_base_edit, 1)
         root.addLayout(base_row)
 
+        self._local_osrm_check = QCheckBox(
+            "Záloha: lokální OSRM (localhost:5000), když ORS nestačí nebo chybí klíč"
+        )
+        self._local_osrm_check.setChecked(load_use_local_osrm_fallback())
+        self._local_osrm_check.setToolTip(
+            "Vypněte, pokud nemáte lokální OSRM — aplikace použije jen OpenRouteService "
+            "(s API klíčem) nebo haversine, bez čekání na nedostupný localhost."
+        )
+        root.addWidget(self._local_osrm_check)
+
         root.addStretch(1)
 
         close_btn = QPushButton("Zavřít")
@@ -90,6 +118,8 @@ class SettingsDialog(QDialog):
     def _on_close(self) -> None:
         save_ors_api_key(self._ors_key_edit.text())
         save_ors_base_url(self._ors_base_edit.text())
+        save_use_local_osrm_fallback(self._local_osrm_check.isChecked())
+        save_auto_recompute_on_add_point(self._auto_recompute_add_check.isChecked())
         self.accept()
 
     def _on_theme_picked(self, _idx: int):

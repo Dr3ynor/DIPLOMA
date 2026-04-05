@@ -13,6 +13,8 @@ _KEY_THEME = "ui/theme"
 _KEY_WAYPOINT_INDICES = "map/show_waypoint_indices"
 _KEY_ORS_API = "api/ors_key"
 _KEY_ORS_BASE = "api/ors_base_url"
+_KEY_USE_LOCAL_OSRM = "routing/use_local_osrm_fallback"
+_KEY_AUTO_RECOMPUTE_ON_ADD_POINT = "map/auto_recompute_on_add_point"
 
 
 def _store() -> QSettings:
@@ -83,3 +85,21 @@ def load_ors_base_url() -> str:
 def save_ors_base_url(url: str) -> None:
     u = url.strip().rstrip("/") if url.strip() else DEFAULT_ORS_BASE_URL
     _store().setValue(_KEY_ORS_BASE, u)
+
+
+def load_use_local_osrm_fallback(default: bool = True) -> bool:
+    """Po neúspěchu ORS zkusit http://localhost:5000 (OSRM). Vypněte, pokud běží jen cloudové ORS."""
+    return _coerce_bool(_store().value(_KEY_USE_LOCAL_OSRM), default)
+
+
+def save_use_local_osrm_fallback(use: bool) -> None:
+    _store().setValue(_KEY_USE_LOCAL_OSRM, bool(use))
+
+
+def load_auto_recompute_on_add_point(default: bool = False) -> bool:
+    """Po přidání bodu na mapu spustit celý výpočet trasy (jako tlačítko Spočítat)."""
+    return _coerce_bool(_store().value(_KEY_AUTO_RECOMPUTE_ON_ADD_POINT), default)
+
+
+def save_auto_recompute_on_add_point(enabled: bool) -> None:
+    _store().setValue(_KEY_AUTO_RECOMPUTE_ON_ADD_POINT, bool(enabled))

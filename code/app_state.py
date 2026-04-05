@@ -37,8 +37,8 @@ class AppState(Subject):
             # self.notify(self._points)
 
     def set_map_url(self, url):
-            self._map_url = url
-            self.notify(self._points)
+        self._map_url = url
+        self.notify(self._points)
 
     def get_map_url(self):
         return self._map_url
@@ -68,7 +68,7 @@ class AppState(Subject):
         return self._route
 
     def update_route(self, points):
-        self.current_route = points
+        self._route = points
         self.notify(("route_update", points))
 
 

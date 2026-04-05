@@ -3,6 +3,8 @@ OpenRouteService v2 – matice vzdáleností / času a geometrie trasy (GeoJSON)
 
 Profily: logický klíč → segment URL (/v2/matrix/{slug}, /v2/directions/{slug}/geojson).
 Hlavičky ORS: neposílat Accept: application/json u directions/geojson (406 / error 2007).
+
+Konstanty OSRM_LOCAL_* sdílí DistanceMatrixBuilder a api_status (healthcheck).
 """
 
 from __future__ import annotations
@@ -13,6 +15,10 @@ from typing import Any
 import requests
 
 DEFAULT_ORS_BASE_URL = "https://api.openrouteservice.org"
+
+# Lokální OSRM (DistanceMatrixBuilder, ApiStatusPanel healthcheck) – jedna pravda pro host/port/cestu.
+OSRM_LOCAL_TABLE_URL = "http://localhost:5000/table/v1/driving/"
+OSRM_LOCAL_ROUTE_URL = "http://localhost:5000/route/v1/driving/"
 
 ORS_PROFILE_SLUGS: dict[str, str] = {
     "car": "driving-car",

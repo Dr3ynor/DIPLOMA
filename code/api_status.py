@@ -17,6 +17,7 @@ from PyQt6.QtNetwork import (
 )
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from openrouteservice_routing import OSRM_LOCAL_TABLE_URL
 from theme import PALETTES
 
 
@@ -39,11 +40,10 @@ class ApiStatusTarget:
     """Jak často znovu dotázat tento cíl (ms)."""
 
 
-# Stejný host a cesta jako DistanceMatrixBuilder (GET na kořen u OSRM často „spadne“ v Qt).
-_OSRM_TABLE_BASE = "http://localhost:5000/table/v1/driving/"
 # Minimální platná table požadavka: 2× stejný bod (lon,lat), stejný formát jako v builderu.
+# OSRM_LOCAL_TABLE_URL: openrouteservice_routing (sdíleno s DistanceMatrixBuilder).
 OSRM_HEALTHCHECK_URL = (
-    f"{_OSRM_TABLE_BASE}18.26,49.82;18.26,49.82?annotations=distance"
+    f"{OSRM_LOCAL_TABLE_URL}18.26,49.82;18.26,49.82?annotations=distance"
 )
 
 ORS_CLOUD_ROOT_URL = "https://api.openrouteservice.org/"

@@ -30,6 +30,7 @@ class TSPManager:
         ors_api_key=None,
         ors_base_url=None,
         ors_profile_key=None,
+        use_local_osrm_fallback=True,
         **solver_kwargs,
     ):
         """
@@ -51,6 +52,7 @@ class TSPManager:
             ors_api_key=ors_api_key,
             ors_base_url=ors_base_url,
             ors_profile_key=ors_profile_key,
+            allow_local_osrm=use_local_osrm_fallback,
         )
 
         # 3. Spuštění algoritmu (indexy měst)
@@ -81,6 +83,7 @@ class TSPManager:
             ors_api_key=ors_api_key,
             ors_base_url=ors_base_url,
             ors_profile_key=ors_profile_key,
+            allow_local_osrm=use_local_osrm_fallback,
         )
         
         return ordered_cities, visual_route, total_distance

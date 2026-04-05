@@ -3,6 +3,8 @@ import requests
 
 from openrouteservice_routing import (
     DEFAULT_ORS_BASE_URL,
+    OSRM_LOCAL_ROUTE_URL,
+    OSRM_LOCAL_TABLE_URL,
     ors_build_full_matrix,
     ors_profile_slug,
     ors_route_geometry_latlon,
@@ -12,8 +14,8 @@ from openrouteservice_routing import (
 class DistanceMatrixBuilder:
     def __init__(self):
         self.R = 6371.0
-        self.local_osrm_table_url = "http://localhost:5000/table/v1/driving/"
-        self.local_osrm_route_url = "http://localhost:5000/route/v1/driving/"
+        self.local_osrm_table_url = OSRM_LOCAL_TABLE_URL
+        self.local_osrm_route_url = OSRM_LOCAL_ROUTE_URL
 
     def _haversine(self, p1, p2):
         lat1, lon1 = p1
@@ -60,6 +62,7 @@ class DistanceMatrixBuilder:
         ors_api_key: str | None = None,
         ors_base_url: str | None = None,
         ors_profile_key: str | None = None,
+        allow_local_osrm: bool = True,
     ):
         """
         Vrátí seznam bodů [lat, lon] pro vykreslení trasy.
@@ -87,6 +90,12 @@ class DistanceMatrixBuilder:
             if geom is not None:
                 return geom
             print("DEBUG: ORS geometrie selhala → fallback OSRM")
+
+        if not allow_local_osrm:
+            print(
+                "DEBUG: Lokální OSRM vypnut v nastavení → geometrie jako přímky mezi body"
+            )
+            return [tuple(p) for p in ordered_points]
 
         # OSRM ROUTING GEOMETRY
         full_geometry = []
@@ -125,6 +134,7 @@ class DistanceMatrixBuilder:
         ors_api_key: str | None = None,
         ors_base_url: str | None = None,
         ors_profile_key: str | None = None,
+        allow_local_osrm: bool = True,
     ):
         n = len(points)
         if n < 2:
@@ -133,10 +143,16 @@ class DistanceMatrixBuilder:
         if mode == "routing_dist":
             ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
             if not ors:
-                print(
-                    "DEBUG: ORS API klíč není nastaven (Nastavení / proměnná ORS_API_KEY) → "
-                    "zkouším lokální OSRM"
-                )
+                if allow_local_osrm:
+                    print(
+                        "DEBUG: ORS API klíč není nastaven (Nastavení / ORS_API_KEY) → "
+                        "zkouším lokální OSRM"
+                    )
+                else:
+                    print(
+                        "DEBUG: ORS API klíč není nastaven a lokální OSRM je vypnutý → "
+                        "haversine"
+                    )
             if ors:
                 key, base, logical = ors
                 slug = ors_profile_slug(logical)
@@ -147,20 +163,32 @@ class DistanceMatrixBuilder:
                 matrix = ors_build_full_matrix(points, True, slug, key, base, logical)
                 if matrix:
                     return matrix
-                print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
-            matrix = self._get_osrm_matrix(points, annotation="distance")
-            if matrix:
-                return matrix
+                if allow_local_osrm:
+                    print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
+                else:
+                    print(
+                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
+                    )
+            if allow_local_osrm:
+                matrix = self._get_osrm_matrix(points, annotation="distance")
+                if matrix:
+                    return matrix
             mode = "haversine"
 
         elif mode == "routing_time":
             print(f"DEBUG: Požaduji SILNIČNÍ ČAS (min) pro {n} bodů…")
             ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
             if not ors:
-                print(
-                    "DEBUG: ORS API klíč není nastaven (Nastavení / proměnná ORS_API_KEY) → "
-                    "zkouším lokální OSRM"
-                )
+                if allow_local_osrm:
+                    print(
+                        "DEBUG: ORS API klíč není nastaven (Nastavení / ORS_API_KEY) → "
+                        "zkouším lokální OSRM"
+                    )
+                else:
+                    print(
+                        "DEBUG: ORS API klíč není nastaven a lokální OSRM je vypnutý → "
+                        "haversine"
+                    )
             if ors:
                 key, base, logical = ors
                 slug = ors_profile_slug(logical)
@@ -171,10 +199,16 @@ class DistanceMatrixBuilder:
                 matrix = ors_build_full_matrix(points, False, slug, key, base, logical)
                 if matrix:
                     return matrix
-                print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
-            matrix = self._get_osrm_matrix(points, annotation="duration")
-            if matrix:
-                return matrix
+                if allow_local_osrm:
+                    print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
+                else:
+                    print(
+                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
+                    )
+            if allow_local_osrm:
+                matrix = self._get_osrm_matrix(points, annotation="duration")
+                if matrix:
+                    return matrix
             mode = "haversine"
 
         matrix = [[0.0 for _ in range(n)] for _ in range(n)]

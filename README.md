@@ -24,11 +24,8 @@ Geocode Reverse (jestli jde na jeden request víc GPS souřadnic)
 
 ## 🛠️ GUI & UX (Uživatelské rozhraní)
 * **Interaktivita & Navigace:**
-    * **Search bar:** Možnost zadání adresy. -> poslání na api / na lokální OSRM
     * **Click v listu na bod:** Najde ho na mapě; v listu zobrazit GPS + nejbližší POI.
-    * Nastavení zobrazení/skrytí indexů jednotlivých bodů.
 * **Layout & Design:**
-    * Možná upravit GUI (Top bar / Bottom bar).
     * Settings appky: clear cache.
 * **Mapové podklady:**
     * Esri satellite, street.

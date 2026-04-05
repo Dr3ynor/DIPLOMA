@@ -10,7 +10,12 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
-from app_settings import load_ors_api_key, load_ors_base_url
+from app_settings import (
+    load_auto_recompute_on_add_point,
+    load_ors_api_key,
+    load_ors_base_url,
+    load_use_local_osrm_fallback,
+)
 from tspmanager import tsp_manager
 from theme import PALETTES, build_sidebar_stylesheet
 
@@ -31,6 +36,7 @@ class _SolveWorker(QObject):
         ors_api_key: str | None,
         ors_base_url: str | None,
         ors_profile_key: str | None = None,
+        use_local_osrm_fallback: bool = True,
     ):
         super().__init__()
         self._points = list(points)
@@ -41,6 +47,7 @@ class _SolveWorker(QObject):
         self._ors_api_key = ors_api_key
         self._ors_base_url = ors_base_url
         self._ors_profile_key = ors_profile_key
+        self._use_local_osrm_fallback = use_local_osrm_fallback
 
     def run(self):
         try:
@@ -52,6 +59,7 @@ class _SolveWorker(QObject):
                 ors_api_key=self._ors_api_key,
                 ors_base_url=self._ors_base_url,
                 ors_profile_key=self._ors_profile_key,
+                use_local_osrm_fallback=self._use_local_osrm_fallback,
                 **self._solver_kwargs,
             )
             self.finished.emit(result)
@@ -502,6 +510,7 @@ class Sidebar(QWidget):
 
         ors_key = load_ors_api_key()
         ors_base = load_ors_base_url()
+        use_local_osrm = load_use_local_osrm_fallback()
         if os.environ.get("ORS_API_KEY", "").strip():
             print("DEBUG: ORS API klíč z proměnné prostředí ORS_API_KEY (přednost před QSettings)")
         if os.environ.get("ORS_BASE_URL", "").strip():
@@ -517,6 +526,7 @@ class Sidebar(QWidget):
             ors_key or None,
             ors_base or None,
             None,
+            use_local_osrm_fallback=use_local_osrm,
         )
         self._solve_worker.moveToThread(self._solve_thread)
         self._solve_thread.started.connect(self._solve_worker.run)
@@ -577,8 +587,12 @@ class Sidebar(QWidget):
             lat, lon = points[-1]
             self.points_list.addItem(f"{new_count}. {lat:.4f}, {lon:.4f}")
 
-            # Automatický přepočet pokud existuje trasa
-            if state.get_route() and new_count >= 2:
+            # Automatický přepočet pokud existuje trasa (volitelné v Nastavení)
+            if (
+                load_auto_recompute_on_add_point()
+                and state.get_route()
+                and new_count >= 2
+            ):
                 print("DEBUG: Automatický přepočet po přidání bodu…")
                 self._on_solve_click()
         else:
