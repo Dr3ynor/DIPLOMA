@@ -377,5 +377,59 @@ QLabel#ApiStatusLabel {{
 """
 
 
+def build_map_search_bar_style(P: dict) -> str:
+    return f"""
+QFrame#MapSearchBar {{
+    background-color: {P['surface']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QFrame#MapSearchPopup {{
+    background-color: {P['surface']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QLineEdit#MapSearchLineEdit {{
+    background-color: {P['surface2']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
+    padding: 0 26px 0 12px;
+    margin: 0;
+    font-size: 14px;
+    selection-background-color: {P['primary']};
+}}
+QLineEdit#MapSearchLineEdit:focus {{
+    border-color: {P['primary']};
+}}
+QLineEdit#MapSearchLineEdit:disabled {{
+    color: {P['text_faint']};
+    background-color: {P['surface']};
+}}
+QListWidget#MapSearchList {{
+    background-color: {P['surface2']};
+    color: {P['text']};
+    border: none;
+    border-radius: 4px;
+    padding: 2px;
+    font-size: 13px;
+    outline: none;
+}}
+QListWidget#MapSearchList::item {{
+    padding: 8px 10px;
+    border-radius: 4px;
+    min-height: 28px;
+}}
+QListWidget#MapSearchList::item:hover {{
+    background-color: {P['border']};
+}}
+QListWidget#MapSearchList::item:selected {{
+    background-color: {P['primary']};
+    color: {P['text']};
+}}
+"""
+
+
 def central_widget_bg_style(P: dict) -> str:
     return f"background-color: {P['bg']};"

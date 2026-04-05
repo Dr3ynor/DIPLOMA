@@ -8,7 +8,13 @@ from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from api_status import ApiStatusPanel
 from app_state import state
-from theme import PALETTES, build_api_status_panel_style, build_map_settings_button_style
+from map_search_bar import MapSearchBar
+from theme import (
+    PALETTES,
+    build_api_status_panel_style,
+    build_map_search_bar_style,
+    build_map_settings_button_style,
+)
 
 # ---------------------------------------------------------------------------
 # HTML šablona s Leaflet mapou a QWebChannel mostem
@@ -290,7 +296,12 @@ class MapViewer(QWidget):
 
         self._api_panel = ApiStatusPanel(parent=self)
 
+        self._search_bar = MapSearchBar(self)
+        self._search_bar.location_picked.connect(self._on_search_location)
+
         self.set_chrome_palette(PALETTES["dark"])
+        self._search_bar.raise_()
+        self._search_bar.show()
         self._api_panel.raise_()
         self._api_panel.show()
         self._settings_btn.raise_()
@@ -299,6 +310,9 @@ class MapViewer(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         m = 14
+        # Odstup od Leaflet zoom (vlevo nahoře), aby se panel nepřekrýval s +/−
+        leaflet_zoom_spacer = 56
+        self._search_bar.move(m + leaflet_zoom_spacer, m)
         self._api_panel.adjustSize()
         self._api_panel.move(
             self.width() - self._api_panel.width() - m,
@@ -308,9 +322,13 @@ class MapViewer(QWidget):
             self.width() - self._settings_btn.width() - m,
             self.height() - self._settings_btn.height() - m,
         )
+        self._search_bar.raise_()
+        self._api_panel.raise_()
+        self._settings_btn.raise_()
 
     def set_chrome_palette(self, palette: dict):
         self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
+        self._search_bar.apply_palette_stylesheet(build_map_search_bar_style(palette))
         self._api_panel.apply_chrome_palette(
             build_api_status_panel_style(palette), palette
         )
@@ -374,16 +392,30 @@ class MapViewer(QWidget):
         self._js(f"removeMarker({index})")     # aktualizuje JS markery
         self._marker_count = max(0, self._marker_count - 1)
 
+    def _on_search_location(self, lat: float, lon: float):
+        if not state.is_geo():
+            return
+        state.add_point(lat, lon)
+        # Přiblížení na místo (Leaflet zoom ↑ = detailněji; 8 je málo pro POI)
+        state.notify(("center_map", (lat, lon, 16)))
+
     # ── Observer callback z AppState ──────────────────────────────────────
 
     def sync_with_state(self, data):
         """Hlavní observer – reaguje na všechny notifikace z AppState."""
 
+        self._search_bar.set_geo_mode(state.is_geo())
+
         # --- Přesun kamery ---
         if isinstance(data, tuple) and data[0] == "center_map":
-            pt = data[1]
+            payload = data[1]
+            if isinstance(payload, tuple) and len(payload) == 3:
+                pt = (payload[0], payload[1])
+                zoom = int(payload[2])
+            else:
+                pt = payload
+                zoom = 8 if state.is_geo() else 2
             viz_lat, viz_lon = self._get_visual_coords(pt)
-            zoom = 8 if state.is_geo() else 2
             self._js(f"centerMap({viz_lat}, {viz_lon}, {zoom})")
             return
 
