@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QListWidget, QScrollArea, QFrame,
+    QLineEdit, QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
     QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
     QProgressBar,
 )
@@ -315,6 +315,7 @@ class Sidebar(QWidget):
         )
         self.points_list.setSizePolicy(QSizePolicy.Policy.Expanding,
                                        QSizePolicy.Policy.Expanding)
+        self.points_list.itemClicked.connect(self._on_points_list_item_clicked)
         layout.addWidget(self.points_list, 1)   # stretchable
         self.points_list.setVisible(False)
 
@@ -436,6 +437,15 @@ class Sidebar(QWidget):
         self.points_list.setVisible(self._points_section_expanded)
         self.points_section_toggle.setText("VYBRANÉ LOKALITY")
         self._sync_points_toggle_icon()
+
+    def _on_points_list_item_clicked(self, item: QListWidgetItem) -> None:
+        if not state.is_geo():
+            return
+        row = self.points_list.row(item)
+        pts = state.get_points()
+        if 0 <= row < len(pts):
+            lat, lon = pts[row]
+            state.notify(("pan_map", (lat, lon)))
 
     # ── Akce: export ──────────────────────────────────────────────────────
 
@@ -589,6 +599,17 @@ class Sidebar(QWidget):
         if isinstance(data, tuple) and data[0] == "center_map":
             return
 
+        if isinstance(data, tuple) and data[0] == "pan_map":
+            return
+
+        if isinstance(data, tuple) and data[0] == "point_label":
+            index = data[1]
+            if 0 <= index < self.points_list.count():
+                self.points_list.item(index).setText(
+                    f"{index + 1}. {state.get_point_list_caption(index)}"
+                )
+            return
+
         # --- Volba zobrazení čísel na mapě ---
         if isinstance(data, tuple) and data[0] == "waypoint_indices":
             return
@@ -604,11 +625,9 @@ class Sidebar(QWidget):
             index = data[1]
             if 0 <= index < self.points_list.count():
                 self.points_list.takeItem(index)
-                # Přečísluj zbývající položky
-                for i in range(index, self.points_list.count()):
-                    item = self.points_list.item(i)
-                    coords = item.text().split(". ", 1)[1]
-                    item.setText(f"{i + 1}. {coords}")
+                for i in range(self.points_list.count()):
+                    lw_item = self.points_list.item(i)
+                    lw_item.setText(f"{i + 1}. {state.get_point_list_caption(i)}")
 
             # Automatický přepočet trasy po smazání bodu
             if state.get_route():
@@ -626,8 +645,9 @@ class Sidebar(QWidget):
 
         if new_count == current_count + 1:
             # Optimalizace: přidej jen poslední nový bod
-            lat, lon = points[-1]
-            self.points_list.addItem(f"{new_count}. {lat:.4f}, {lon:.4f}")
+            self.points_list.addItem(
+                f"{new_count}. {state.get_point_list_caption(new_count - 1)}"
+            )
 
             # Automatický přepočet pokud existuje trasa (volitelné v Nastavení)
             if (
@@ -640,8 +660,10 @@ class Sidebar(QWidget):
         else:
             # Plné překreslení (import / clear all)
             self.points_list.clear()
-            for i, (lat, lon) in enumerate(points):
-                self.points_list.addItem(f"{i + 1}. {lat:.4f}, {lon:.4f}")
+            for i in range(len(points)):
+                self.points_list.addItem(
+                    f"{i + 1}. {state.get_point_list_caption(i)}"
+                )
 
     # ── Pomocná: dočasně změní styl tlačítka a pak ho resetuje ───────────
 

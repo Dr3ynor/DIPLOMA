@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 from api_status import ApiStatusPanel
 from app_state import state
 from map_search_bar import MapSearchBar
+from ors_reverse_geocode import OrsReverseGeocodeClient
 from routing_profile_bar import RoutingProfileBar
 from svg_icons import tinted_svg_icon
 from theme import (
@@ -217,6 +218,10 @@ MAP_HTML = """<!DOCTYPE html>
         map.flyTo([lat, lon], zoom, { duration: 0.9, easeLinearity: 0.35 });
     }
 
+    function panMap(lat, lon) {
+        map.panTo([lat, lon], { animate: true });
+    }
+
     // ── Změň tile URL ─────────────────────────────────────────────────────
     function setTileLayer(url) {
         tileLayer.setUrl(url);
@@ -261,6 +266,8 @@ class MapViewer(QWidget):
     def __init__(self):
         super().__init__()
         self._marker_count = 0
+        self._last_points_signature: tuple | None = None
+        self._reverse_geocoder = OrsReverseGeocodeClient(state, self)
 
         # Layout
         layout = QVBoxLayout(self)
@@ -418,10 +425,11 @@ class MapViewer(QWidget):
         self._js(f"removeMarker({index})")     # aktualizuje JS markery
         self._marker_count = max(0, self._marker_count - 1)
 
-    def _on_search_location(self, lat: float, lon: float):
+    def _on_search_location(self, lat: float, lon: float, display_name: str = ""):
         if not state.is_geo():
             return
-        state.add_point(lat, lon)
+        name = display_name.strip() if display_name else None
+        state.add_point(lat, lon, display_name=name)
         # Přiblížení na místo (Leaflet zoom ↑ = detailněji; 8 je málo pro POI)
         state.notify(("center_map", (lat, lon, 16)))
 
@@ -432,6 +440,19 @@ class MapViewer(QWidget):
 
         self._search_bar.set_geo_mode(state.is_geo())
         self._routing_bar.set_geo_enabled(state.is_geo())
+
+        # --- Jen popisek bodu (mapa nemění markery) ---
+        if isinstance(data, tuple) and data[0] == "point_label":
+            return
+
+        # --- Posun mapy bez změny zoomu ---
+        if isinstance(data, tuple) and data[0] == "pan_map":
+            payload = data[1]
+            if isinstance(payload, (list, tuple)) and len(payload) >= 2:
+                lat, lon = float(payload[0]), float(payload[1])
+                viz_lat, viz_lon = self._get_visual_coords((lat, lon))
+                self._js(f"panMap({viz_lat}, {viz_lon})")
+            return
 
         # --- Přesun kamery ---
         if isinstance(data, tuple) and data[0] == "center_map":
@@ -485,3 +506,13 @@ class MapViewer(QWidget):
             self._js_call("redrawAllMarkers", visual)
 
         self._marker_count = new_count
+
+        if new_count == 0:
+            self._reverse_geocoder.clear_queue()
+            self._last_points_signature = None
+        else:
+            sig = tuple(points)
+            if sig != self._last_points_signature:
+                self._last_points_signature = sig
+                for i, (lat, lon) in enumerate(points):
+                    self._reverse_geocoder.enqueue(i, lat, lon)

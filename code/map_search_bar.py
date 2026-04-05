@@ -65,7 +65,7 @@ def _parse_ors_geocode_geojson(data: dict[str, Any]) -> list[_GeocodeHit]:
 class MapSearchBar(QFrame):
     """Search box nad mapou; návrhy v Qt.Popup (WebEngine jinak překrývá sourozence)."""
 
-    location_picked = pyqtSignal(float, float)
+    location_picked = pyqtSignal(float, float, str)
 
     _DEBOUNCE_MS = 1_000
     _MIN_QUERY_LEN = 2
@@ -298,7 +298,7 @@ class MapSearchBar(QFrame):
         lat, lon = float(data[0]), float(data[1])
         self._hide_suggestions()
         self._edit.clear()
-        self.location_picked.emit(lat, lon)
+        self.location_picked.emit(lat, lon, item.text())
 
     def _pick_first_suggestion(self) -> None:
         if not self._popup.isVisible() or self._list.count() == 0:
