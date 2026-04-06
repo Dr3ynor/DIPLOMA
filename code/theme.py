@@ -529,3 +529,77 @@ QListWidget#MapSearchList::item:selected {{
 
 def central_widget_bg_style(P: dict) -> str:
     return f"background-color: {P['bg']};"
+
+
+def build_right_route_panel_stylesheet(P: dict) -> str:
+    """Pravý panel tras – stejné materiály jako sidebar."""
+    return f"""
+QWidget#RightRoutePanel {{
+    background-color: {P['bg']};
+}}
+QScrollArea#RightRouteScroll {{
+    border: none;
+    background-color: {P['bg']};
+}}
+QWidget#RightRouteScrollContent {{
+    background-color: {P['bg']};
+}}
+QLabel#RightRouteEmpty {{
+    color: {P['text_dim']};
+    font-size: 13px;
+    padding: 12px 8px;
+}}
+QLabel#RightRouteHint {{
+    color: {P['text_faint']};
+    font-size: 11px;
+    padding: 4px 8px 8px 8px;
+}}
+QToolButton#RightRouteToggle {{
+    background-color: {P['surface']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 4px;
+    margin: 4px;
+    min-width: 32px;
+    max-width: 36px;
+}}
+QToolButton#RightRouteToggle:hover {{
+    border-color: {P['primary']};
+    color: {P['primary']};
+}}
+QToolButton#RightRouteFuelHeader {{
+    background-color: {P['surface2']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 12px;
+    text-align: left;
+}}
+QToolButton#RightRouteFuelHeader:hover {{
+    border-color: {P['primary']};
+}}
+QToolButton#RightRouteFuelHeader:checked {{
+    border-color: {P['primary']};
+}}
+{secondary_button_qss(P)}
+QDoubleSpinBox#RightRouteSpin {{
+    background-color: {P['surface2']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: 34px;
+}}
+QLabel#RightRouteFuelResult {{
+    color: {P['primary']};
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px;
+}}
+"""

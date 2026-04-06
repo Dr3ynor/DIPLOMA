@@ -570,9 +570,14 @@ class Sidebar(QWidget):
 
     def _on_solve_finished(self, result):
         self._solve_progress_bar.setVisible(False)
-        _ordered_cities, visual_route, total_dist = result
-        state.update_route(visual_route)
+        ordered_cities, visual_route, total_dist = result
         metric_key = self._pending_metric_key
+        state.set_route_result(
+            visual_route,
+            [tuple(p) for p in ordered_cities],
+            total_dist,
+            metric_key,
+        )
         self._last_total_dist = total_dist
         self._last_metric_key = metric_key
         self._refresh_distance_label()

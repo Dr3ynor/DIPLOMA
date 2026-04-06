@@ -13,6 +13,7 @@ from app_settings import (
     save_theme,
 )
 from map_viewer import MapViewer
+from right_route_panel import RightRoutePanel
 from settings_dialog import SettingsDialog
 from sidebar import Sidebar
 from theme import PALETTES, central_widget_bg_style
@@ -40,8 +41,17 @@ class MainWindow(QMainWindow):
         self.map_viewer = MapViewer()
         self.map_viewer.settings_requested.connect(self._open_settings)
 
+        self._map_column = QWidget()
+        map_column_layout = QHBoxLayout(self._map_column)
+        map_column_layout.setContentsMargins(0, 0, 0, 0)
+        map_column_layout.setSpacing(0)
+        map_column_layout.addWidget(self.map_viewer, 1)
+        self.right_route_panel = RightRoutePanel(theme_mode=theme_mode)
+        self.right_route_panel.set_distance_unit(distance_unit)
+        map_column_layout.addWidget(self.right_route_panel, 0)
+
         layout.addWidget(self.sidebar, 1)
-        layout.addWidget(self.map_viewer, 2)
+        layout.addWidget(self._map_column, 2)
 
         self.setCentralWidget(self._central_widget)
         self._apply_theme(theme_mode)
@@ -55,6 +65,7 @@ class MainWindow(QMainWindow):
         self._central_widget.setStyleSheet(central_widget_bg_style(P))
         self.sidebar.apply_theme(mode)
         self.map_viewer.set_chrome_palette(P)
+        self.right_route_panel.apply_theme(mode)
         save_theme(mode)
 
     def _open_settings(self):
@@ -82,4 +93,5 @@ class MainWindow(QMainWindow):
 
     def _apply_distance_unit(self, unit: str):
         self.sidebar.set_distance_unit(unit)
+        self.right_route_panel.set_distance_unit(unit)
         save_distance_unit(unit)

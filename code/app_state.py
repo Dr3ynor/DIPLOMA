@@ -9,6 +9,9 @@ class AppState(Subject):
         self._points = []
         self._point_labels: list[str] = []
         self._route = []
+        self._route_ordered_stops: list[tuple[float, float]] = []
+        self._route_total_value: float | None = None
+        self._route_metric_key: str | None = None
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
         self._is_geographic = True
         self._show_waypoint_indices = True
@@ -59,6 +62,9 @@ class AppState(Subject):
         self._points.clear()
         self._point_labels.clear()
         self._route.clear()
+        self._route_ordered_stops.clear()
+        self._route_total_value = None
+        self._route_metric_key = None
 
         self.notify(self._points)
         self.notify(("route_update", []))
@@ -146,16 +152,46 @@ class AppState(Subject):
                 self._point_labels.pop(index)
 
     def set_route(self, route_points):
-        """Uloží vypočítanou trasu a upozorní MapViewer."""
-        self._route = route_points
+        """Uloží trasu pro mapu. Bez metadat řešiče (import) vymaže ordered_stops / souhrn."""
+        self._route = list(route_points) if route_points else []
+        if not self._route:
+            self._route_ordered_stops.clear()
+            self._route_total_value = None
+            self._route_metric_key = None
+        else:
+            self._route_ordered_stops.clear()
+            self._route_total_value = None
+            self._route_metric_key = None
         self.notify(("route_update", self._route))
 
     def get_route(self):
         return self._route
 
+    def set_route_result(
+        self,
+        polyline,
+        ordered_stops: list[tuple[float, float]],
+        total_value: float,
+        metric_key: str,
+    ) -> None:
+        """Výsledek výpočtu trasy: polylinie, pořadí zastávek (vč. návratu), délka/čas, metrika."""
+        self._route = list(polyline) if polyline else []
+        self._route_ordered_stops = [tuple(p) for p in ordered_stops]
+        self._route_total_value = float(total_value)
+        self._route_metric_key = str(metric_key)
+        self.notify(("route_update", self._route))
+
     def update_route(self, points):
-        self._route = points
-        self.notify(("route_update", points))
+        self.set_route(points)
+
+    def get_route_ordered_stops(self) -> list[tuple[float, float]]:
+        return list(self._route_ordered_stops)
+
+    def get_route_total_value(self) -> float | None:
+        return self._route_total_value
+
+    def get_route_metric_key(self) -> str | None:
+        return self._route_metric_key
 
 
 state = AppState()
