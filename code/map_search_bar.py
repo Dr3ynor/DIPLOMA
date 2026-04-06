@@ -296,9 +296,11 @@ class MapSearchBar(QFrame):
         if not data or not isinstance(data, (list, tuple)) or len(data) < 2:
             return
         lat, lon = float(data[0]), float(data[1])
+        # Před _hide_suggestions() — clear() smaže QListWidgetItem a item.text() by spadlo.
+        label = item.text()
         self._hide_suggestions()
         self._edit.clear()
-        self.location_picked.emit(lat, lon, item.text())
+        self.location_picked.emit(lat, lon, label)
 
     def _pick_first_suggestion(self) -> None:
         if not self._popup.isVisible() or self._list.count() == 0:

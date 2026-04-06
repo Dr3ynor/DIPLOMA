@@ -237,6 +237,14 @@ def ors_post_directions_chunk(
         f"chunk={chunk_index + 1}/{num_chunks} coords={n} "
         f"base={base} api_key={_mask_key(api_key)}"
     )
+
+    print(f"--------------------------------")
+    print(f"URL: {url}")
+    print(f"Body: {body}")
+    print(f"Headers: {_ors_headers(api_key)}")
+    print(f"Timeout: {_DIRECTIONS_TIMEOUT_S}")
+    print(f"--------------------------------")
+
     try:
         r = requests.post(
             url,
@@ -246,6 +254,11 @@ def ors_post_directions_chunk(
         )
         print(f"ORS directions response HTTP {r.status_code} (chunk {chunk_index + 1}/{num_chunks})")
         data = r.json()
+
+        print(f"--------------------------------")
+        print(f"Data: {data}")
+        print(f"--------------------------------")
+
         if r.status_code != 200:
             err = data.get("error") if isinstance(data, dict) else None
             print(f"ORS directions chyba: {err or data}")
@@ -279,7 +292,7 @@ def ors_route_geometry_latlon(
     api_key: str,
     base_url: str,
     logical_profile: str,
-    chunk_size: int = 50,
+    chunk_size: int = 10,
 ) -> list[list[float]] | None:
     """
     Chunkování waypointů (max. počet na jeden POST), překryv o 1 bod.
