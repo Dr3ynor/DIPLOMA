@@ -1,6 +1,7 @@
 from iohandler import IOHandler
 # from instancegenerator import InstanceGenerator
 from distance_matrix_builder import DistanceMatrixBuilder
+from metric_catalog import resolve_effective_metric
 from optimazation_engine import OptimizationEngine
 from openrouteservice_routing import ors_profile_slug
 
@@ -43,7 +44,7 @@ class TSPManager:
 
         # 1. Rozhodnutí o metrice
         is_geo = state.is_geo() if is_geographic is None else is_geographic
-        actual_metric = distance_metric if is_geo else "euc_2d"
+        actual_metric = resolve_effective_metric(distance_metric, is_geo)
         
         # 2. Sestavení matice vzdáleností
         matrix = self.matrix_builder.build(

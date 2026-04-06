@@ -2,16 +2,13 @@
 
 ## 🚀 Main Goals (Kritické cíle)
 * **Routing Engine & API Selection:**
-    * Možnost volby zdroje dat (Lokální API vs. OpenRouteService).
-    * Víc vytěžit z API – zjistit, která data jsou použitelné a hlouběji je analyzovat.
+    * Možnost volby zdroje dat (Lokální API vs. OpenRouteService). (???)
 * **Algoritmy & Logika:**
     * **Možnost nastavení pevného seedu:** Pro reprodukovatelné výsledky algoritmů.
-    * **Nové metriky:** Přidat další metriky kromě času/vzdálenosti/haver.
+    * **Nové metriky:** Přidat další metriky kromě času/vzdálenosti/haver. MANHATTAN, ČEBYŠEV
 * **Systémová integrita:**
     * **Check integrity GUI:** Ošetřit stavy, aby uživatel nemohl spouštět akce tam, kde to nedává smysl.
     * Implementace cache.
-
-Mýto / poplatky – jen pokud API nebo vlastní vrstva vrací peněžní náklad (ORS základní matice ho obvykle neřeší jako samostatnou matici).
 
 ## 🛠️ GUI & UX (Uživatelské rozhraní)
 * **Mapové podklady:**
@@ -26,6 +23,7 @@ Mýto / poplatky – jen pokud API nebo vlastní vrstva vrací peněžní nákla
 * **Clustering:** Shlukování dat.
 
 * **Prozkoumat!**
+* POIs endpoint
 ** avoid_features **
 * highways – dálnice (driving*)
 * tollways – mýtné (driving*)

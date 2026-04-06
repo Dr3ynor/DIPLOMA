@@ -17,6 +17,7 @@ from app_settings import (
     load_use_local_osrm_fallback,
 )
 from geocode_cache import geocode_cache
+from metric_catalog import METRIC_UI_OPTIONS
 from tspmanager import tsp_manager
 from svg_icons import tinted_svg_icon
 from theme import PALETTES, build_sidebar_stylesheet
@@ -246,15 +247,8 @@ class Sidebar(QWidget):
         )
 
         self.metric_dropdown = QComboBox()
-        self.metric_dropdown.addItem("Letecká vzdálenost (Haversine)", "haversine")
-        self.metric_dropdown.addItem(
-            "Trasová vzdálenost – km (dle režimu na mapě, ORS / OSRM)",
-            "routing_dist",
-        )
-        self.metric_dropdown.addItem(
-            "Trasový čas – minuty (dle režimu na mapě, ORS / OSRM)",
-            "routing_time",
-        )
+        for label, key in METRIC_UI_OPTIONS:
+            self.metric_dropdown.addItem(label, key)
         layout.addWidget(self.metric_dropdown)
 
         for cb in (self.export_dropdown, self.solver_dropdown, self.metric_dropdown):

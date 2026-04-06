@@ -1,6 +1,15 @@
 import math
 import requests
 
+from metric_catalog import (
+    CHEBYSHEV,
+    EUC_2D,
+    HAVERSINE,
+    MANHATTAN,
+    POINT_METRICS,
+    ROUTING_DIST,
+    ROUTING_TIME,
+)
 from openrouteservice_routing import (
     DEFAULT_ORS_BASE_URL,
     ors_build_full_matrix,
@@ -14,6 +23,12 @@ from openrouteservice_routing import (
 class DistanceMatrixBuilder:
     def __init__(self):
         self.R = 6371.0
+        self._point_metric_dispatch = {
+            HAVERSINE: self._haversine,
+            EUC_2D: self._euclidean_2d,
+            MANHATTAN: self._manhattan,
+            CHEBYSHEV: self._chebyshev,
+        }
 
     def _haversine(self, p1, p2):
         lat1, lon1 = p1
@@ -23,6 +38,18 @@ class DistanceMatrixBuilder:
         dlambda = math.radians(lon2 - lon1)
         a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
         return self.R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    @staticmethod
+    def _euclidean_2d(p1, p2):
+        return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+    @staticmethod
+    def _manhattan(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+    @staticmethod
+    def _chebyshev(p1, p2):
+        return max(abs(p1[0] - p2[0]), abs(p1[1] - p2[1]))
 
     def _get_osrm_matrix(
         self, points, annotation="distance", ors_profile_key: str | None = None
@@ -70,7 +97,7 @@ class DistanceMatrixBuilder:
         - Haversine: Vrátí jen původní body (vykreslí se přímky).
         - OSRM / ORS: detailní body trasy (auto apod.).
         """
-        if mode in ["haversine", "euc_2d"] or not ordered_points:
+        if mode in POINT_METRICS or not ordered_points:
             return ordered_points
 
         ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
@@ -142,7 +169,7 @@ class DistanceMatrixBuilder:
         if n < 2:
             return []
 
-        if mode == "routing_dist":
+        if mode == ROUTING_DIST:
             ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
             if not ors:
                 if allow_local_osrm:
@@ -179,7 +206,7 @@ class DistanceMatrixBuilder:
                     return matrix
             mode = "haversine"
 
-        elif mode == "routing_time":
+        elif mode == ROUTING_TIME:
             print(f"DEBUG: Požaduji ČAS JÍZDY / CHŮZE (min) pro {n} bodů…")
             ors = self._resolve_ors(ors_api_key, ors_base_url, ors_profile_key)
             if not ors:
@@ -217,16 +244,16 @@ class DistanceMatrixBuilder:
                     return matrix
             mode = "haversine"
 
+        point_metric = self._point_metric_dispatch.get(mode)
+        if point_metric is None:
+            print(f"DEBUG: Neznámý režim '{mode}', fallback na haversine")
+            point_metric = self._point_metric_dispatch[HAVERSINE]
+
         matrix = [[0.0 for _ in range(n)] for _ in range(n)]
         for i in range(n):
             for j in range(n):
                 if i == j:
                     continue
-                if mode == "haversine":
-                    matrix[i][j] = self._haversine(points[i], points[j])
-                elif mode == "euc_2d":
-                    matrix[i][j] = math.sqrt(
-                        (points[i][0] - points[j][0]) ** 2 + (points[i][1] - points[j][1]) ** 2
-                    )
+                matrix[i][j] = point_metric(points[i], points[j])
 
         return matrix
