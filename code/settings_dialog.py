@@ -89,13 +89,13 @@ class SettingsDialog(QDialog):
         self._map_tile_combo.currentIndexChanged.connect(self._on_map_tile_picked)
 
         self._auto_recompute_add_check = QCheckBox(
-            "Po přidání nového bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
+            "Po přidání nebo odebrání bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
         )
         self._auto_recompute_add_check.setChecked(load_auto_recompute_on_add_point())
         root.addWidget(self._auto_recompute_add_check)
         auto_rec_hint = QLabel(
-            "Pozor: u velké instance může jedno přidání bodu trvat dlouho. Při silniční metrice "
-            "(ORS / OSRM) se při každém přidání posílá spousta požadavků na API — rychleji "
+            "Pozor: u velké instance může jedna změna (přidání/odebrání) trvat dlouho. Při silniční metrice "
+            "(ORS / OSRM) se při každém automatickém přepočtu posílá spousta požadavků na API — rychleji "
             "vyčerpáte denní limit nebo kvótu klíče."
         )
         auto_rec_hint.setWordWrap(True)

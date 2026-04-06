@@ -631,13 +631,13 @@ class Sidebar(QWidget):
                     lw_item = self.points_list.item(i)
                     lw_item.setText(f"{i + 1}. {state.get_point_list_caption(i)}")
 
-            # Automatický přepočet trasy po smazání bodu
+            # Automatický přepočet jako po přidání bodu (Nastavení → stejný přepínač)
             if state.get_route():
-                if len(state.get_points()) >= 2:
+                if len(state.get_points()) < 2:
+                    state.set_route([])
+                elif load_auto_recompute_on_add_point():
                     print("DEBUG: Automatický přepočet po smazání bodu…")
                     self._on_solve_click()
-                else:
-                    state.set_route([])
             return
 
         # --- Plná aktualizace seznamu bodů ---

@@ -113,7 +113,7 @@ def save_use_local_osrm_fallback(use: bool) -> None:
 
 
 def load_auto_recompute_on_add_point(default: bool = False) -> bool:
-    """Po přidání bodu na mapu spustit celý výpočet trasy (jako tlačítko Spočítat)."""
+    """Po přidání nebo odebrání bodu spustit celý výpočet trasy (jako tlačítko Spočítat)."""
     return _coerce_bool(_store().value(_KEY_AUTO_RECOMPUTE_ON_ADD_POINT), default)
 
 
