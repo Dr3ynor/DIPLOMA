@@ -5,14 +5,34 @@ Profily: logický klíč → segment URL (/v2/matrix/{slug}, /v2/directions/{slu
 Hlavičky ORS: neposílat Accept: application/json u directions/geojson (406 / error 2007).
 
 Konstanty OSRM_LOCAL_* sdílí DistanceMatrixBuilder a api_status (healthcheck).
+
+OrsRoutingConfig: jeden objekt s parametry pro ORS + OSRM fallback (propojení GUI → TSPManager → matice/geometrie).
 """
 
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any
 
 import requests
+
+
+@dataclass(frozen=True, slots=True)
+class OrsRoutingConfig:
+    """Společné parametry pro ORS (matrix / directions) a lokální OSRM fallback."""
+
+    api_key: str | None = None
+    base_url: str | None = None
+    profile_key: str | None = None
+    avoid_features: tuple[str, ...] | None = None
+    allow_local_osrm_fallback: bool = True
+
+    @property
+    def avoid_features_list(self) -> list[str] | None:
+        if not self.avoid_features:
+            return None
+        return list(self.avoid_features)
 
 DEFAULT_ORS_BASE_URL = "https://api.openrouteservice.org"
 

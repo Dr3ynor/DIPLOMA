@@ -3,7 +3,7 @@ from iohandler import IOHandler
 from distance_matrix_builder import DistanceMatrixBuilder
 from metric_catalog import resolve_effective_metric
 from optimazation_engine import OptimizationEngine
-from openrouteservice_routing import ors_profile_slug
+from openrouteservice_routing import OrsRoutingConfig, ors_profile_slug
 
 from app_state import state
 
@@ -29,20 +29,19 @@ class TSPManager:
         distance_metric="haversine",
         *,
         is_geographic=None,
-        ors_api_key=None,
-        ors_base_url=None,
-        ors_profile_key=None,
-        ors_avoid_features=None,
-        use_local_osrm_fallback=True,
+        ors: OrsRoutingConfig | None = None,
         **solver_kwargs,
     ):
         """
         Hlavní metoda pro výpočet trasy.
         Vrací tuple (uspořádané_zastávky, vizuální_trasa, celková_vzdálenost).
         is_geographic: pokud není None, přepíše čtení z AppState (např. při běhu mimo GUI vlákno).
+        ors: OrsRoutingConfig z openrouteservice_routing (klíč, base URL, profil, avoid_features, OSRM fallback).
         """
         if not points or len(points) < 2:
             return [], [], 0.0
+
+        cfg = ors if ors is not None else OrsRoutingConfig()
 
         # 1. Rozhodnutí o metrice
         is_geo = state.is_geo() if is_geographic is None else is_geographic
@@ -52,18 +51,14 @@ class TSPManager:
         matrix = self.matrix_builder.build(
             points,
             mode=actual_metric,
-            ors_api_key=ors_api_key,
-            ors_base_url=ors_base_url,
-            ors_profile_key=ors_profile_key,
-            ors_avoid_features=ors_avoid_features,
-            allow_local_osrm=use_local_osrm_fallback,
+            ors=cfg,
         )
 
         # 3. Spuštění algoritmu (indexy měst)
         ors_hint = ""
         if actual_metric in ("routing_dist", "routing_time"):
-            slug = ors_profile_slug(ors_profile_key)
-            logical = ors_profile_key or "car"
+            slug = ors_profile_slug(cfg.profile_key)
+            logical = cfg.profile_key or "car"
             ors_hint = f", ORS profile={slug} (logical={logical})"
         print(
             f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}'"
@@ -84,11 +79,7 @@ class TSPManager:
         visual_route = self.matrix_builder.get_route_geometry(
             ordered_cities,
             mode=actual_metric,
-            ors_api_key=ors_api_key,
-            ors_base_url=ors_base_url,
-            ors_profile_key=ors_profile_key,
-            ors_avoid_features=ors_avoid_features,
-            allow_local_osrm=use_local_osrm_fallback,
+            ors=cfg,
         )
         
         return ordered_cities, visual_route, total_distance

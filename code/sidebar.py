@@ -18,6 +18,7 @@ from app_settings import (
 )
 from geocode_cache import geocode_cache
 from metric_catalog import METRIC_UI_OPTIONS
+from openrouteservice_routing import OrsRoutingConfig
 from tspmanager import tsp_manager
 from svg_icons import tinted_svg_icon
 from theme import PALETTES, build_sidebar_stylesheet
@@ -38,11 +39,7 @@ class _SolveWorker(QObject):
         metric_key: str,
         solver_kwargs: dict,
         is_geographic: bool,
-        ors_api_key: str | None,
-        ors_base_url: str | None,
-        ors_profile_key: str | None = None,
-        ors_avoid_features: list[str] | None = None,
-        use_local_osrm_fallback: bool = True,
+        ors: OrsRoutingConfig,
     ):
         super().__init__()
         self._points = list(points)
@@ -50,11 +47,7 @@ class _SolveWorker(QObject):
         self._metric_key = metric_key
         self._solver_kwargs = dict(solver_kwargs)
         self._is_geographic = is_geographic
-        self._ors_api_key = ors_api_key
-        self._ors_base_url = ors_base_url
-        self._ors_profile_key = ors_profile_key
-        self._ors_avoid_features = list(ors_avoid_features or [])
-        self._use_local_osrm_fallback = use_local_osrm_fallback
+        self._ors = ors
 
     def run(self):
         try:
@@ -63,11 +56,7 @@ class _SolveWorker(QObject):
                 solver_type=self._solver_key,
                 distance_metric=self._metric_key,
                 is_geographic=self._is_geographic,
-                ors_api_key=self._ors_api_key,
-                ors_base_url=self._ors_base_url,
-                ors_profile_key=self._ors_profile_key,
-                ors_avoid_features=self._ors_avoid_features,
-                use_local_osrm_fallback=self._use_local_osrm_fallback,
+                ors=self._ors,
                 **self._solver_kwargs,
             )
             self.finished.emit(result)
@@ -621,6 +610,13 @@ class Sidebar(QWidget):
         if os.environ.get("ORS_BASE_URL", "").strip():
             print("DEBUG: ORS base URL z proměnné prostředí ORS_BASE_URL")
 
+        ors_cfg = OrsRoutingConfig(
+            api_key=ors_key or None,
+            base_url=ors_base or None,
+            profile_key=state.get_ors_routing_profile(),
+            avoid_features=tuple(state.get_ors_avoid_features()),
+            allow_local_osrm_fallback=use_local_osrm,
+        )
         self._solve_thread = QThread()
         self._solve_worker = _SolveWorker(
             points,
@@ -628,11 +624,7 @@ class Sidebar(QWidget):
             metric_key,
             solver_kwargs,
             is_geographic,
-            ors_key or None,
-            ors_base or None,
-            state.get_ors_routing_profile(),
-            state.get_ors_avoid_features(),
-            use_local_osrm_fallback=use_local_osrm,
+            ors_cfg,
         )
         self._solve_worker.moveToThread(self._solve_thread)
         self._solve_thread.started.connect(self._solve_worker.run)
