@@ -21,16 +21,20 @@ _KEY_USE_LOCAL_OSRM = "routing/use_local_osrm_fallback"
 _KEY_AUTO_RECOMPUTE_ON_ADD_POINT = "map/auto_recompute_on_add_point"
 _KEY_MAP_TILE_URL = "map/tile_url"
 _KEY_ORS_ROUTING_PROFILE = "routing/ors_profile"
+_KEY_DISTANCE_UNIT = "ui/distance_unit"
 
 # Předvolené mapové podklady (Leaflet tile URL šablony)
 MAP_TILE_SOURCES: dict[str, str] = {
     "OpenStreetMap (DE)": "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+    "Esri World Street Map": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
     "CartoDB (Light)": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
     "CartoDB (Dark)": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
     "OpenTopoMap": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
 }
 
 DEFAULT_MAP_TILE_URL = MAP_TILE_SOURCES["OpenStreetMap (DE)"]
+DISTANCE_UNITS = {"km", "mi"}
+DEFAULT_DISTANCE_UNIT = "km"
 
 
 def _store() -> QSettings:
@@ -146,3 +150,18 @@ def load_ors_routing_profile() -> str:
 
 def save_ors_routing_profile(key: str) -> None:
     _store().setValue(_KEY_ORS_ROUTING_PROFILE, normalize_ors_routing_profile(key))
+
+
+def normalize_distance_unit(unit: str | None) -> str:
+    if isinstance(unit, str) and unit in DISTANCE_UNITS:
+        return unit
+    return DEFAULT_DISTANCE_UNIT
+
+
+def load_distance_unit() -> str:
+    raw = _store().value(_KEY_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT)
+    return normalize_distance_unit(raw if isinstance(raw, str) else None)
+
+
+def save_distance_unit(unit: str) -> None:
+    _store().setValue(_KEY_DISTANCE_UNIT, normalize_distance_unit(unit))

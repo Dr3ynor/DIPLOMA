@@ -128,7 +128,9 @@ def _make_btn(text: str, obj_name: str, callback=None) -> QPushButton:
 
 class Sidebar(QWidget):
 
-    def __init__(self, theme_mode: str = "dark"):
+    _KM_TO_MI = 0.621371
+
+    def __init__(self, theme_mode: str = "dark", distance_unit: str = "km"):
         super().__init__()
         self.setObjectName("Sidebar")
         self.setMinimumWidth(260)
@@ -138,6 +140,9 @@ class Sidebar(QWidget):
         self._dividers: list = []
         self.setStyleSheet(build_sidebar_stylesheet(self._palette))
         self._solve_running = False
+        self._distance_unit = distance_unit if distance_unit in ("km", "mi") else "km"
+        self._last_total_dist: float | None = None
+        self._last_metric_key: str | None = None
 
         self._build_ui()
         state.attach(self.update_ui)
@@ -276,7 +281,7 @@ class Sidebar(QWidget):
         layout.addWidget(self._solve_progress_bar)
         self._refresh_solve_progress_bar_style()
 
-        self.distance_label = QLabel("Celková vzdálenost: — km")
+        self.distance_label = QLabel(self._format_empty_total_text())
         self.distance_label.setObjectName("DistanceLabel")
         self.distance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.distance_label.setWordWrap(True)
@@ -576,15 +581,9 @@ class Sidebar(QWidget):
         _ordered_cities, visual_route, total_dist = result
         state.update_route(visual_route)
         metric_key = self._pending_metric_key
-        if metric_key == "routing_time":
-            if total_dist >= 120:
-                hours = total_dist / 60
-                text = f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
-            else:
-                text = f"Celkem: {total_dist:.1f} minut"
-        else:
-            text = f"Celkem: {total_dist:.2f} km"
-        self.distance_label.setText(text)
+        self._last_total_dist = total_dist
+        self._last_metric_key = metric_key
+        self._refresh_distance_label()
         print(f"Trasa nalezena: {total_dist:.2f}")
         self._finish_solve_ui()
 
@@ -668,7 +667,9 @@ class Sidebar(QWidget):
         # --- Aktualizace trasy ---
         if isinstance(data, tuple) and data[0] == "route_update":
             if not data[1]:
-                self.distance_label.setText("Celková vzdálenost: — km")
+                self._last_total_dist = None
+                self._last_metric_key = None
+                self.distance_label.setText(self._format_empty_total_text())
             return
 
         # --- Smazání jednoho bodu ---
@@ -786,3 +787,33 @@ class Sidebar(QWidget):
     def _get_solver_params(self) -> dict:
         """Přečte aktuální hodnoty ze spinboxů a vrátí jako kwargs pro solver."""
         return {key: widget.value() for key, widget in self._param_widgets.items()}
+
+    def get_distance_unit(self) -> str:
+        return self._distance_unit
+
+    def set_distance_unit(self, unit: str) -> None:
+        if unit not in ("km", "mi") or unit == self._distance_unit:
+            return
+        self._distance_unit = unit
+        self._refresh_distance_label()
+
+    def _format_empty_total_text(self) -> str:
+        return "Celkem: -"
+
+    def _refresh_distance_label(self) -> None:
+        if self._last_total_dist is None or self._last_metric_key is None:
+            self.distance_label.setText(self._format_empty_total_text())
+            return
+        self.distance_label.setText(
+            self._format_total_text(self._last_total_dist, self._last_metric_key)
+        )
+
+    def _format_total_text(self, total_dist: float, metric_key: str) -> str:
+        if metric_key == "routing_time":
+            if total_dist >= 120:
+                hours = total_dist / 60
+                return f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
+            return f"Celkem: {total_dist:.1f} minut"
+        if self._distance_unit == "mi":
+            return f"Celkem: {total_dist * self._KM_TO_MI:.2f} mi"
+        return f"Celkem: {total_dist:.2f} km"

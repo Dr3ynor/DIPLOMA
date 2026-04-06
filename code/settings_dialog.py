@@ -16,10 +16,12 @@ from geocode_cache import geocode_cache
 from app_settings import (
     MAP_TILE_SOURCES,
     load_auto_recompute_on_add_point,
+    load_distance_unit,
     load_stored_ors_api_key,
     load_stored_ors_base_url,
     load_use_local_osrm_fallback,
     save_auto_recompute_on_add_point,
+    save_distance_unit,
     save_ors_api_key,
     save_ors_base_url,
     save_use_local_osrm_fallback,
@@ -33,6 +35,7 @@ class SettingsDialog(QDialog):
     theme_changed = pyqtSignal(str)
     waypoint_indices_changed = pyqtSignal(bool)
     map_tile_changed = pyqtSignal(str)
+    distance_unit_changed = pyqtSignal(str)
 
     def __init__(
         self,
@@ -40,6 +43,7 @@ class SettingsDialog(QDialog):
         initial_mode: str,
         show_waypoint_indices: bool = True,
         map_tile_url: str = "",
+        distance_unit: str = "km",
     ):
         super().__init__(parent)
         self.setWindowTitle("Nastavení")
@@ -87,6 +91,19 @@ class SettingsDialog(QDialog):
         if not isinstance(self._map_tile_url, str) or not self._map_tile_url:
             self._map_tile_url = next(iter(MAP_TILE_SOURCES.values()))
         self._map_tile_combo.currentIndexChanged.connect(self._on_map_tile_picked)
+
+        unit_row = QHBoxLayout()
+        unit_row.setSpacing(12)
+        unit_row.addWidget(QLabel("Jednotky vzdálenosti:"), 0)
+        self._distance_unit_combo = QComboBox()
+        self._distance_unit_combo.addItem("Kilometry (km)", "km")
+        self._distance_unit_combo.addItem("Míle (mi)", "mi")
+        initial_unit = distance_unit if distance_unit in ("km", "mi") else load_distance_unit()
+        idx = self._distance_unit_combo.findData(initial_unit)
+        self._distance_unit_combo.setCurrentIndex(max(0, idx))
+        self._distance_unit_combo.currentIndexChanged.connect(self._on_distance_unit_picked)
+        unit_row.addWidget(self._distance_unit_combo, 1)
+        root.addLayout(unit_row)
 
         self._auto_recompute_add_check = QCheckBox(
             "Po přidání nebo odebrání bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
@@ -181,6 +198,7 @@ class SettingsDialog(QDialog):
         save_ors_base_url(self._ors_base_edit.text())
         save_use_local_osrm_fallback(self._local_osrm_check.isChecked())
         save_auto_recompute_on_add_point(self._auto_recompute_add_check.isChecked())
+        save_distance_unit(self._distance_unit_combo.currentData())
         self.accept()
 
     def _on_theme_picked(self, _idx: int):
@@ -197,6 +215,11 @@ class SettingsDialog(QDialog):
             return
         self._map_tile_url = url
         self.map_tile_changed.emit(url)
+
+    def _on_distance_unit_picked(self, _idx: int):
+        unit = self._distance_unit_combo.currentData()
+        if unit in ("km", "mi"):
+            self.distance_unit_changed.emit(unit)
 
     def _apply_local_style(self):
         P = PALETTES[self._mode]
