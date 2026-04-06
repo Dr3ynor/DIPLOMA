@@ -1,5 +1,6 @@
 import math
 import os
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 
 def tsplib_geo_to_decimal(coord):
@@ -61,17 +62,17 @@ def _parse_tsp_file(filepath: str) -> tuple:
 
 class TspFileStrategy(ABC):
     @abstractmethod
-    def export(self, filepath: str, points: list):
+    def export(self, filepath: str, points: list, route_points: list | None = None):
         pass
 
     @abstractmethod
-    def load(self, filepath: str) -> list:
+    def load(self, filepath: str):
         pass
 
 class TspGeoStrategy(TspFileStrategy):
     """Strategie pro geografické souřadnice (Zeměkoule)."""
     
-    def export(self, filepath: str, points: list):
+    def export(self, filepath: str, points: list, route_points: list | None = None):
         name = os.path.splitext(os.path.basename(filepath))[0]
         lines = [
             f"NAME: {name}",
@@ -88,7 +89,7 @@ class TspGeoStrategy(TspFileStrategy):
         with open(filepath, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-    def load(self, filepath: str) -> list:
+    def load(self, filepath: str):
         raw_points, is_custom = _parse_tsp_file(filepath)
         
         # Pokud je to historický TSPLIB (nemá náš comment), musíme to přepočítat
@@ -100,14 +101,24 @@ class TspGeoStrategy(TspFileStrategy):
                     tsplib_geo_to_decimal(lat),
                     tsplib_geo_to_decimal(lon)
                 ))
-            return converted_points
+            return {
+                "points": converted_points,
+                "route_points": [],
+                "is_geographic": True,
+                "format": "TSP_GEO",
+            }
             
-        return raw_points
+        return {
+            "points": raw_points,
+            "route_points": [],
+            "is_geographic": True,
+            "format": "TSP_GEO",
+        }
 
 class TspEuc2DStrategy(TspFileStrategy):
     """Strategie pro euklidovské souřadnice"""
     
-    def export(self, filepath: str, points: list):
+    def export(self, filepath: str, points: list, route_points: list | None = None):
         name = os.path.splitext(os.path.basename(filepath))[0]
         lines = [
             f"NAME: {name}",
@@ -123,6 +134,102 @@ class TspEuc2DStrategy(TspFileStrategy):
         with open(filepath, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-    def load(self, filepath: str) -> list:
+    def load(self, filepath: str):
         raw_points, _ = _parse_tsp_file(filepath)
-        return raw_points
+        return {
+            "points": raw_points,
+            "route_points": [],
+            "is_geographic": False,
+            "format": "TSP_EUC_2D",
+        }
+
+
+def _as_float(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+class GpxStrategy(TspFileStrategy):
+    """Minimal GPX 1.1 import/export (waypointy + volitelný track)."""
+
+    GPX_NS = "http://www.topografix.com/GPX/1/1"
+
+    def export(self, filepath: str, points: list, route_points: list | None = None):
+        root = ET.Element(
+            "gpx",
+            {
+                "version": "1.1",
+                "creator": "MODERN_GPS_DIPLOMA",
+                "xmlns": self.GPX_NS,
+            },
+        )
+
+        for idx, (lat, lon) in enumerate(points):
+            wpt = ET.SubElement(
+                root,
+                "wpt",
+                {"lat": f"{lat:.8f}", "lon": f"{lon:.8f}"},
+            )
+            ET.SubElement(wpt, "name").text = f"WP {idx + 1}"
+
+        if route_points:
+            trk = ET.SubElement(root, "trk")
+            ET.SubElement(trk, "name").text = "Solved Route"
+            seg = ET.SubElement(trk, "trkseg")
+            for lat, lon in route_points:
+                ET.SubElement(
+                    seg,
+                    "trkpt",
+                    {"lat": f"{lat:.8f}", "lon": f"{lon:.8f}"},
+                )
+
+        tree = ET.ElementTree(root)
+        ET.indent(tree, space="  ", level=0)
+        tree.write(filepath, encoding="utf-8", xml_declaration=True)
+
+    def load(self, filepath: str):
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+
+        ns_uri = ""
+        if root.tag.startswith("{") and "}" in root.tag:
+            ns_uri = root.tag[1 : root.tag.index("}")]
+
+        def qname(tag: str) -> str:
+            return f"{{{ns_uri}}}{tag}" if ns_uri else tag
+
+        points = []
+        route_points = []
+
+        for wpt in root.findall(f".//{qname('wpt')}"):
+            lat = _as_float(wpt.attrib.get("lat"))
+            lon = _as_float(wpt.attrib.get("lon"))
+            if lat is not None and lon is not None:
+                points.append((lat, lon))
+
+        for trkpt in root.findall(f".//{qname('trkpt')}"):
+            lat = _as_float(trkpt.attrib.get("lat"))
+            lon = _as_float(trkpt.attrib.get("lon"))
+            if lat is not None and lon is not None:
+                route_points.append((lat, lon))
+
+        if not points and route_points:
+            # Fallback: GPX bez waypointů, jen track.
+            deduped = []
+            seen = set()
+            for lat, lon in route_points:
+                key = (round(lat, 8), round(lon, 8))
+                if key in seen:
+                    continue
+                seen.add(key)
+                deduped.append((lat, lon))
+            points = deduped
+
+        return {
+            "points": points,
+            "route_points": route_points,
+            "is_geographic": True,
+            "format": "GPX",
+        }

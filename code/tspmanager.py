@@ -15,11 +15,12 @@ class TSPManager:
         self.engine = OptimizationEngine()
 
     def load_instance(self, filepath):
-        points = self.io_handler.load(filepath)
-        return points
+        return self.io_handler.load(filepath)
 
-    def export_instance(self, filepath, points, strategy_name):
-        self.io_handler.export(filepath, points, strategy_name)
+    def export_instance(self, filepath, points, strategy_name, route_points=None):
+        self.io_handler.export(
+            filepath, points, strategy_name, route_points=route_points
+        )
 
     def solve(
         self,

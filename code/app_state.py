@@ -43,6 +43,16 @@ class AppState(Subject):
             self._point_labels = [""] * len(self._points)
         self.notify(self._points)
 
+    def apply_imported_instance(
+        self,
+        points,
+        *,
+        is_geographic=True,
+        route_points=None,
+    ):
+        self.set_points(points, is_geographic=is_geographic)
+        self.set_route(route_points or [])
+
     def clear_all(self):
         self._is_geographic = True
         self._points.clear()

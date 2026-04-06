@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gpx version="1.1" creator="MODERN_GPS_DIPLOMA" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="50.07337700" lon="14.40896200">
+    <name>WP 1</name>
+  </wpt>
+  <wpt lat="50.66523100" lon="14.03851100">
+    <name>WP 2</name>
+  </wpt>
+  <wpt lat="50.76491300" lon="15.06036800">
+    <name>WP 3</name>
+  </wpt>
+  <wpt lat="50.20913200" lon="15.81581600">
+    <name>WP 4</name>
+  </wpt>
+  <wpt lat="50.03622900" lon="15.76822600">
+    <name>WP 5</name>
+  </wpt>
+  <wpt lat="48.98042400" lon="14.47842400">
+    <name>WP 6</name>
+  </wpt>
+  <wpt lat="50.23536000" lon="12.86119200">
+    <name>WP 7</name>
+  </wpt>
+  <wpt lat="49.73123400" lon="13.38460800">
+    <name>WP 8</name>
+  </wpt>
+  <wpt lat="49.18848400" lon="16.61058800">
+    <name>WP 9</name>
+  </wpt>
+  <wpt lat="49.59556500" lon="17.22833100">
+    <name>WP 10</name>
+  </wpt>
+  <wpt lat="49.83196500" lon="18.16097300">
+    <name>WP 11</name>
+  </wpt>
+  <wpt lat="49.40443800" lon="15.58175500">
+    <name>WP 12</name>
+  </wpt>
+  <wpt lat="49.22320300" lon="17.65983600">
+    <name>WP 13</name>
+  </wpt>
+</gpx>

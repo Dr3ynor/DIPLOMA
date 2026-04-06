@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
     QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
-    QProgressBar,
+    QProgressBar, QMessageBox,
 )
 from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
@@ -445,19 +445,24 @@ class Sidebar(QWidget):
     # ── Akce: export ──────────────────────────────────────────────────────
 
     def _on_export_click(self):
+        def _with_extension(path: str, ext: str) -> str:
+            root, _ = os.path.splitext(path)
+            return root + ext
+
         fmt = self.export_dropdown.currentText()
+        route_points = state.get_route() or []
+        suggested_ext = ".gpx" if fmt == "GPX" else ".tsp"
+        suggested_name = f"instance{suggested_ext}"
+        file_filter = "GPX soubory (*.gpx);;TSP soubory (*.tsp);;Všechny soubory (*)"
 
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             "Exportovat instanci",
-            f"instance.tsp",
-            "TSP soubory (*.tsp);;Všechny soubory (*)"
+            suggested_name,
+            file_filter,
         )
         if not filepath:
             return  # uživatel zrušil dialog
-
-        if not filepath.endswith(".tsp"):
-            filepath += ".tsp"
 
         try:
             points = state.get_points()
@@ -465,10 +470,60 @@ class Sidebar(QWidget):
                 self._flash_btn(self.export_btn, "ErrorBtn", "✗  Žádné body!", 2500)
                 return
 
-            tsp_manager.export_instance(filepath, points, fmt)
+            selected_fmt = fmt
+            target_filepath = filepath
+            used_tsp_fallback = False
+
+            if fmt == "GPX":
+                if not route_points:
+                    reply = QMessageBox.question(
+                        self,
+                        "Export GPX bez trasy",
+                        (
+                            "GPX může obsahovat waypointy i trasu.\n\n"
+                            "Pro tuto instanci není vygenerovaná trasa.\n"
+                            "Chceš exportovat waypoint-only GPX?\n\n"
+                            "Ano = uložit .gpx s waypointy\n"
+                            "Ne = fallback do .tsp (MODERN_GPS_DIPLOMA)\n"
+                            "Zrušit / zavřít = nic neukládat"
+                        ),
+                        QMessageBox.StandardButton.Yes
+                        | QMessageBox.StandardButton.No
+                        | QMessageBox.StandardButton.Cancel,
+                        QMessageBox.StandardButton.Yes,
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        target_filepath = _with_extension(target_filepath, ".gpx")
+                    elif reply == QMessageBox.StandardButton.No:
+                        selected_fmt = "TSP_GEO" if state.is_geo() else "TSP_EUC_2D"
+                        used_tsp_fallback = True
+                        target_filepath = _with_extension(target_filepath, ".tsp")
+                    else:
+                        # Cancel nebo zavření dialogu křížkem => bez exportu.
+                        return
+                else:
+                    target_filepath = _with_extension(target_filepath, ".gpx")
+            else:
+                target_filepath = _with_extension(target_filepath, ".tsp")
+
+            tsp_manager.export_instance(
+                target_filepath,
+                points,
+                selected_fmt,
+                route_points=route_points,
+            )
             geocode_cache.add_from_state(state)
             self._flash_btn(self.export_btn, "SuccessBtn", "✓  Uloženo!", 2500)
-            print(f"DEBUG: Uloženo do {filepath}")
+            print(f"DEBUG: Uloženo do {target_filepath}")
+            if used_tsp_fallback:
+                QMessageBox.information(
+                    self,
+                    "Export dokončen (fallback)",
+                    (
+                        "GPX export bez vygenerované trasy byl uložen jako .tsp "
+                        "s tagem MODERN_GPS_DIPLOMA."
+                    ),
+                )
 
         except Exception as ex:
             print(f"ERROR EXPORT: {ex}")
@@ -480,29 +535,29 @@ class Sidebar(QWidget):
             self,
             "Načíst instanci",
             "",
-            "TSP soubory (*.tsp);;Všechny soubory (*)"
+            "Podporované soubory (*.tsp *.gpx);;TSP soubory (*.tsp);;GPX soubory (*.gpx);;Všechny soubory (*)",
         )
         if not filepath:
             return  # uživatel zrušil dialog
 
         try:
-            is_geo = False
-            with open(filepath, "r", encoding="utf-8") as f:
-                for _ in range(20):
-                    line = f.readline()
-                    if not line:
-                        break
-                    if "EDGE_WEIGHT_TYPE" in line and "GEO" in line:
-                        is_geo = True
-                        break
-
-            new_points = tsp_manager.load_instance(filepath)
+            payload = tsp_manager.load_instance(filepath)
+            new_points = payload.get("points", [])
+            route_points = payload.get("route_points", [])
+            is_geo = bool(payload.get("is_geographic", True))
 
             if new_points:
                 state.clear_all()
-                state.set_points(new_points, is_geographic=is_geo)
+                state.apply_imported_instance(
+                    new_points,
+                    is_geographic=is_geo,
+                    route_points=route_points,
+                )
                 state.notify(("center_map", new_points[0]))
-                self._flash_btn(self.import_btn, "SuccessBtn", "✓  Načteno!", 2500)
+                if route_points:
+                    self._flash_btn(self.import_btn, "SuccessBtn", "✓  Body+trasa", 2500)
+                else:
+                    self._flash_btn(self.import_btn, "SuccessBtn", "✓  Načteno!", 2500)
             else:
                 self._flash_btn(self.import_btn, "ErrorBtn", "✗  Prázdný soubor!", 2500)
 
