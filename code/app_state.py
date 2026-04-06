@@ -15,17 +15,32 @@ class AppState(Subject):
         self._ors_routing_profile = DEFAULT_ORS_PROFILE_KEY
 
     def add_point(self, lat, lon, *, display_name: str | None = None):
+        from geocode_cache import geocode_cache
+
         self._points.append((lat, lon))
+        cached = (
+            geocode_cache.lookup_label(lat, lon) if self._is_geographic else None
+        )
+
         if display_name and str(display_name).strip():
-            self._point_labels.append(str(display_name).strip())
+            dn = str(display_name).strip()
+            label = cached if cached else dn
+            self._point_labels.append(label)
+            geocode_cache.add_if_missing(lat, lon, label)
         else:
-            self._point_labels.append("")
+            self._point_labels.append(cached if cached else "")
+
         self.notify(self._points)
 
     def set_points(self, points, is_geographic=True):
+        from geocode_cache import geocode_cache
+
         self._points = list(points)
-        self._point_labels = [""] * len(self._points)
         self._is_geographic = is_geographic
+        if is_geographic and self._points:
+            self._point_labels = geocode_cache.labels_for_points_geo(self._points)
+        else:
+            self._point_labels = [""] * len(self._points)
         self.notify(self._points)
 
     def clear_all(self):
@@ -55,6 +70,11 @@ class AppState(Subject):
         if not (0 <= index < len(self._point_labels)):
             return
         self._point_labels[index] = (label or "").strip()
+        if self._point_labels[index] and 0 <= index < len(self._points):
+            from geocode_cache import geocode_cache
+
+            lat, lon = self._points[index]
+            geocode_cache.add_if_missing(lat, lon, self._point_labels[index])
         self.notify(("point_label", index))
 
     def remove_point_at(self, index):

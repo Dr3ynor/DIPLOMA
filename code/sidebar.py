@@ -16,6 +16,7 @@ from app_settings import (
     load_ors_base_url,
     load_use_local_osrm_fallback,
 )
+from geocode_cache import geocode_cache
 from tspmanager import tsp_manager
 from svg_icons import tinted_svg_icon
 from theme import PALETTES, build_sidebar_stylesheet
@@ -471,6 +472,7 @@ class Sidebar(QWidget):
                 return
 
             tsp_manager.export_instance(filepath, points, fmt)
+            geocode_cache.add_from_state(state)
             self._flash_btn(self.export_btn, "SuccessBtn", "✓  Uloženo!", 2500)
             print(f"DEBUG: Uloženo do {filepath}")
 

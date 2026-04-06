@@ -7,8 +7,11 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QCheckBox,
     QLineEdit,
+    QMessageBox,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+
+from geocode_cache import geocode_cache
 
 from app_settings import (
     MAP_TILE_SOURCES,
@@ -135,6 +138,18 @@ class SettingsDialog(QDialog):
         )
         root.addWidget(self._local_osrm_check)
 
+        cache_row = QHBoxLayout()
+        cache_row.setSpacing(12)
+        self._cache_count_label = QLabel()
+        self._cache_count_label.setWordWrap(True)
+        cache_row.addWidget(self._cache_count_label, 1)
+        self._cache_clear_btn = QPushButton("Smazat cache")
+        self._cache_clear_btn.setObjectName("SecondaryBtn")
+        self._cache_clear_btn.clicked.connect(self._on_clear_geocode_cache)
+        cache_row.addWidget(self._cache_clear_btn, 0)
+        root.addLayout(cache_row)
+        self._refresh_cache_count_label()
+
         root.addStretch(1)
 
         close_btn = QPushButton("Zavřít")
@@ -143,6 +158,23 @@ class SettingsDialog(QDialog):
         root.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
         self._apply_local_style()
+
+    def _refresh_cache_count_label(self) -> None:
+        n = geocode_cache.get_count()
+        self._cache_count_label.setText(f"Cache geokódování: {n} záznamů")
+
+    def _on_clear_geocode_cache(self) -> None:
+        reply = QMessageBox.question(
+            self,
+            "Smazat cache",
+            "Jste si jistí, že chcete smazat cache?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        geocode_cache.clear()
+        self._refresh_cache_count_label()
 
     def _on_close(self) -> None:
         save_ors_api_key(self._ors_key_edit.text())
