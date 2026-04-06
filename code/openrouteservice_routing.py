@@ -202,12 +202,6 @@ def ors_post_matrix_block(
         body["options"] = {"avoid_features": avoid_features}
 
     n_pairs = len(sources) * len(destinations)
-    print(
-        f"ORS matrix POST profile={profile_slug} (logical={logical_profile}) "
-        f"metrics={metrics} locations={len(locations_lonlat)} "
-        f"sources={len(sources)} destinations={len(destinations)} pairs={n_pairs} "
-        f"base={base} api_key={_mask_key(api_key)}"
-    )
 
     try:
         r = requests.post(
@@ -269,7 +263,6 @@ def ors_build_full_matrix(
             for ri, i in enumerate(src_range):
                 for cj, j in enumerate(dst_range):
                     matrix[i][j] = sub[ri][cj]
-    print(f"ORS matrix: hotovo N={n} (bloky {bs}×{bs})")
     return matrix
 
 
@@ -295,13 +288,6 @@ def ors_post_directions_chunk(
         f"base={base} api_key={_mask_key(api_key)}"
     )
 
-    print(f"--------------------------------")
-    print(f"URL: {url}")
-    print(f"Body: {body}")
-    print(f"Headers: {_ors_headers(api_key)}")
-    print(f"Timeout: {_DIRECTIONS_TIMEOUT_S}")
-    print(f"--------------------------------")
-
     try:
         r = requests.post(
             url,
@@ -311,10 +297,6 @@ def ors_post_directions_chunk(
         )
         print(f"ORS directions response HTTP {r.status_code} (chunk {chunk_index + 1}/{num_chunks})")
         data = r.json()
-
-        print(f"--------------------------------")
-        print(f"Data: {data}")
-        print(f"--------------------------------")
 
         if r.status_code != 200:
             err = data.get("error") if isinstance(data, dict) else None

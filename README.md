@@ -3,6 +3,7 @@
 ## 🚀 Main Goals (Kritické cíle)
 * **Algoritmy & Logika:**
 * **Možnost nastavení pevného seedu:** Pro reprodukovatelné výsledky algoritmů.
+
 * **Systémová integrita:**
 * **Check integrity GUI:** Ošetřit stavy, aby uživatel nemohl spouštět akce tam, kde to nedává smysl.
 
@@ -10,18 +11,6 @@
 * **Palivový modul:** Počítání litrů paliva, popřípadě průměrná cena paliv, nebo Spotřeba CO₂ / spotřebovaná energie v elektroautě
 * **Převýšení** Asi Elevation Line 
 * **Clustering:** Shlukování dat. (performance issue vyřešen přechodem na PyQt6)
-
-* **Prozkoumat!**
-* POIs endpoint
-* ** avoid_features **
-* highways – dálnice (driving*)
-* tollways – mýtné (driving*)
-* ferries – přívozy (driving*, cycling*, foot*, wheelchair)
-* fords – brody (driving*, cycling*, foot*)
-* steps – schody (cycling*, foot*, wheelchair)
-
-## 🛠️ GUI & UX (Uživatelské rozhraní)
-* **Napojit prozkoumané věci do UI**
 
 **Další v options (orientačně)**
 * avoid_borders – např. all / controlled (omezení přechodů hranic)
