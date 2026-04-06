@@ -1,35 +1,27 @@
 # 🎓 DIPLOMA – Roadmap & TODO
 
 ## 🚀 Main Goals (Kritické cíle)
-* **Routing Engine & API Selection:**
-    * Možnost volby zdroje dat (Lokální API vs. OpenRouteService). (???)
 * **Algoritmy & Logika:**
-    * **Možnost nastavení pevného seedu:** Pro reprodukovatelné výsledky algoritmů.
-    * **Nové metriky:** Přidat další metriky kromě času/vzdálenosti/haver. MANHATTAN, ČEBYŠEV
+* **Možnost nastavení pevného seedu:** Pro reprodukovatelné výsledky algoritmů.
 * **Systémová integrita:**
-    * **Check integrity GUI:** Ošetřit stavy, aby uživatel nemohl spouštět akce tam, kde to nedává smysl.
-    * Implementace cache.
-
-## 🛠️ GUI & UX (Uživatelské rozhraní)
-* **Mapové podklady:**
-    * Esri satellite, street.
-    * Stamen terrain, Stamen (?).
-    * Opentopomap.
+* **Check integrity GUI:** Ošetřit stavy, aby uživatel nemohl spouštět akce tam, kde to nedává smysl.
 
 ## 📊 Data & Výpočty (Palivo & Parametry)
-* **Palivový modul:** Počítání litrů paliva, popřípadě průměrná cena paliv, nebo Spotřeba CO₂
+* **Palivový modul:** Počítání litrů paliva, popřípadě průměrná cena paliv, nebo Spotřeba CO₂ / spotřebovaná energie v elektroautě
 * **Převýšení** Asi Elevation Line 
-* **Podpora souborů:** Více typů (json, tsp, ATT).
-* **Clustering:** Shlukování dat.
+* **Clustering:** Shlukování dat. (performance issue vyřešen přechodem na PyQt6)
 
 * **Prozkoumat!**
 * POIs endpoint
-** avoid_features **
+* ** avoid_features **
 * highways – dálnice (driving*)
 * tollways – mýtné (driving*)
 * ferries – přívozy (driving*, cycling*, foot*, wheelchair)
-* **fords** – brody (driving*, cycling*, foot*)
+* fords – brody (driving*, cycling*, foot*)
 * steps – schody (cycling*, foot*, wheelchair)
+
+## 🛠️ GUI & UX (Uživatelské rozhraní)
+* **Napojit prozkoumané věci do UI**
 
 **Další v options (orientačně)**
 * avoid_borders – např. all / controlled (omezení přechodů hranic)
@@ -39,9 +31,7 @@
 * extra_info (nevyhýbat se, ale dostat info po segmentech)
 * např. steepness, surface, waytype, waycategory, traildifficulty, tollways, roadaccessrestrictions, countryinfo, osmid, u některých profilů i green, noise, shadow, suitability, …
 
-
-
-
 ## ⚡ OPTIONAL (Nice-to-have)
 * **!!!!!! Nalezení optimálních parametrů na základě rozložení dat na mapě / canvasu**
 * Canvas map selection.
+* Podpora souborů: Více typů (JSON, ATT).
