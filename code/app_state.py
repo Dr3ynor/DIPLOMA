@@ -1,6 +1,6 @@
 from subject import Subject
 
-from openrouteservice_routing import DEFAULT_ORS_PROFILE_KEY
+from openrouteservice_routing import DEFAULT_ORS_PROFILE_KEY, sanitize_avoid_features
 
 
 class AppState(Subject):
@@ -13,6 +13,7 @@ class AppState(Subject):
         self._is_geographic = True
         self._show_waypoint_indices = True
         self._ors_routing_profile = DEFAULT_ORS_PROFILE_KEY
+        self._ors_avoid_features: list[str] = []
 
     def add_point(self, lat, lon, *, display_name: str | None = None):
         from geocode_cache import geocode_cache
@@ -112,8 +113,19 @@ class AppState(Subject):
         if k == self._ors_routing_profile:
             return
         self._ors_routing_profile = k
+        self._ors_avoid_features = sanitize_avoid_features(k, self._ors_avoid_features)
         if persist:
             save_ors_routing_profile(k)
+
+    def get_ors_avoid_features(self) -> list[str]:
+        return list(self._ors_avoid_features)
+
+    def set_ors_avoid_features(self, features: list[str] | tuple[str, ...]) -> None:
+        clean = sanitize_avoid_features(self._ors_routing_profile, list(features))
+        if clean == self._ors_avoid_features:
+            return
+        self._ors_avoid_features = clean
+        self.notify(("ors_avoid_features", list(self._ors_avoid_features)))
 
     def get_show_waypoint_indices(self):
         return self._show_waypoint_indices

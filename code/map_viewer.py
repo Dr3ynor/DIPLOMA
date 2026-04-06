@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from api_status import ApiStatusPanel
 from app_state import state
+from avoid_features_panel import AvoidFeaturesPanel
 from map_search_bar import MapSearchBar
 from ors_reverse_geocode import OrsReverseGeocodeClient
 from routing_profile_bar import RoutingProfileBar
@@ -15,6 +16,7 @@ from svg_icons import tinted_svg_icon
 from theme import (
     PALETTES,
     build_api_status_panel_style,
+    build_avoid_features_panel_style,
     build_map_search_bar_style,
     build_map_settings_button_style,
     build_routing_profile_bar_style,
@@ -313,14 +315,21 @@ class MapViewer(QWidget):
             self, current_key=state.get_ors_routing_profile()
         )
         self._routing_bar.profile_changed.connect(
-            lambda k: state.set_ors_routing_profile(k, persist=True)
+            self._on_profile_changed
         )
+        self._avoid_panel = AvoidFeaturesPanel(self)
+        self._avoid_panel.avoid_selection_changed.connect(
+            self._on_avoid_panel_selection_changed
+        )
+        self._sync_avoid_feature_checks()
 
         self.set_chrome_palette(PALETTES["dark"])
         self._search_bar.raise_()
         self._search_bar.show()
         self._routing_bar.raise_()
         self._routing_bar.show()
+        self._avoid_panel.raise_()
+        self._avoid_panel.show()
         self._api_panel.raise_()
         self._api_panel.show()
         self._settings_btn.raise_()
@@ -340,12 +349,20 @@ class MapViewer(QWidget):
             self.width() - self._api_panel.width() - m,
             m,
         )
+        self._avoid_panel.adjustSize()
+        avoid_x = self._routing_bar.x() + self._routing_bar.width() + gap
+        max_right = self._api_panel.x() - gap
+        if avoid_x + self._avoid_panel.width() <= max_right:
+            self._avoid_panel.move(avoid_x, m)
+        else:
+            self._avoid_panel.move(sb_x, m + self._search_bar.height() + gap)
         self._settings_btn.move(
             self.width() - self._settings_btn.width() - m,
             self.height() - self._settings_btn.height() - m,
         )
         self._search_bar.raise_()
         self._routing_bar.raise_()
+        self._avoid_panel.raise_()
         self._api_panel.raise_()
         self._settings_btn.raise_()
 
@@ -359,6 +376,8 @@ class MapViewer(QWidget):
         self._search_bar.apply_palette_stylesheet(build_map_search_bar_style(palette))
         self._routing_bar.setStyleSheet(build_routing_profile_bar_style(palette))
         self._routing_bar.apply_palette(palette, dpr)
+        self._avoid_panel.setStyleSheet(build_avoid_features_panel_style(palette))
+        self._avoid_panel.apply_palette(palette, dpr)
         self._api_panel.apply_chrome_palette(
             build_api_status_panel_style(palette), palette
         )
@@ -433,6 +452,20 @@ class MapViewer(QWidget):
         # Přiblížení na místo (Leaflet zoom ↑ = detailněji; 8 je málo pro POI)
         state.notify(("center_map", (lat, lon, 16)))
 
+    def _on_profile_changed(self, key: str) -> None:
+        state.set_ors_routing_profile(key, persist=True)
+        self._sync_avoid_feature_checks()
+
+    def _sync_avoid_feature_checks(self) -> None:
+        self._avoid_panel.sync(
+            state.get_ors_routing_profile(),
+            state.get_ors_avoid_features(),
+            state.is_geo(),
+        )
+
+    def _on_avoid_panel_selection_changed(self, keys: list) -> None:
+        state.set_ors_avoid_features(keys)
+
     # ── Observer callback z AppState ──────────────────────────────────────
 
     def sync_with_state(self, data):
@@ -440,6 +473,7 @@ class MapViewer(QWidget):
 
         self._search_bar.set_geo_mode(state.is_geo())
         self._routing_bar.set_geo_enabled(state.is_geo())
+        self._sync_avoid_feature_checks()
 
         # --- Jen popisek bodu (mapa nemění markery) ---
         if isinstance(data, tuple) and data[0] == "point_label":
@@ -484,6 +518,8 @@ class MapViewer(QWidget):
         if isinstance(data, tuple) and data[0] == "waypoint_indices":
             show = data[1]
             self._js(f"setShowWaypointIndices({str(show).lower()});")
+            return
+        if isinstance(data, tuple) and data[0] == "ors_avoid_features":
             return
 
         # --- Plná aktualizace seznamu bodů ---

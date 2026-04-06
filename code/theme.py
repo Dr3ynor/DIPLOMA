@@ -430,6 +430,49 @@ QToolButton#RoutingProfileBtn:disabled {{
 """
 
 
+def build_avoid_features_panel_style(P: dict) -> str:
+    return f"""
+QFrame#AvoidFeaturesPanel {{
+    background-color: {P['surface']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QWidget#AvoidFeaturesTrack {{
+    background-color: {P['surface2']};
+    border-radius: 8px;
+    border: none;
+}}
+QToolButton#AvoidFeatureBtn {{
+    background-color: transparent;
+    color: {P['text']};
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
+}}
+QToolButton#AvoidFeatureBtn:hover {{
+    border-color: {P['primary']};
+}}
+QToolButton#AvoidFeatureBtn:checked {{
+    background-color: {P['danger']};
+    border: 1px solid {P['danger_d']};
+}}
+QToolButton#AvoidFeatureBtn:checked:hover {{
+    background-color: {P['danger_d']};
+    border-color: {P['danger_d']};
+}}
+QToolButton#AvoidFeatureBtn:disabled {{
+    color: {P['text_faint']};
+    background-color: transparent;
+    border-color: transparent;
+}}
+"""
+
+
 def build_map_search_bar_style(P: dict) -> str:
     return f"""
 QFrame#MapSearchBar {{

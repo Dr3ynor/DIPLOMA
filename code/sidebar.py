@@ -41,6 +41,7 @@ class _SolveWorker(QObject):
         ors_api_key: str | None,
         ors_base_url: str | None,
         ors_profile_key: str | None = None,
+        ors_avoid_features: list[str] | None = None,
         use_local_osrm_fallback: bool = True,
     ):
         super().__init__()
@@ -52,6 +53,7 @@ class _SolveWorker(QObject):
         self._ors_api_key = ors_api_key
         self._ors_base_url = ors_base_url
         self._ors_profile_key = ors_profile_key
+        self._ors_avoid_features = list(ors_avoid_features or [])
         self._use_local_osrm_fallback = use_local_osrm_fallback
 
     def run(self):
@@ -64,6 +66,7 @@ class _SolveWorker(QObject):
                 ors_api_key=self._ors_api_key,
                 ors_base_url=self._ors_base_url,
                 ors_profile_key=self._ors_profile_key,
+                ors_avoid_features=self._ors_avoid_features,
                 use_local_osrm_fallback=self._use_local_osrm_fallback,
                 **self._solver_kwargs,
             )
@@ -628,6 +631,7 @@ class Sidebar(QWidget):
             ors_key or None,
             ors_base or None,
             state.get_ors_routing_profile(),
+            state.get_ors_avoid_features(),
             use_local_osrm_fallback=use_local_osrm,
         )
         self._solve_worker.moveToThread(self._solve_thread)
@@ -663,6 +667,8 @@ class Sidebar(QWidget):
         # --- Volba zobrazení čísel na mapě ---
         if isinstance(data, tuple) and data[0] == "waypoint_indices":
             return
+        if isinstance(data, tuple) and data[0] == "ors_avoid_features":
+            return
 
         # --- Aktualizace trasy ---
         if isinstance(data, tuple) and data[0] == "route_update":
@@ -688,6 +694,9 @@ class Sidebar(QWidget):
                 elif load_auto_recompute_on_add_point():
                     print("DEBUG: Automatický přepočet po smazání bodu…")
                     self._on_solve_click()
+            return
+
+        if isinstance(data, tuple):
             return
 
         # --- Plná aktualizace seznamu bodů ---

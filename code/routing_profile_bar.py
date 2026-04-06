@@ -28,14 +28,21 @@ _ROUTING_SVG = {
     "car": "car.svg",
     "foot": "footprints.svg",
     "bike": "bike.svg",
+    "wheelchair": "accessibility.svg",
 }
 
 _TOOLTIPS = {
     "car": "Auto — osobní automobil (ORS driving-car)",
     "foot": "Pěší — chůze (ORS foot-walking)",
     "bike": "Kolo — cyklistika (ORS cycling-regular)",
+    "wheelchair": "Wheelchair — bezbariérový profil (ORS wheelchair)",
 }
-_ACCESSIBLE = {"car": "Auto", "foot": "Pěší", "bike": "Kolo"}
+_ACCESSIBLE = {
+    "car": "Auto",
+    "foot": "Pěší",
+    "bike": "Kolo",
+    "wheelchair": "Wheelchair",
+}
 
 _ICON_PX = 22
 _ANIM_MS = 190

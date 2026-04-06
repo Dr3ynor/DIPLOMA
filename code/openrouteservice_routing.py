@@ -26,6 +26,7 @@ ORS_PROFILE_SLUGS: dict[str, str] = {
     "car": "driving-car",
     "bike": "cycling-regular",
     "foot": "foot-walking",
+    "wheelchair": "wheelchair",
 }
 
 # Pořadí a popisky v UI (xor – vždy právě jeden profil).
@@ -33,6 +34,7 @@ ORS_ROUTING_PROFILE_UI: tuple[tuple[str, str], ...] = (
     ("Auto", "car"),
     ("Pěší", "foot"),
     ("Kolo", "bike"),
+    ("Wheelchair", "wheelchair"),
 )
 
 # Lokální OSRM používá jiné názvy profilů v cestě (/table/v1/{segment}/).
@@ -40,6 +42,7 @@ OSRM_LOCAL_PROFILE_SEGMENT: dict[str, str] = {
     "car": "driving",
     "bike": "cycling",
     "foot": "foot",
+    "wheelchair": "foot",
 }
 
 DEFAULT_ORS_PROFILE_KEY = "car"
@@ -48,6 +51,13 @@ ORS_MATRIX_MAX_PAIRS = 2500
 
 _MATRIX_TIMEOUT_S = 60.0
 _DIRECTIONS_TIMEOUT_S = 45.0
+
+ORS_AVOID_FEATURES_BY_PROFILE: dict[str, tuple[str, ...]] = {
+    "car": ("highways", "tollways", "ferries"),
+    "bike": ("ferries", "steps", "fords"),
+    "foot": ("ferries", "fords", "steps"),
+    "wheelchair": ("ferries",),
+}
 
 
 def ors_profile_slug(logical_key: str | None) -> str:
@@ -95,6 +105,24 @@ def _ors_headers(api_key: str) -> dict[str, str]:
     }
 
 
+def sanitize_avoid_features(
+    logical_profile: str | None,
+    avoid_features: list[str] | tuple[str, ...] | None,
+) -> list[str]:
+    """Vrátí deduplikovaný seznam features platných pro zvolený profil."""
+    if not avoid_features:
+        return []
+    key = logical_profile if logical_profile else DEFAULT_ORS_PROFILE_KEY
+    allowed = set(ORS_AVOID_FEATURES_BY_PROFILE.get(key, ()))
+    if not allowed:
+        return []
+    out: list[str] = []
+    for feat in avoid_features:
+        if feat in allowed and feat not in out:
+            out.append(feat)
+    return out
+
+
 def _parse_matrix_response(
     data: dict[str, Any],
     n_src: int,
@@ -138,6 +166,7 @@ def ors_post_matrix_block(
     api_key: str,
     base_url: str,
     logical_profile: str,
+    avoid_features: list[str] | None = None,
 ) -> list[list[float]] | None:
     base = _normalize_base_url(base_url)
     url = f"{base}/v2/matrix/{profile_slug}"
@@ -149,6 +178,8 @@ def ors_post_matrix_block(
     }
     if "distance" in metrics:
         body["units"] = "km"
+    if avoid_features:
+        body["options"] = {"avoid_features": avoid_features}
 
     n_pairs = len(sources) * len(destinations)
     print(
@@ -185,10 +216,12 @@ def ors_build_full_matrix(
     api_key: str,
     base_url: str,
     logical_profile: str,
+    avoid_features: list[str] | None = None,
 ) -> list[list[float]] | None:
     n = len(points_latlon)
     locations = [[p[1], p[0]] for p in points_latlon]
     metrics = ["distance"] if mode_routing_dist else ["duration"]
+    effective_avoid = sanitize_avoid_features(logical_profile, avoid_features)
 
     matrix = [[0.0 if i == j else float("inf") for j in range(n)] for i in range(n)]
 
@@ -209,6 +242,7 @@ def ors_build_full_matrix(
                 api_key,
                 base_url,
                 logical_profile,
+                effective_avoid,
             )
             if sub is None:
                 return None
@@ -227,11 +261,14 @@ def ors_post_directions_chunk(
     logical_profile: str,
     chunk_index: int,
     num_chunks: int,
+    avoid_features: list[str] | None = None,
 ) -> list[list[float]] | None:
     base = _normalize_base_url(base_url)
     url = f"{base}/v2/directions/{profile_slug}/geojson"
     n = len(coordinates_lonlat)
     body: dict[str, Any] = {"coordinates": coordinates_lonlat}
+    if avoid_features:
+        body["options"] = {"avoid_features": avoid_features}
     print(
         f"ORS directions POST profile={profile_slug} (logical={logical_profile}) "
         f"chunk={chunk_index + 1}/{num_chunks} coords={n} "
@@ -293,6 +330,7 @@ def ors_route_geometry_latlon(
     base_url: str,
     logical_profile: str,
     chunk_size: int = 10,
+    avoid_features: list[str] | None = None,
 ) -> list[list[float]] | None:
     """
     Chunkování waypointů (max. počet na jeden POST), překryv o 1 bod.
@@ -305,6 +343,7 @@ def ors_route_geometry_latlon(
     full_geometry: list[list[float]] = []
     step = chunk_size - 1
     n_chunks = max(1, (len(pts) - 2) // step + 1)
+    effective_avoid = sanitize_avoid_features(logical_profile, avoid_features)
 
     for idx, i in enumerate(range(0, len(pts) - 1, step)):
         chunk = pts[i : i + chunk_size]
@@ -319,6 +358,7 @@ def ors_route_geometry_latlon(
             logical_profile,
             idx,
             n_chunks,
+            effective_avoid,
         )
         if chunk_geom is None:
             return None

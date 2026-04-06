@@ -90,6 +90,7 @@ class DistanceMatrixBuilder:
         ors_api_key: str | None = None,
         ors_base_url: str | None = None,
         ors_profile_key: str | None = None,
+        ors_avoid_features: list[str] | None = None,
         allow_local_osrm: bool = True,
     ):
         """
@@ -114,6 +115,7 @@ class DistanceMatrixBuilder:
                 key,
                 base,
                 logical,
+                avoid_features=ors_avoid_features,
             )
             if geom is not None:
                 return geom
@@ -163,6 +165,7 @@ class DistanceMatrixBuilder:
         ors_api_key: str | None = None,
         ors_base_url: str | None = None,
         ors_profile_key: str | None = None,
+        ors_avoid_features: list[str] | None = None,
         allow_local_osrm: bool = True,
     ):
         n = len(points)
@@ -189,7 +192,15 @@ class DistanceMatrixBuilder:
                     f"DEBUG: Matice vzdáleností – ORS profile={slug} (logical={logical}), "
                     f"n={n} bodů"
                 )
-                matrix = ors_build_full_matrix(points, True, slug, key, base, logical)
+                matrix = ors_build_full_matrix(
+                    points,
+                    True,
+                    slug,
+                    key,
+                    base,
+                    logical,
+                    ors_avoid_features,
+                )
                 if matrix:
                     return matrix
                 if allow_local_osrm:
@@ -227,7 +238,15 @@ class DistanceMatrixBuilder:
                     f"DEBUG: Matice času – ORS profile={slug} (logical={logical}), "
                     f"n={n} bodů"
                 )
-                matrix = ors_build_full_matrix(points, False, slug, key, base, logical)
+                matrix = ors_build_full_matrix(
+                    points,
+                    False,
+                    slug,
+                    key,
+                    base,
+                    logical,
+                    ors_avoid_features,
+                )
                 if matrix:
                     return matrix
                 if allow_local_osrm:
