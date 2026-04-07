@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #map { width: 100%; height: 100vh; }
+
+        /* Vlastní marker styly */
+        .tsp-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Segoe UI', sans-serif;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.45);
+            cursor: pointer;
+            transition: transform 0.15s;
+            user-select: none;
+        }
+        .tsp-marker:hover { transform: scale(1.2); }
+
+        /* Leaflet popup */
+        .leaflet-popup-content-wrapper {
+            background: #1a1d2e;
+            color: #f1f5f9;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+        .leaflet-popup-tip { background: #1a1d2e; }
+        .leaflet-popup-content { margin: 10px 14px; font-size: 12px; }
+
+        /* Leaflet controls */
+        .leaflet-control-zoom a {
+            background: #1a1d2e !important;
+            color: #f1f5f9 !important;
+            border-color: #2d3148 !important;
+        }
+        .leaflet-control-zoom a:hover { background: #252841 !important; }
+        .leaflet-control-attribution {
+            background: rgba(15,17,23,0.75) !important;
+            color: #94a3b8 !important;
+        }
+        .leaflet-control-attribution a { color: #6366f1 !important; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    // ── Inicializace mapy ───────────────────────────────────────────────────
+    var map = L.map('map', {
+        zoomControl: true,
+        preferCanvas: false
+    }).setView([49.82, 18.26], 10);
+
+    var tileLayer = L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    var markers   = [];
+    var routeLayer = null;
+    var bridge     = null;
+    var showWaypointIndices = true;
+
+    // ── QWebChannel most ───────────────────────────────────────────────────
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        bridge = channel.objects.bridge;
+        console.log('[MapViewer] Bridge ready.');
+    });
+
+    // ── Klik na mapu → přidej bod ──────────────────────────────────────────
+    map.on('click', function(e) {
+        if (bridge) bridge.onMapClick(e.latlng.lat, e.latlng.lng);
+    });
+
+    // ── Pomocná: vytvoř divIcon pro marker (s číslem nebo čistý kroužek) ──
+    function makeIcon(index) {
+        var label = showWaypointIndices ? String(index + 1) : '';
+        return L.divIcon({
+            className: '',
+            html: '<div class="tsp-marker">' + label + '</div>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+            popupAnchor: [0, -16]
+        });
+    }
+
+    function setShowWaypointIndices(show) {
+        showWaypointIndices = !!show;
+        for (var i = 0; i < markers.length; i++) {
+            markers[i].setIcon(makeIcon(i));
+        }
+    }
+
+    // ── Přidej jeden marker ────────────────────────────────────────────────
+    function addMarker(lat, lon, index) {
+        var m = L.marker([lat, lon], { icon: makeIcon(index) });
+
+        // Pravý klik (desktop) nebo long-press (mobile) → odstraň bod
+        m.on('contextmenu', (function(idx) {
+            return function(e) {
+                L.DomEvent.stopPropagation(e);
+                if (bridge) bridge.onMarkerRightClick(idx);
+            };
+        })(index));
+
+        // Popup s souřadnicemi
+        m.bindPopup(
+            '<b>Bod ' + (index+1) + '</b><br>' +
+            lat.toFixed(5) + ', ' + lon.toFixed(5) +
+            '<br><small style="color:#94a3b8">Pravý klik = odstranit</small>'
+        );
+
+        m.addTo(map);
+        markers.push(m);
+    }
+
+    // ── Smaž všechny markery ───────────────────────────────────────────────
+    function clearMarkers() {
+        markers.forEach(function(m) { map.removeLayer(m); });
+        markers = [];
+    }
+
+    // ── Smaž jeden marker + oprav indexy zbývajících ──────────────────────
+    function removeMarker(index) {
+        if (index < 0 || index >= markers.length) return;
+        map.removeLayer(markers[index]);
+        markers.splice(index, 1);
+
+        // Aktualizuj ikony a listenery zbývajících markerů
+        for (var i = index; i < markers.length; i++) {
+            markers[i].setIcon(makeIcon(i));
+            markers[i].off('contextmenu');
+
+            // Uzavření přes IIFE, aby 'i' bylo správné
+            (function(idx) {
+                markers[idx].on('contextmenu', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    if (bridge) bridge.onMarkerRightClick(idx);
+                });
+                // Aktualizuj popup
+                markers[idx].setPopupContent(
+                    '<b>Bod ' + (idx+1) + '</b><br>' +
+                    markers[idx].getLatLng().lat.toFixed(5) + ', ' +
+                    markers[idx].getLatLng().lng.toFixed(5) +
+                    '<br><small style="color:#94a3b8">Pravý klik = odstranit</small>'
+                );
+            })(i);
+        }
+    }
+
+    // ── Překresli všechny markery (pole [[lat,lon], ...]) ─────────────────
+    function redrawAllMarkers(points) {
+        clearMarkers();
+        points.forEach(function(p, i) { addMarker(p[0], p[1], i); });
+    }
+
+    // ── Nakresli trasu (pole [[lat,lon], ...]) ────────────────────────────
+    function drawRoute(points) {
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+        if (points.length < 2) return;
+        var latlngs = points.map(function(p) { return [p[0], p[1]]; });
+        routeLayer = L.polyline(latlngs, {
+            color: '#6366f1',
+            weight: 4,
+            opacity: 0.85,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(map);
+    }
+
+    // ── Smaž trasu ────────────────────────────────────────────────────────
+    function clearRoute() {
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+    }
+
+    // ── Přesuň kameru ─────────────────────────────────────────────────────
+    function centerMap(lat, lon, zoom) {
+        map.flyTo([lat, lon], zoom, { duration: 0.9, easeLinearity: 0.35 });
+    }
+
+    function panMap(lat, lon) {
+        map.panTo([lat, lon], { animate: true });
+    }
+
+    // ── Změň tile URL ─────────────────────────────────────────────────────
+    function setTileLayer(url) {
+        tileLayer.setUrl(url);
+    }
+
+    // ── Zobraz/skryj tile vrstvu ──────────────────────────────────────────
+    function setTileVisible(visible) {
+        if (visible && !map.hasLayer(tileLayer)) tileLayer.addTo(map);
+        else if (!visible && map.hasLayer(tileLayer)) map.removeLayer(tileLayer);
+    }
+</script>
+</body>
+</html>
