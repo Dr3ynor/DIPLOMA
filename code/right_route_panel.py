@@ -528,6 +528,14 @@ class RightRoutePanel(QWidget):
     def overlay_desired_width(self) -> int:
         return self.EXPANDED_W if self._expanded else self.COLLAPSED_OVERLAY_W
 
+    def collapsed_overlay_height(self) -> int:
+        """Výška sbaleného panelu jen kolem šipky — nepřekrývat spodní mapové tlačítko nastavení."""
+        self._toggle.ensurePolished()
+        th = max(self._toggle.sizeHint().height(), self._toggle.minimumSizeHint().height())
+        if th < 12:
+            th = 32
+        return int(th + 16)
+
     def _notify_overlay_host(self) -> None:
         p = self.parent()
         while p is not None:

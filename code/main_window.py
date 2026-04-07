@@ -54,9 +54,15 @@ class _MapWithRightOverlay(QWidget):
         # Roztažený panel až k pravému (a svisle k) okraji okna; sbalená šipka nechá mezeru.
         g = 0 if expanded else self._OVERLAY_VERT_GAP
         r = 0 if expanded else self._OVERLAY_RIGHT_GAP
-        inner_h = max(80, h - 2 * g)
+        if expanded:
+            inner_h = max(80, h - 2 * g)
+            y = g
+        else:
+            # Úzký pruh na celou výšku by jako sibling nad MapViewerem blokoval kliky (např. nastavení).
+            inner_h = min(self._panel.collapsed_overlay_height(), max(40, h - 2 * g))
+            y = g + max(0, (h - 2 * g - inner_h) // 2)
         x = max(0, w - pw - r)
-        self._panel.setGeometry(x, g, pw, inner_h)
+        self._panel.setGeometry(x, y, pw, inner_h)
 
 
 class MainWindow(QMainWindow):
