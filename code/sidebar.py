@@ -9,14 +9,9 @@ from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
 
 from app_state import state
-from app_settings import (
-    load_auto_recompute_on_add_point,
-    load_ors_api_key,
-    load_ors_base_url,
-    load_use_local_osrm_fallback,
-)
+from app_settings import load_auto_recompute_on_add_point
 from metric_catalog import METRIC_UI_OPTIONS
-from openrouteservice_routing import OrsRoutingConfig
+from openrouteservice_routing import OrsRoutingConfig, ors_config_from_state
 from tspmanager import tsp_manager
 import state_notify as N
 from sidebar_io import export_instance_interactive, import_instance_interactive
@@ -515,21 +510,12 @@ class Sidebar(QWidget):
         self.solve_btn.setEnabled(False)
         self._solve_progress_bar.setVisible(True)
 
-        ors_key = load_ors_api_key()
-        ors_base = load_ors_base_url()
-        use_local_osrm = load_use_local_osrm_fallback()
         if os.environ.get("ORS_API_KEY", "").strip():
             print("DEBUG: ORS API klíč z proměnné prostředí ORS_API_KEY (přednost před QSettings)")
         if os.environ.get("ORS_BASE_URL", "").strip():
             print("DEBUG: ORS base URL z proměnné prostředí ORS_BASE_URL")
 
-        ors_cfg = OrsRoutingConfig(
-            api_key=ors_key or None,
-            base_url=ors_base or None,
-            profile_key=state.get_ors_routing_profile(),
-            avoid_features=tuple(state.get_ors_avoid_features()),
-            allow_local_osrm_fallback=use_local_osrm,
-        )
+        ors_cfg = ors_config_from_state(state)
         self._solve_thread = QThread()
         self._solve_worker = _SolveWorker(
             points,
@@ -563,6 +549,8 @@ class Sidebar(QWidget):
                 case (N.WAYPOINT_INDICES, *_):
                     return
                 case (N.ORS_AVOID_FEATURES, *_):
+                    return
+                case (N.ORS_PROFILE_PARAMS, *_):
                     return
                 case (N.ROUTE_UPDATE, route_points, *_):
                     self._on_notify_route_update(route_points)

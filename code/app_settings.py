@@ -1,7 +1,8 @@
 """Trvalé preference aplikace (Qt QSettings)."""
 
+import json
 import os
-from typing import Set
+from typing import Any, Set
 
 from PyQt6.QtCore import QSettings
 
@@ -21,7 +22,18 @@ _KEY_USE_LOCAL_OSRM = "routing/use_local_osrm_fallback"
 _KEY_AUTO_RECOMPUTE_ON_ADD_POINT = "map/auto_recompute_on_add_point"
 _KEY_MAP_TILE_URL = "map/tile_url"
 _KEY_ORS_ROUTING_PROFILE = "routing/ors_profile"
+_KEY_ORS_HGV_RESTRICTIONS = "routing/ors_hgv_restrictions_json"
 _KEY_DISTANCE_UNIT = "ui/distance_unit"
+
+# Výchozí HGV omezení pro ORS profile_params.restrictions (m, t).
+DEFAULT_ORS_HGV_RESTRICTIONS: dict[str, Any] = {
+    "height": 4.0,
+    "width": 2.5,
+    "length": 16.0,
+    "weight": 40.0,
+    "axleload": 10.0,
+    "hazmat": False,
+}
 
 # Předvolené mapové podklady (Leaflet tile URL šablony)
 MAP_TILE_SOURCES: dict[str, str] = {
@@ -150,6 +162,42 @@ def load_ors_routing_profile() -> str:
 
 def save_ors_routing_profile(key: str) -> None:
     _store().setValue(_KEY_ORS_ROUTING_PROFILE, normalize_ors_routing_profile(key))
+
+
+def normalize_ors_hgv_restrictions(raw: dict[str, Any] | None) -> dict[str, Any]:
+    out = dict(DEFAULT_ORS_HGV_RESTRICTIONS)
+    if not raw:
+        return out
+    for k in ("height", "width", "length", "weight", "axleload"):
+        if k not in raw or raw[k] is None:
+            continue
+        try:
+            v = float(raw[k])
+            if v > 0:
+                out[k] = v
+        except (TypeError, ValueError):
+            pass
+    if "hazmat" in raw:
+        out["hazmat"] = bool(raw["hazmat"])
+    return out
+
+
+def load_ors_hgv_restrictions() -> dict[str, Any]:
+    raw = _store().value(_KEY_ORS_HGV_RESTRICTIONS, "")
+    if not raw or not isinstance(raw, str) or not raw.strip():
+        return dict(DEFAULT_ORS_HGV_RESTRICTIONS)
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return normalize_ors_hgv_restrictions(data)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return dict(DEFAULT_ORS_HGV_RESTRICTIONS)
+
+
+def save_ors_hgv_restrictions(restrictions: dict[str, Any]) -> None:
+    norm = normalize_ors_hgv_restrictions(restrictions)
+    _store().setValue(_KEY_ORS_HGV_RESTRICTIONS, json.dumps(norm, sort_keys=True))
 
 
 def normalize_distance_unit(unit: str | None) -> str:

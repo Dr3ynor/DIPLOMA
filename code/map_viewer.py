@@ -5,20 +5,23 @@ from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt, QSize
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QPushButton, QToolButton, QVBoxLayout, QWidget
 
 from api_status import ApiStatusPanel
 from app_state import state
 from avoid_features_panel import AvoidFeaturesPanel
 from map_search_bar import MapSearchBar
 import state_notify as N
+from ors_hgv_params_dialog import OrsHgvParamsDialog
 from ors_reverse_geocode import OrsReverseGeocodeClient
+from ors_route_extra_info_dialog import open_route_extra_info_from_state
 from routing_profile_bar import RoutingProfileBar
 from svg_icons import tinted_svg_icon
 from theme import (
     PALETTES,
     build_api_status_panel_style,
     build_avoid_features_panel_style,
+    build_map_chrome_tool_button_style,
     build_map_search_bar_style,
     build_map_settings_button_style,
     build_routing_profile_bar_style,
@@ -85,6 +88,7 @@ class MapViewer(QWidget):
         self._marker_count = 0
         self._last_points_signature: tuple | None = None
         self._reverse_geocoder = OrsReverseGeocodeClient(state, self)
+        self._chrome_palette: dict = dict(PALETTES["dark"])
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -136,12 +140,40 @@ class MapViewer(QWidget):
             self._on_avoid_panel_selection_changed
         )
 
+        self._hgv_params_btn = QToolButton(self)
+        self._hgv_params_btn.setObjectName("MapChromeToolBtn")
+        self._hgv_params_btn.setText("")
+        self._hgv_params_btn.setToolTip(
+            "Parametry nákladního vozidla (ORS HGV — výška, hmotnost, …)"
+        )
+        self._hgv_params_btn.setAccessibleName("Parametry HGV")
+        self._hgv_params_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._hgv_params_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._hgv_params_btn.setFixedSize(40, 40)
+        self._hgv_params_btn.clicked.connect(self._open_hgv_params_dialog)
+
+        self._route_extras_btn = QToolButton(self)
+        self._route_extras_btn.setObjectName("MapChromeToolBtn")
+        self._route_extras_btn.setText("")
+        self._route_extras_btn.setToolTip(
+            "Atributy trasy z ORS (extra_info: státy, povrch, sklon, …)"
+        )
+        self._route_extras_btn.setAccessibleName("Extra info trasy")
+        self._route_extras_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._route_extras_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._route_extras_btn.setFixedSize(40, 40)
+        self._route_extras_btn.clicked.connect(self._open_route_extras_dialog)
+
     def _apply_initial_chrome(self) -> None:
         self.set_chrome_palette(PALETTES["dark"])
         self._search_bar.raise_()
         self._search_bar.show()
         self._routing_bar.raise_()
         self._routing_bar.show()
+        self._hgv_params_btn.raise_()
+        self._hgv_params_btn.show()
+        self._route_extras_btn.raise_()
+        self._route_extras_btn.show()
         self._avoid_panel.raise_()
         self._avoid_panel.show()
         self._api_panel.raise_()
@@ -160,13 +192,20 @@ class MapViewer(QWidget):
         sb_x = m + leaflet_zoom_spacer
         self._search_bar.move(sb_x, m)
         self._routing_bar.move(sb_x + self._search_bar.width() + gap, m)
+        rb_right = self._routing_bar.x() + self._routing_bar.width()
+        self._hgv_params_btn.move(rb_right + gap, m)
+        self._route_extras_btn.move(
+            self._hgv_params_btn.x() + self._hgv_params_btn.width() + gap,
+            m,
+        )
         self._api_panel.adjustSize()
         self._api_panel.move(
             self.width() - self._api_panel.width() - m,
             m,
         )
         self._avoid_panel.adjustSize()
-        avoid_x = self._routing_bar.x() + self._routing_bar.width() + gap
+        extras_right = self._route_extras_btn.x() + self._route_extras_btn.width()
+        avoid_x = extras_right + gap
         max_right = self._api_panel.x() - gap
         if avoid_x + self._avoid_panel.width() <= max_right:
             self._avoid_panel.move(avoid_x, m)
@@ -178,12 +217,26 @@ class MapViewer(QWidget):
         )
         self._search_bar.raise_()
         self._routing_bar.raise_()
+        self._hgv_params_btn.raise_()
+        self._route_extras_btn.raise_()
         self._avoid_panel.raise_()
         self._api_panel.raise_()
         self._settings_btn.raise_()
 
     def set_chrome_palette(self, palette: dict):
+        self._chrome_palette = dict(palette)
         dpr = self.devicePixelRatioF()
+        chrome_tb = build_map_chrome_tool_button_style(palette)
+        self._hgv_params_btn.setStyleSheet(chrome_tb)
+        self._route_extras_btn.setStyleSheet(chrome_tb)
+        self._hgv_params_btn.setIcon(
+            tinted_svg_icon("truck.svg", palette["text"], 20, dpr)
+        )
+        self._route_extras_btn.setIcon(
+            tinted_svg_icon("info.svg", palette["text"], 20, dpr)
+        )
+        self._hgv_params_btn.setIconSize(QSize(20, 20))
+        self._route_extras_btn.setIconSize(QSize(20, 20))
         self._settings_btn.setStyleSheet(build_map_settings_button_style(palette))
         self._settings_btn.setIcon(
             tinted_svg_icon("settings-2.svg", palette["text"], 20, dpr)
@@ -260,6 +313,14 @@ class MapViewer(QWidget):
 
     def _on_avoid_panel_selection_changed(self, keys: list) -> None:
         state.set_ors_avoid_features(keys)
+
+    def _open_hgv_params_dialog(self) -> None:
+        dlg = OrsHgvParamsDialog(self, self._chrome_palette)
+        dlg.exec()
+        self._routing_bar.set_profile_key(state.get_ors_routing_profile())
+
+    def _open_route_extras_dialog(self) -> None:
+        open_route_extra_info_from_state(self, self._chrome_palette)
 
     def _on_notify_pan_map(self, data: tuple) -> None:
         payload = data[1]
@@ -339,6 +400,8 @@ class MapViewer(QWidget):
                     self._js(f"setShowWaypointIndices({str(show).lower()});")
                     return
                 case (N.ORS_AVOID_FEATURES, *_):
+                    return
+                case (N.ORS_PROFILE_PARAMS, *_):
                     return
                 case _:
                     pass

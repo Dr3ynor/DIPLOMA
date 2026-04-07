@@ -21,9 +21,24 @@ from openrouteservice_routing import (
     _DIRECTIONS_TIMEOUT_S,
     _normalize_base_url,
     _ors_headers,
+    _print_ors_profile_params_before_post,
+    build_ors_request_options,
     ors_profile_slug,
     sanitize_avoid_features,
 )
+
+# Požadované extra_info u directions (neovlivní geometrii; dostupnost závisí na profilu ORS).
+ORS_DIRECTIONS_EXTRA_INFO_TYPES: list[str] = [
+    "countryinfo",
+    "surface",
+    "waycategory",
+    "waytype",
+    "steepness",
+    "tollways",
+    "osmid",
+    "roadaccessrestrictions",
+    "traildifficulty",
+]
 
 EARTH_R_KM = 6371.0
 
@@ -71,6 +86,31 @@ class RouteDirectionsDetail:
     # (kumulativní_vzdálenost_km, nadmořská_výška_m); prázdné pokud bez výšky
     distance_elevation_m: list[tuple[float, float]] = field(default_factory=list)
     has_elevation: bool = False
+    # Sloučené properties.extras z GeoJSON (extra_info)
+    extras: dict[str, Any] = field(default_factory=dict)
+
+
+def _merge_route_extras(dst: dict[str, Any], src: Any) -> None:
+    if not isinstance(src, dict):
+        return
+    for k, v in src.items():
+        if k not in dst:
+            dst[k] = v
+            continue
+        old = dst[k]
+        if (
+            isinstance(v, dict)
+            and isinstance(old, dict)
+            and isinstance(old.get("summary"), list)
+            and isinstance(v.get("summary"), list)
+        ):
+            merged = dict(v)
+            merged["summary"] = list(old["summary"]) + list(v["summary"])
+            dst[k] = merged
+        elif isinstance(v, dict) and isinstance(old, dict):
+            dst[k] = {**old, **v}
+        else:
+            dst[k] = v
 
 
 def _extract_coordinates_from_route(route: dict[str, Any]) -> list[list[float]]:
@@ -234,6 +274,8 @@ def ors_post_directions_json_chunk(
     chunk_index: int,
     num_chunks: int,
     avoid_features: list[str] | None = None,
+    profile_params: dict[str, Any] | None = None,
+    extra_info: list[str] | None = None,
 ) -> tuple[dict[str, Any], list[list[float]]] | None:
     """
     POST na geojson (ne json) – geometrie jako souřadnice + volitelně Z při elevation.
@@ -248,12 +290,21 @@ def ors_post_directions_json_chunk(
         "elevation": True,
         "language": "en",
     }
-    if avoid_features:
-        body["options"] = {"avoid_features": avoid_features}
+    if extra_info:
+        body["extra_info"] = list(extra_info)
+    eff_avoid = sanitize_avoid_features(logical_profile, avoid_features)
+    opts = build_ors_request_options(
+        logical_profile,
+        eff_avoid if eff_avoid else None,
+        profile_params,
+    )
+    if opts:
+        body["options"] = opts
     print(
         f"ORS directions GeoJSON (detail) profile={profile_slug} (logical={logical_profile}) "
         f"chunk={chunk_index + 1}/{num_chunks} coords={len(coordinates_lonlat)}"
     )
+    _print_ors_profile_params_before_post(body)
     try:
         r = requests.post(
             url,
@@ -295,6 +346,8 @@ def ors_directions_full_detail(
     logical_profile: str,
     chunk_size: int = 10,
     avoid_features: list[str] | None = None,
+    profile_params: dict[str, Any] | None = None,
+    extra_info: list[str] | None = None,
 ) -> RouteDirectionsDetail | None:
     """
     Chunkované directions + výška.
@@ -331,6 +384,7 @@ def ors_directions_full_detail(
     all_instructions: list[str] = []
     merged_profile: list[tuple[float, float]] = []
     has_any_elev = False
+    merged_extras: dict[str, Any] = {}
 
     for idx, i in enumerate(range(0, len(core) - 1, step)):
         chunk = core[i : i + chunk_size]
@@ -346,11 +400,17 @@ def ors_directions_full_detail(
             idx,
             n_chunks,
             effective_avoid,
+            profile_params,
+            extra_info,
         )
         if chunk_detail is None:
             return None
 
         props, raw_coords = chunk_detail
+        if extra_info and isinstance(props, dict):
+            ex = props.get("extras")
+            if ex:
+                _merge_route_extras(merged_extras, ex)
         _extend_instructions_dedupe_consecutive(
             all_instructions, _parse_instructions_from_route(props)
         )
@@ -385,6 +445,8 @@ def ors_directions_full_detail(
                 n_chunks,
                 n_chunks + 1,
                 effective_avoid,
+                profile_params,
+                extra_info,
             )
             if closing is None:
                 print(
@@ -393,6 +455,10 @@ def ors_directions_full_detail(
                 )
             else:
                 cprops, craw = closing
+                if extra_info and isinstance(cprops, dict):
+                    ex = cprops.get("extras")
+                    if ex:
+                        _merge_route_extras(merged_extras, ex)
                 _extend_instructions_dedupe_consecutive(
                     all_instructions, _parse_instructions_from_route(cprops)
                 )
@@ -411,6 +477,7 @@ def ors_directions_full_detail(
         instructions=all_instructions,
         distance_elevation_m=merged_profile if has_any_elev else [],
         has_elevation=has_any_elev,
+        extras=merged_extras,
     )
 
 

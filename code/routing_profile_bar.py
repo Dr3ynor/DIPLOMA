@@ -29,6 +29,7 @@ _ROUTING_SVG = {
     "foot": "footprints.svg",
     "bike": "bike.svg",
     "wheelchair": "accessibility.svg",
+    "hgv": "truck.svg",
 }
 
 _TOOLTIPS = {
@@ -36,12 +37,14 @@ _TOOLTIPS = {
     "foot": "Pěší — chůze (ORS foot-walking)",
     "bike": "Kolo — cyklistika (ORS cycling-regular)",
     "wheelchair": "Wheelchair — bezbariérový profil (ORS wheelchair)",
+    "hgv": "Nákladní auto — ORS driving-hgv (omezení vozidla v dialogu vedle mapy)",
 }
 _ACCESSIBLE = {
     "car": "Auto",
     "foot": "Pěší",
     "bike": "Kolo",
     "wheelchair": "Wheelchair",
+    "hgv": "Nákladní",
 }
 
 _ICON_PX = 22
@@ -168,6 +171,18 @@ class RoutingProfileBar(QFrame):
             if svg:
                 btn.setIcon(tinted_svg_icon(svg, c, _ICON_PX, dpr))
         QTimer.singleShot(0, lambda: self._snap_indicator(animate=False))
+
+    def set_profile_key(self, key: str) -> None:
+        """Zarovná UI s AppState (bez emitu profile_changed)."""
+        btn = self._profile_buttons.get(key)
+        if btn is None:
+            return
+        if self._group.checkedButton() is btn:
+            return
+        self._group.blockSignals(True)
+        btn.setChecked(True)
+        self._group.blockSignals(False)
+        self._snap_indicator(animate=self._indicator_ready)
 
     def _on_clicked(self, btn) -> None:
         self._snap_indicator(animate=self._indicator_ready)

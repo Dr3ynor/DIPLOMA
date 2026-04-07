@@ -46,6 +46,7 @@ from app_state import state
 from state_notify import (
     CENTER_MAP,
     ORS_AVOID_FEATURES,
+    ORS_PROFILE_PARAMS,
     PAN_MAP,
     POINT_LABEL,
     ROUTE_UPDATE,
@@ -57,7 +58,7 @@ from fuel_estimate import (
     estimate_liters_with_elevation,
 )
 from metric_catalog import ROUTING_METRICS
-from openrouteservice_routing import OrsRoutingConfig
+from openrouteservice_routing import OrsRoutingConfig, ors_config_from_state
 from ors_directions_json import (
     RouteDirectionsDetail,
     ors_directions_full_detail,
@@ -94,6 +95,7 @@ class _DirectionsFetchWorker(QObject):
                     base,
                     logical,
                     avoid_features=avoid,
+                    profile_params=self._ors.profile_params,
                 )
             if d is None and load_use_local_osrm_fallback():
                 instr = osrm_fetch_instructions_only(self._stops, logical)
@@ -455,6 +457,13 @@ class RightRoutePanel(QWidget):
             self._refresh_availability()
             self._refresh_fuel_label()
             self._prefetch_route_details_after_solve()
+        elif isinstance(data, tuple) and data[0] == ORS_PROFILE_PARAMS:
+            self._pending_done.clear()
+            self._cached = None
+            self._cache_key = None
+            self._refresh_availability()
+            self._refresh_fuel_label()
+            self._prefetch_route_details_after_solve()
         elif isinstance(data, tuple) and data[0] in (
             CENTER_MAP,
             PAN_MAP,
@@ -608,13 +617,7 @@ class RightRoutePanel(QWidget):
         )
 
     def _ors_config(self) -> OrsRoutingConfig:
-        return OrsRoutingConfig(
-            api_key=load_ors_api_key(),
-            base_url=load_ors_base_url(),
-            profile_key=state.get_ors_routing_profile(),
-            avoid_features=tuple(state.get_ors_avoid_features()),
-            allow_local_osrm_fallback=load_use_local_osrm_fallback(),
-        )
+        return ors_config_from_state(state)
 
     def _prefetch_route_details_after_solve(self) -> None:
         """Po nové trase na pozadí načíst ORS/OSRM detail (výška) → palivo bez kliknutí na graf."""

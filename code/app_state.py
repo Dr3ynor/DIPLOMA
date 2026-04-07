@@ -4,6 +4,7 @@ from openrouteservice_routing import DEFAULT_ORS_PROFILE_KEY, sanitize_avoid_fea
 from state_notify import (
     DELETE,
     ORS_AVOID_FEATURES,
+    ORS_PROFILE_PARAMS,
     POINT_LABEL,
     ROUTE_UPDATE,
     WAYPOINT_INDICES,
@@ -24,6 +25,9 @@ class AppState(Subject):
         self._show_waypoint_indices = True
         self._ors_routing_profile = DEFAULT_ORS_PROFILE_KEY
         self._ors_avoid_features: list[str] = []
+        from app_settings import load_ors_hgv_restrictions
+
+        self._ors_hgv_restrictions: dict = load_ors_hgv_restrictions()
 
     def add_point(self, lat, lon, *, display_name: str | None = None):
         from geocode_cache import geocode_cache
@@ -139,6 +143,36 @@ class AppState(Subject):
             return
         self._ors_avoid_features = clean
         self.notify((ORS_AVOID_FEATURES, list(self._ors_avoid_features)))
+
+    def get_ors_hgv_restrictions(self) -> dict:
+        return dict(self._ors_hgv_restrictions)
+
+    def set_ors_hgv_restrictions(
+        self,
+        restrictions: dict,
+        *,
+        persist: bool = True,
+        notify_change: bool = True,
+    ) -> None:
+        from app_settings import normalize_ors_hgv_restrictions, save_ors_hgv_restrictions
+
+        norm = normalize_ors_hgv_restrictions(restrictions)
+        if norm == self._ors_hgv_restrictions:
+            return
+        self._ors_hgv_restrictions = norm
+        if persist:
+            save_ors_hgv_restrictions(norm)
+        if notify_change:
+            self.notify((ORS_PROFILE_PARAMS, dict(norm)))
+
+    def get_ors_profile_params_for_ors(self) -> dict | None:
+        """Pro OrsRoutingConfig: jen u profilu hgv."""
+        if self._ors_routing_profile != "hgv":
+            return None
+        from app_settings import normalize_ors_hgv_restrictions
+
+        r = normalize_ors_hgv_restrictions(self._ors_hgv_restrictions)
+        return {"restrictions": r}
 
     def get_show_waypoint_indices(self):
         return self._show_waypoint_indices

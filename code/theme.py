@@ -360,6 +360,29 @@ QPushButton#MapSettingsBtn:hover {{
 """
 
 
+def build_map_chrome_tool_button_style(P: dict) -> str:
+    """QToolButton vedle vyhledávání / profilu — stejný vzhled jako MapSettingsBtn."""
+    return f"""
+QToolButton#MapChromeToolBtn {{
+    background-color: {P['surface']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 20px;
+    padding: 0;
+    margin: 0;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
+}}
+QToolButton#MapChromeToolBtn:hover {{
+    background-color: {P['surface2']};
+    border-color: {P['primary']};
+    color: {P['primary']};
+}}
+"""
+
+
 def build_api_status_panel_style(P: dict) -> str:
     """Stejné materiály jako MapSettingsBtn / combobox (surface, border, radius 8)."""
     return f"""

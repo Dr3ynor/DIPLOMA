@@ -109,6 +109,7 @@ class DistanceMatrixBuilder:
                 base,
                 logical,
                 avoid_features=cfg.avoid_features_list,
+                profile_params=cfg.profile_params,
             )
             if geom is not None:
                 return geom
@@ -191,6 +192,7 @@ class DistanceMatrixBuilder:
                     base,
                     logical,
                     cfg.avoid_features_list,
+                    cfg.profile_params,
                 )
                 if matrix:
                     return matrix
@@ -237,6 +239,7 @@ class DistanceMatrixBuilder:
                     base,
                     logical,
                     cfg.avoid_features_list,
+                    cfg.profile_params,
                 )
                 if matrix:
                     return matrix
