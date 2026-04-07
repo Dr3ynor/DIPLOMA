@@ -29,7 +29,7 @@ def distance_km_for_fuel(
     if mk == "routing_dist":
         return float(total_value), ""
     if mk == "routing_time":
-        return None, "metrika je čas jízdy – odhad paliva z ní nelze použít"
+        return None, "odhad paliva z času nelze použít"
     if mk == "haversine":
         return float(total_value), "hrubý odhad (vzdušná vzdálenost)"
     return float(total_value), ""

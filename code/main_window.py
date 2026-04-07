@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QHBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
 
 from app_state import state
 from app_settings import (
@@ -17,6 +17,46 @@ from right_route_panel import RightRoutePanel
 from settings_dialog import SettingsDialog
 from sidebar import Sidebar
 from theme import PALETTES, central_widget_bg_style
+
+
+class _MapWithRightOverlay(QWidget):
+    """
+    Mapa vyplní celý widget; pravý panel je child nad mapou (neposouvá WebEngine).
+    """
+
+    _OVERLAY_RIGHT_GAP = 12
+    _OVERLAY_VERT_GAP = 8
+
+    def __init__(self, map_viewer: MapViewer, right_panel: RightRoutePanel):
+        super().__init__()
+        self._map = map_viewer
+        self._panel = right_panel
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        lay.addWidget(self._map, 1)
+        self._panel.setParent(self)
+        self._panel.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._layout_right_panel()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._layout_right_panel()
+
+    def _layout_right_panel(self) -> None:
+        h = self.height()
+        w = self.width()
+        pw = self._panel.overlay_desired_width()
+        expanded = pw >= RightRoutePanel.EXPANDED_W
+        # Roztažený panel až k pravému (a svisle k) okraji okna; sbalená šipka nechá mezeru.
+        g = 0 if expanded else self._OVERLAY_VERT_GAP
+        r = 0 if expanded else self._OVERLAY_RIGHT_GAP
+        inner_h = max(80, h - 2 * g)
+        x = max(0, w - pw - r)
+        self._panel.setGeometry(x, g, pw, inner_h)
 
 
 class MainWindow(QMainWindow):
@@ -41,14 +81,9 @@ class MainWindow(QMainWindow):
         self.map_viewer = MapViewer()
         self.map_viewer.settings_requested.connect(self._open_settings)
 
-        self._map_column = QWidget()
-        map_column_layout = QHBoxLayout(self._map_column)
-        map_column_layout.setContentsMargins(0, 0, 0, 0)
-        map_column_layout.setSpacing(0)
-        map_column_layout.addWidget(self.map_viewer, 1)
         self.right_route_panel = RightRoutePanel(theme_mode=theme_mode)
         self.right_route_panel.set_distance_unit(distance_unit)
-        map_column_layout.addWidget(self.right_route_panel, 0)
+        self._map_column = _MapWithRightOverlay(self.map_viewer, self.right_route_panel)
 
         layout.addWidget(self.sidebar, 1)
         layout.addWidget(self._map_column, 2)

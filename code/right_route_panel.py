@@ -8,7 +8,7 @@ import html
 from datetime import datetime
 from typing import Callable
 
-from PyQt6.QtCore import QMarginsF, QObject, Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QMarginsF, QObject, QSize, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
     QFont,
@@ -25,7 +25,6 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFileDialog,
-    QFormLayout,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -56,7 +55,12 @@ from ors_directions_json import (
     ors_directions_full_detail,
     osrm_fetch_instructions_only,
 )
-from theme import PALETTES, build_right_route_panel_stylesheet
+from svg_icons import tinted_svg_icon
+from theme import (
+    PALETTES,
+    build_right_route_panel_collapsed_stylesheet,
+    build_right_route_panel_stylesheet,
+)
 
 
 class _DirectionsFetchWorker(QObject):
@@ -238,9 +242,13 @@ def _write_instructions_pdf(
     writer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
     writer.setResolution(120)
     writer.setTitle(title[:120])
+    # PyQt6: QPageLayout.setMargins bere jen QMarginsF + OutOfBoundsPolicy, ne Unit.
+    # Milimetry přes QPdfWriter (QPagedPaintDevice):
+    writer.setPageMargins(
+        QMarginsF(12, 12, 12, 12),
+        QPageLayout.Unit.Millimeter,
+    )
     lay = writer.pageLayout()
-    lay.setMargins(QMarginsF(12, 12, 12, 12), QPageLayout.Unit.Millimeter)
-    writer.setPageLayout(lay)
 
     doc = QTextDocument()
     doc.setHtml(full_html)
@@ -248,19 +256,25 @@ def _write_instructions_pdf(
     paint = lay.paintRectPixels(writer.resolution())
     doc.setTextWidth(max(120.0, float(paint.width())))
 
-    doc.print_(writer)
+    # PyQt6: novější vazby používají print(); starší print_()
+    _doc_print = getattr(doc, "print", None) or getattr(doc, "print_", None)
+    if _doc_print is None:
+        raise RuntimeError("QTextDocument: chybí metoda print/print_")
+    _doc_print(writer)
 
 
 class RightRoutePanel(QWidget):
-    COLLAPSED_W = 44
+    """Šířka při overlay: sbaleno jen šipka; rozbaleno plný panel (neposouvá mapu)."""
+    COLLAPSED_OVERLAY_W = 44
     EXPANDED_W = 300
+    _ICON_IO_PX = 20
+    _ICON_FUEL_PX = 18
 
     def __init__(self, theme_mode: str = "dark"):
         super().__init__()
         self.setObjectName("RightRoutePanel")
         mode = theme_mode if theme_mode in PALETTES else "dark"
         self._palette = dict(PALETTES[mode])
-        self.setStyleSheet(build_right_route_panel_stylesheet(self._palette))
         self._expanded = False
         self._distance_unit = load_distance_unit()
         self._cached: RouteDirectionsDetail | None = None
@@ -269,10 +283,16 @@ class RightRoutePanel(QWidget):
         self._worker: _DirectionsFetchWorker | None = None
         self._fetching = False
         self._pending_done: list[Callable[[RouteDirectionsDetail | None], None]] = []
+        self._fetch_request_key: tuple[tuple[float, float], ...] | None = None
+        self._fetch_disable_ui = False
 
-        root = QHBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        root = QHBoxLayout()
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+        outer.addLayout(root, 1)
 
         self._scroll = QScrollArea()
         self._scroll.setObjectName("RightRouteScroll")
@@ -281,9 +301,10 @@ class RightRoutePanel(QWidget):
 
         self._scroll_inner = QWidget()
         self._scroll_inner.setObjectName("RightRouteScrollContent")
+        self._scroll_inner.setMinimumWidth(0)
         self._scroll.setWidget(self._scroll_inner)
         inner_layout = QVBoxLayout(self._scroll_inner)
-        inner_layout.setContentsMargins(10, 10, 10, 10)
+        inner_layout.setContentsMargins(12, 12, 14, 12)
         inner_layout.setSpacing(10)
 
         self._empty_lbl = QLabel(
@@ -291,18 +312,36 @@ class RightRoutePanel(QWidget):
         )
         self._empty_lbl.setObjectName("RightRouteEmpty")
         self._empty_lbl.setWordWrap(True)
+        self._empty_lbl.setMinimumWidth(0)
+        self._empty_lbl.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
         self._hint_lbl = QLabel()
         self._hint_lbl.setObjectName("RightRouteHint")
         self._hint_lbl.setWordWrap(True)
+        self._hint_lbl.setMinimumWidth(0)
+        self._hint_lbl.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
 
-        self._pdf_btn = QPushButton("Exportovat návod do PDF")
+        self._pdf_btn = QPushButton("Exportovat trasu do PDF")
         self._pdf_btn.setObjectName("SecondaryBtn")
+        self._pdf_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         self._pdf_btn.clicked.connect(self._on_pdf_click)
 
         self._elev_btn = QPushButton("Zobrazit výškový profil")
         self._elev_btn.setObjectName("SecondaryBtn")
+        self._elev_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         self._elev_btn.clicked.connect(self._on_elevation_click)
 
         inner_layout.addWidget(self._empty_lbl)
@@ -314,26 +353,61 @@ class RightRoutePanel(QWidget):
         self._fuel_header.setObjectName("RightRouteFuelHeader")
         self._fuel_header.setText("Palivo  ▼")
         self._fuel_header.setCheckable(True)
-        self._fuel_header.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self._fuel_header.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self._fuel_header.setArrowType(Qt.ArrowType.NoArrow)
+        self._fuel_header.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         self._fuel_header.clicked.connect(self._on_fuel_toggle)
 
         self._fuel_body = QWidget()
-        fuel_form = QFormLayout(self._fuel_body)
-        fuel_form.setContentsMargins(0, 8, 0, 0)
+        self._fuel_body.setMinimumWidth(0)
+        self._fuel_body.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Maximum,
+        )
+        fuel_layout = QVBoxLayout(self._fuel_body)
+        fuel_layout.setContentsMargins(0, 8, 0, 0)
+        fuel_layout.setSpacing(8)
+
+        consumption_lbl = QLabel("Průměrná spotřeba")
+        consumption_lbl.setWordWrap(True)
+        consumption_lbl.setMinimumWidth(0)
+        consumption_lbl.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Preferred,
+        )
+        fuel_layout.addWidget(consumption_lbl)
+
         self._fuel_spin = QDoubleSpinBox()
         self._fuel_spin.setObjectName("RightRouteSpin")
         self._fuel_spin.setRange(1.0, 40.0)
         self._fuel_spin.setDecimals(1)
-        self._fuel_spin.setSuffix(" l/100 km")
+        self._fuel_spin.setSuffix(" l/100km")
         self._fuel_spin.setValue(6.0)
+        self._fuel_spin.setMinimumWidth(0)
+        self._fuel_spin.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         self._fuel_spin.valueChanged.connect(self._refresh_fuel_label)
+        fuel_layout.addWidget(self._fuel_spin)
 
-        fuel_form.addRow("Průměrná spotřeba", self._fuel_spin)
         self._fuel_result = QLabel("—")
         self._fuel_result.setObjectName("RightRouteFuelResult")
         self._fuel_result.setWordWrap(True)
-        fuel_form.addRow(self._fuel_result)
+        self._fuel_result.setMinimumWidth(0)
+        self._fuel_result.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
+        self._fuel_result.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
+        fuel_layout.addWidget(self._fuel_result)
 
         inner_layout.addWidget(self._fuel_header)
         inner_layout.addWidget(self._fuel_body)
@@ -343,11 +417,13 @@ class RightRoutePanel(QWidget):
         self._toggle = QToolButton()
         self._toggle.setObjectName("RightRouteToggle")
         self._toggle.clicked.connect(self._on_toggle_expand)
+        # Šipka u okraje mapy (vlevo od obsahu panelu), svisle uprostřed když je panel zavřený
+        root.addWidget(self._toggle, 0, Qt.AlignmentFlag.AlignVCenter)
         root.addWidget(self._scroll, 1)
-        root.addWidget(self._toggle, 0)
 
         state.attach(self._on_state_notify)
         self._sync_expand_ui()
+        self._refresh_action_icons()
         self._refresh_availability()
         self._refresh_fuel_label()
 
@@ -359,14 +435,18 @@ class RightRoutePanel(QWidget):
         if mode not in PALETTES:
             mode = "dark"
         self._palette = dict(PALETTES[mode])
-        self.setStyleSheet(build_right_route_panel_stylesheet(self._palette))
+        self._apply_panel_chrome_stylesheet()
+        self._refresh_action_icons()
+        self._notify_overlay_host()
 
     def _on_state_notify(self, data: object) -> None:
         if isinstance(data, tuple) and data[0] == "route_update":
+            self._pending_done.clear()
             self._cached = None
             self._cache_key = None
             self._refresh_availability()
             self._refresh_fuel_label()
+            self._prefetch_route_details_after_solve()
         elif isinstance(data, tuple) and data[0] in (
             "center_map",
             "pan_map",
@@ -409,19 +489,62 @@ class RightRoutePanel(QWidget):
             self._hint_lbl.setText("")
         elif not road:
             self._hint_lbl.setText(
-                "Metrika je bodová (např. Haversine) – silniční návod a výškový profil se nevolají. "
-                "Odhad paliva zůstává z úhrnné délky okruhu."
+                "Na danou metriku nelze získat výškový profil."
             )
         else:
             self._hint_lbl.setText(
-                "Návod a výška vyžadují síťové API (OpenRouteService nebo lokální OSRM). "
-                "Výškový profil je k dispozici hlavně přes ORS s API klíčem."
+                "Pro výškový profil je potřeba síťové API (OpenRouteService nebo lokální OSRM)."
             )
+
+    def _refresh_action_icons(self) -> None:
+        """fuel.svg u Paliva; export/import u akcí trasy (jako ve sidebaru)."""
+        p = self._palette
+        dpr = float(self.devicePixelRatioF())
+        io = QSize(self._ICON_IO_PX, self._ICON_IO_PX)
+        self._pdf_btn.setIcon(
+            tinted_svg_icon("export.svg", p["text"], self._ICON_IO_PX, dpr)
+        )
+        self._pdf_btn.setIconSize(io)
+        self._elev_btn.setIcon(
+            tinted_svg_icon("import.svg", p["text"], self._ICON_IO_PX, dpr)
+        )
+        self._elev_btn.setIconSize(io)
+        fz = QSize(self._ICON_FUEL_PX, self._ICON_FUEL_PX)
+        self._fuel_header.setIcon(
+            tinted_svg_icon("fuel.svg", p["text"], self._ICON_FUEL_PX, dpr)
+        )
+        self._fuel_header.setIconSize(fz)
+
+    def _apply_panel_chrome_stylesheet(self) -> None:
+        if self._expanded:
+            self.setAutoFillBackground(True)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+            self.setStyleSheet(build_right_route_panel_stylesheet(self._palette))
+        else:
+            self.setAutoFillBackground(False)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            self.setStyleSheet(build_right_route_panel_collapsed_stylesheet(self._palette))
+
+    def overlay_desired_width(self) -> int:
+        return self.EXPANDED_W if self._expanded else self.COLLAPSED_OVERLAY_W
+
+    def _notify_overlay_host(self) -> None:
+        p = self.parent()
+        while p is not None:
+            if hasattr(p, "_layout_right_panel"):
+                p._layout_right_panel()
+                return
+            p = p.parent()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._notify_overlay_host()
 
     def _sync_expand_ui(self) -> None:
         self._scroll.setVisible(self._expanded)
-        self.setFixedWidth(self.EXPANDED_W if self._expanded else self.COLLAPSED_W)
         self._toggle.setText("›" if self._expanded else "‹")
+        self._apply_panel_chrome_stylesheet()
+        self._notify_overlay_host()
 
     def _on_toggle_expand(self) -> None:
         self._expanded = not self._expanded
@@ -454,16 +577,18 @@ class RightRoutePanel(QWidget):
             profile = self._cached.distance_elevation_m
         if profile:
             liters = estimate_liters_with_elevation(d_km, l100, profile)
-            extra = " (započteno převýšení – orientační model)"
+            extra = " (převýšení - orientační model)"
         else:
             liters = estimate_liters_base(d_km, l100)
-            if self._needs_road_directions_api():
-                extra = " (bez výškového profilu – dopočítá se po načtení dat výšky)"
+            if self._fetching and self._needs_road_directions_api():
+                extra = " (načítám výškový profil z API…)"
+            elif self._needs_road_directions_api():
+                extra = " (bez výškového profilu)"
             else:
-                extra = " (u bodové metriky bez silničního profilu výšky)"
+                extra = ""
         note_txt = f" {note}" if note else ""
         self._fuel_result.setText(
-            f"Přibližně {liters:.2f} l paliva.{extra}{note_txt}"
+            f"≈ {liters:.2f} L paliva.{extra}{note_txt}"
         )
 
     def _ors_config(self) -> OrsRoutingConfig:
@@ -475,8 +600,27 @@ class RightRoutePanel(QWidget):
             allow_local_osrm_fallback=load_use_local_osrm_fallback(),
         )
 
+    def _prefetch_route_details_after_solve(self) -> None:
+        """Po nové trase na pozadí načíst ORS/OSRM detail (výška) → palivo bez kliknutí na graf."""
+        if not self._needs_road_directions_api() or not self._has_meaningful_route():
+            return
+        key = self._stops_key()
+        if key is None:
+            return
+        if self._cached is not None and self._cache_key == key:
+            return
+
+        def _noop(_detail: RouteDirectionsDetail | None) -> None:
+            pass
+
+        self._request_details(_noop, quiet=True)
+        self._refresh_fuel_label()
+
     def _request_details(
-        self, on_done: Callable[[RouteDirectionsDetail | None], None]
+        self,
+        on_done: Callable[[RouteDirectionsDetail | None], None],
+        *,
+        quiet: bool = False,
     ) -> None:
         key = self._stops_key()
         if key is None:
@@ -492,8 +636,11 @@ class RightRoutePanel(QWidget):
         if self._fetching:
             return
         self._fetching = True
-        self._pdf_btn.setEnabled(False)
-        self._elev_btn.setEnabled(False)
+        self._fetch_request_key = key
+        self._fetch_disable_ui = not quiet
+        if self._fetch_disable_ui:
+            self._pdf_btn.setEnabled(False)
+            self._elev_btn.setEnabled(False)
         stops = state.get_route_ordered_stops()
         self._thread = QThread()
         self._worker = _DirectionsFetchWorker(stops, self._ors_config())
@@ -509,12 +656,21 @@ class RightRoutePanel(QWidget):
 
     def _finish_fetch(self, detail: RouteDirectionsDetail | None) -> None:
         self._fetching = False
-        self._pdf_btn.setEnabled(True)
-        self._elev_btn.setEnabled(True)
-        key = self._stops_key()
-        if key is not None and detail is not None:
+        if self._fetch_disable_ui:
+            self._pdf_btn.setEnabled(True)
+            self._elev_btn.setEnabled(True)
+        self._fetch_disable_ui = False
+
+        req_key = self._fetch_request_key
+        self._fetch_request_key = None
+        if (
+            detail is not None
+            and req_key is not None
+            and req_key == self._stops_key()
+        ):
             self._cached = detail
-            self._cache_key = key
+            self._cache_key = req_key
+
         cbs = self._pending_done
         self._pending_done = []
         for cb in cbs:

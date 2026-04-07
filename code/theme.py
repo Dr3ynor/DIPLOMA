@@ -592,14 +592,46 @@ QDoubleSpinBox#RightRouteSpin {{
     color: {P['text']};
     border: 1px solid {P['border']};
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 6px 8px;
     font-size: 13px;
     min-height: 34px;
+    min-width: 0;
 }}
 QLabel#RightRouteFuelResult {{
     color: {P['primary']};
     font-size: 14px;
     font-weight: 700;
-    padding: 8px;
+    padding: 4px 2px 4px 0;
+}}
+"""
+
+
+def build_right_route_panel_collapsed_stylesheet(P: dict) -> str:
+    """Jen šipka nad mapou – panel bez pozadí, tlačítko zůstane čitelné."""
+    return f"""
+QWidget#RightRoutePanel {{
+    background: transparent;
+    border: none;
+}}
+QScrollArea#RightRouteScroll,
+QWidget#RightRouteScrollContent {{
+    background: transparent;
+    border: none;
+}}
+QToolButton#RightRouteToggle {{
+    background-color: {P['surface']};
+    color: {P['text']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 4px;
+    margin: 2px 4px 2px 2px;
+    min-width: 32px;
+    max-width: 36px;
+}}
+QToolButton#RightRouteToggle:hover {{
+    border-color: {P['primary']};
+    color: {P['primary']};
 }}
 """
