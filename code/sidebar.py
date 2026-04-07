@@ -3,11 +3,10 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
     QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
-    QProgressBar, QMessageBox,
+    QProgressBar,
 )
 from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtWidgets import QFileDialog
 
 from app_state import state
 from app_settings import (
@@ -16,12 +15,14 @@ from app_settings import (
     load_ors_base_url,
     load_use_local_osrm_fallback,
 )
-from geocode_cache import geocode_cache
 from metric_catalog import METRIC_UI_OPTIONS
 from openrouteservice_routing import OrsRoutingConfig
 from tspmanager import tsp_manager
+import state_notify as N
+from sidebar_io import export_instance_interactive, import_instance_interactive
+from sidebar_threading import start_worker_in_qthread
 from svg_icons import tinted_svg_icon
-from theme import PALETTES, build_sidebar_stylesheet
+from theme import PALETTES, build_sidebar_stylesheet, build_solver_param_styles
 
 _SOLVE_LABEL = "SPOČÍTAT TRASU"
 
@@ -411,12 +412,7 @@ class Sidebar(QWidget):
         )
 
     def _refresh_param_widgets_style(self):
-        label_style = f"color: {self._palette['text_dim']}; font-size: 12px;"
-        spin_style = (
-            f"background-color: {self._palette['surface2']}; color: {self._palette['text']};"
-            f"border: 1px solid {self._palette['border']}; border-radius: 6px;"
-            f"padding: 4px 8px; min-height: 28px; font-size: 12px;"
-        )
+        label_style, spin_style = build_solver_param_styles(self._palette)
         for spin in self._param_widgets.values():
             spin.setStyleSheet(spin_style)
         for r in range(self._params_form_layout.rowCount()):
@@ -437,130 +433,42 @@ class Sidebar(QWidget):
         pts = state.get_points()
         if 0 <= row < len(pts):
             lat, lon = pts[row]
-            state.notify(("pan_map", (lat, lon)))
+            state.notify((N.PAN_MAP, (lat, lon)))
 
     # ── Akce: export ──────────────────────────────────────────────────────
 
     def _on_export_click(self):
-        def _with_extension(path: str, ext: str) -> str:
-            root, _ = os.path.splitext(path)
-            return root + ext
-
-        fmt = self.export_dropdown.currentText()
-        route_points = state.get_route() or []
-        suggested_ext = ".gpx" if fmt == "GPX" else ".tsp"
-        suggested_name = f"instance{suggested_ext}"
-        file_filter = "GPX soubory (*.gpx);;TSP soubory (*.tsp);;Všechny soubory (*)"
-
-        filepath, _ = QFileDialog.getSaveFileName(
+        r = export_instance_interactive(
             self,
-            "Exportovat instanci",
-            suggested_name,
-            file_filter,
+            state=state,
+            fmt=self.export_dropdown.currentText(),
         )
-        if not filepath:
-            return  # uživatel zrušil dialog
-
-        try:
-            points = state.get_points()
-            if not points:
-                self._flash_btn(self.export_btn, "ErrorBtn", "✗  Žádné body!", 2500)
-                return
-
-            selected_fmt = fmt
-            target_filepath = filepath
-            used_tsp_fallback = False
-
-            if fmt == "GPX":
-                if not route_points:
-                    reply = QMessageBox.question(
-                        self,
-                        "Export GPX bez trasy",
-                        (
-                            "GPX může obsahovat waypointy i trasu.\n\n"
-                            "Pro tuto instanci není vygenerovaná trasa.\n"
-                            "Chceš exportovat waypoint-only GPX?\n\n"
-                            "Ano = uložit .gpx s waypointy\n"
-                            "Ne = fallback do .tsp (MODERN_GPS_DIPLOMA)\n"
-                            "Zrušit / zavřít = nic neukládat"
-                        ),
-                        QMessageBox.StandardButton.Yes
-                        | QMessageBox.StandardButton.No
-                        | QMessageBox.StandardButton.Cancel,
-                        QMessageBox.StandardButton.Yes,
-                    )
-                    if reply == QMessageBox.StandardButton.Yes:
-                        target_filepath = _with_extension(target_filepath, ".gpx")
-                    elif reply == QMessageBox.StandardButton.No:
-                        selected_fmt = "TSP_GEO" if state.is_geo() else "TSP_EUC_2D"
-                        used_tsp_fallback = True
-                        target_filepath = _with_extension(target_filepath, ".tsp")
-                    else:
-                        # Cancel nebo zavření dialogu křížkem => bez exportu.
-                        return
-                else:
-                    target_filepath = _with_extension(target_filepath, ".gpx")
-            else:
-                target_filepath = _with_extension(target_filepath, ".tsp")
-
-            tsp_manager.export_instance(
-                target_filepath,
-                points,
-                selected_fmt,
-                route_points=route_points,
-            )
-            geocode_cache.add_from_state(state)
+        if r.status == "cancelled":
+            return
+        if r.status == "no_points":
+            self._flash_btn(self.export_btn, "ErrorBtn", "✗  Žádné body!", 2500)
+            return
+        if r.status == "success":
             self._flash_btn(self.export_btn, "SuccessBtn", "✓  Uloženo!", 2500)
-            print(f"DEBUG: Uloženo do {target_filepath}")
-            if used_tsp_fallback:
-                QMessageBox.information(
-                    self,
-                    "Export dokončen (fallback)",
-                    (
-                        "GPX export bez vygenerované trasy byl uložen jako .tsp "
-                        "s tagem MODERN_GPS_DIPLOMA."
-                    ),
-                )
+            return
+        self._flash_btn(self.export_btn, "ErrorBtn", "✗  Chyba!", 2500)
 
-        except Exception as ex:
-            print(f"ERROR EXPORT: {ex}")
-            self._flash_btn(self.export_btn, "ErrorBtn", "✗  Chyba!", 2500)
     # ── Akce: import ──────────────────────────────────────────────────────
 
     def _on_import_click(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self,
-            "Načíst instanci",
-            "",
-            "Podporované soubory (*.tsp *.gpx);;TSP soubory (*.tsp);;GPX soubory (*.gpx);;Všechny soubory (*)",
-        )
-        if not filepath:
-            return  # uživatel zrušil dialog
-
-        try:
-            payload = tsp_manager.load_instance(filepath)
-            new_points = payload.get("points", [])
-            route_points = payload.get("route_points", [])
-            is_geo = bool(payload.get("is_geographic", True))
-
-            if new_points:
-                state.clear_all()
-                state.apply_imported_instance(
-                    new_points,
-                    is_geographic=is_geo,
-                    route_points=route_points,
-                )
-                state.notify(("center_map", new_points[0]))
-                if route_points:
-                    self._flash_btn(self.import_btn, "SuccessBtn", "✓  Body+trasa", 2500)
-                else:
-                    self._flash_btn(self.import_btn, "SuccessBtn", "✓  Načteno!", 2500)
-            else:
-                self._flash_btn(self.import_btn, "ErrorBtn", "✗  Prázdný soubor!", 2500)
-
-        except Exception as ex:
-            print(f"ERROR IMPORT: {ex}")
-            self._flash_btn(self.import_btn, "ErrorBtn", "✗  Chyba importu!", 2500)
+        r = import_instance_interactive(self, state=state)
+        if r.status == "cancelled":
+            return
+        if r.status == "success_with_route":
+            self._flash_btn(self.import_btn, "SuccessBtn", "✓  Body+trasa", 2500)
+            return
+        if r.status == "success_points_only":
+            self._flash_btn(self.import_btn, "SuccessBtn", "✓  Načteno!", 2500)
+            return
+        if r.status == "empty":
+            self._flash_btn(self.import_btn, "ErrorBtn", "✗  Prázdný soubor!", 2500)
+            return
+        self._flash_btn(self.import_btn, "ErrorBtn", "✗  Chyba importu!", 2500)
     # ── Akce: výpočet trasy ───────────────────────────────────────────────
 
     def _finish_solve_ui(self):
@@ -631,83 +539,77 @@ class Sidebar(QWidget):
             is_geographic,
             ors_cfg,
         )
-        self._solve_worker.moveToThread(self._solve_thread)
-        self._solve_thread.started.connect(self._solve_worker.run)
-        self._solve_worker.finished.connect(self._on_solve_finished)
-        self._solve_worker.failed.connect(self._on_solve_failed)
-        self._solve_worker.finished.connect(self._solve_thread.quit)
-        self._solve_worker.failed.connect(self._solve_thread.quit)
-        self._solve_thread.finished.connect(self._solve_worker.deleteLater)
-        self._solve_thread.finished.connect(self._solve_thread.deleteLater)
-        self._solve_thread.start()
+        start_worker_in_qthread(
+            self._solve_thread,
+            self._solve_worker,
+            on_finished=self._on_solve_finished,
+            on_failed=self._on_solve_failed,
+        )
 
     # ── Observer callback z AppState ──────────────────────────────────────
 
     def update_ui(self, data):
         """Reaguje na všechny notifikace z AppState."""
 
-        # --- Přesun kamery → sidebar nemusí nic dělat ---
-        if isinstance(data, tuple) and data[0] == "center_map":
-            return
-
-        if isinstance(data, tuple) and data[0] == "pan_map":
-            return
-
-        if isinstance(data, tuple) and data[0] == "point_label":
-            index = data[1]
-            if 0 <= index < self.points_list.count():
-                self.points_list.item(index).setText(
-                    f"{index + 1}. {state.get_point_list_caption(index)}"
-                )
-            return
-
-        # --- Volba zobrazení čísel na mapě ---
-        if isinstance(data, tuple) and data[0] == "waypoint_indices":
-            return
-        if isinstance(data, tuple) and data[0] == "ors_avoid_features":
-            return
-
-        # --- Aktualizace trasy ---
-        if isinstance(data, tuple) and data[0] == "route_update":
-            if not data[1]:
-                self._last_total_dist = None
-                self._last_metric_key = None
-                self.distance_label.setText(self._format_empty_total_text())
-            return
-
-        # --- Smazání jednoho bodu ---
-        if isinstance(data, tuple) and data[0] == "delete":
-            index = data[1]
-            if 0 <= index < self.points_list.count():
-                self.points_list.takeItem(index)
-                for i in range(self.points_list.count()):
-                    lw_item = self.points_list.item(i)
-                    lw_item.setText(f"{i + 1}. {state.get_point_list_caption(i)}")
-
-            # Automatický přepočet jako po přidání bodu (Nastavení → stejný přepínač)
-            if state.get_route():
-                if len(state.get_points()) < 2:
-                    state.set_route([])
-                elif load_auto_recompute_on_add_point():
-                    print("DEBUG: Automatický přepočet po smazání bodu…")
-                    self._on_solve_click()
-            return
-
         if isinstance(data, tuple):
-            return
+            match data:
+                case (N.CENTER_MAP, *_):
+                    return
+                case (N.PAN_MAP, *_):
+                    return
+                case (N.POINT_LABEL, index, *_):
+                    self._on_notify_point_label(index)
+                    return
+                case (N.WAYPOINT_INDICES, *_):
+                    return
+                case (N.ORS_AVOID_FEATURES, *_):
+                    return
+                case (N.ROUTE_UPDATE, route_points, *_):
+                    self._on_notify_route_update(route_points)
+                    return
+                case (N.DELETE, index, *_):
+                    self._on_notify_delete(index)
+                    return
+                case _:
+                    return
+        self._on_notify_full_points(data)
 
-        # --- Plná aktualizace seznamu bodů ---
+    def _on_notify_point_label(self, index: int) -> None:
+        if 0 <= index < self.points_list.count():
+            self.points_list.item(index).setText(
+                f"{index + 1}. {state.get_point_list_caption(index)}"
+            )
+
+    def _on_notify_route_update(self, route_points) -> None:
+        if not route_points:
+            self._last_total_dist = None
+            self._last_metric_key = None
+            self.distance_label.setText(self._format_empty_total_text())
+
+    def _on_notify_delete(self, index: int) -> None:
+        if 0 <= index < self.points_list.count():
+            self.points_list.takeItem(index)
+            for i in range(self.points_list.count()):
+                lw_item = self.points_list.item(i)
+                lw_item.setText(f"{i + 1}. {state.get_point_list_caption(i)}")
+
+        if state.get_route():
+            if len(state.get_points()) < 2:
+                state.set_route([])
+            elif load_auto_recompute_on_add_point():
+                print("DEBUG: Automatický přepočet po smazání bodu…")
+                self._on_solve_click()
+
+    def _on_notify_full_points(self, data) -> None:
         points = data
         current_count = self.points_list.count()
         new_count = len(points)
 
         if new_count == current_count + 1:
-            # Optimalizace: přidej jen poslední nový bod
             self.points_list.addItem(
                 f"{new_count}. {state.get_point_list_caption(new_count - 1)}"
             )
 
-            # Automatický přepočet pokud existuje trasa (volitelné v Nastavení)
             if (
                 load_auto_recompute_on_add_point()
                 and state.get_route()
@@ -716,7 +618,6 @@ class Sidebar(QWidget):
                 print("DEBUG: Automatický přepočet po přidání bodu…")
                 self._on_solve_click()
         else:
-            # Plné překreslení (import / clear all)
             self.points_list.clear()
             for i in range(len(points)):
                 self.points_list.addItem(
@@ -759,12 +660,7 @@ class Sidebar(QWidget):
 
         self.params_container.setVisible(True)
 
-        label_style = f"color: {self._palette['text_dim']}; font-size: 12px;"
-        spin_style = (
-            f"background-color: {self._palette['surface2']}; color: {self._palette['text']};"
-            f"border: 1px solid {self._palette['border']}; border-radius: 6px;"
-            f"padding: 4px 8px; min-height: 28px; font-size: 12px;"
-        )
+        label_style, spin_style = build_solver_param_styles(self._palette)
 
         for p in params:
             if p["type"] == "int":

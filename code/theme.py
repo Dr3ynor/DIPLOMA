@@ -635,3 +635,23 @@ QToolButton#RightRouteToggle:hover {{
     color: {P['primary']};
 }}
 """
+
+
+def build_solver_param_label_style(palette: dict) -> str:
+    return f"color: {palette['text_dim']}; font-size: 12px;"
+
+
+def build_solver_param_spin_style(palette: dict) -> str:
+    return (
+        f"background-color: {palette['surface2']}; color: {palette['text']};"
+        f"border: 1px solid {palette['border']}; border-radius: 6px;"
+        f"padding: 4px 8px; min-height: 28px; font-size: 12px;"
+    )
+
+
+def build_solver_param_styles(palette: dict) -> tuple[str, str]:
+    """(label_qss, spin_qss) pro formulář parametrů solveru ve sidebaru."""
+    return (
+        build_solver_param_label_style(palette),
+        build_solver_param_spin_style(palette),
+    )

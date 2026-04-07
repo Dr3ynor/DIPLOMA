@@ -1,6 +1,13 @@
 from subject import Subject
 
 from openrouteservice_routing import DEFAULT_ORS_PROFILE_KEY, sanitize_avoid_features
+from state_notify import (
+    DELETE,
+    ORS_AVOID_FEATURES,
+    POINT_LABEL,
+    ROUTE_UPDATE,
+    WAYPOINT_INDICES,
+)
 
 
 class AppState(Subject):
@@ -67,7 +74,7 @@ class AppState(Subject):
         self._route_metric_key = None
 
         self.notify(self._points)
-        self.notify(("route_update", []))
+        self.notify((ROUTE_UPDATE, []))
 
     def get_points(self):
         return self._points
@@ -92,14 +99,14 @@ class AppState(Subject):
 
             lat, lon = self._points[index]
             geocode_cache.add_if_missing(lat, lon, self._point_labels[index])
-        self.notify(("point_label", index))
+        self.notify((POINT_LABEL, index))
 
     def remove_point_at(self, index):
         if 0 <= index < len(self._points):
             self._points.pop(index)
             if index < len(self._point_labels):
                 self._point_labels.pop(index)
-            self.notify(("delete", index))
+            self.notify((DELETE, index))
             # self.notify(self._points)
 
     def set_map_url(self, url):
@@ -131,7 +138,7 @@ class AppState(Subject):
         if clean == self._ors_avoid_features:
             return
         self._ors_avoid_features = clean
-        self.notify(("ors_avoid_features", list(self._ors_avoid_features)))
+        self.notify((ORS_AVOID_FEATURES, list(self._ors_avoid_features)))
 
     def get_show_waypoint_indices(self):
         return self._show_waypoint_indices
@@ -139,7 +146,7 @@ class AppState(Subject):
     def set_show_waypoint_indices(self, show: bool, notify_change: bool = True):
         self._show_waypoint_indices = bool(show)
         if notify_change:
-            self.notify(("waypoint_indices", self._show_waypoint_indices))
+            self.notify((WAYPOINT_INDICES, self._show_waypoint_indices))
 
     def is_geo(self):
         return self._is_geographic
@@ -162,7 +169,7 @@ class AppState(Subject):
             self._route_ordered_stops.clear()
             self._route_total_value = None
             self._route_metric_key = None
-        self.notify(("route_update", self._route))
+        self.notify((ROUTE_UPDATE, self._route))
 
     def get_route(self):
         return self._route
@@ -179,7 +186,7 @@ class AppState(Subject):
         self._route_ordered_stops = [tuple(p) for p in ordered_stops]
         self._route_total_value = float(total_value)
         self._route_metric_key = str(metric_key)
-        self.notify(("route_update", self._route))
+        self.notify((ROUTE_UPDATE, self._route))
 
     def update_route(self, points):
         self.set_route(points)

@@ -43,6 +43,14 @@ from app_settings import (
     load_use_local_osrm_fallback,
 )
 from app_state import state
+from state_notify import (
+    CENTER_MAP,
+    ORS_AVOID_FEATURES,
+    PAN_MAP,
+    POINT_LABEL,
+    ROUTE_UPDATE,
+    WAYPOINT_INDICES,
+)
 from fuel_estimate import (
     distance_km_for_fuel,
     estimate_liters_base,
@@ -440,7 +448,7 @@ class RightRoutePanel(QWidget):
         self._notify_overlay_host()
 
     def _on_state_notify(self, data: object) -> None:
-        if isinstance(data, tuple) and data[0] == "route_update":
+        if isinstance(data, tuple) and data[0] == ROUTE_UPDATE:
             self._pending_done.clear()
             self._cached = None
             self._cache_key = None
@@ -448,11 +456,11 @@ class RightRoutePanel(QWidget):
             self._refresh_fuel_label()
             self._prefetch_route_details_after_solve()
         elif isinstance(data, tuple) and data[0] in (
-            "center_map",
-            "pan_map",
-            "point_label",
-            "waypoint_indices",
-            "ors_avoid_features",
+            CENTER_MAP,
+            PAN_MAP,
+            POINT_LABEL,
+            WAYPOINT_INDICES,
+            ORS_AVOID_FEATURES,
         ):
             pass
         elif isinstance(data, tuple):

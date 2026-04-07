@@ -1,0 +1,9 @@
+"""Společné tagy pro notify((tag, ...)) z AppState — jeden zdroj pro map_viewer, sidebar, …"""
+
+POINT_LABEL = "point_label"
+PAN_MAP = "pan_map"
+CENTER_MAP = "center_map"
+ROUTE_UPDATE = "route_update"
+DELETE = "delete"
+WAYPOINT_INDICES = "waypoint_indices"
+ORS_AVOID_FEATURES = "ors_avoid_features"

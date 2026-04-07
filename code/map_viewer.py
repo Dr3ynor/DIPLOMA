@@ -11,6 +11,7 @@ from api_status import ApiStatusPanel
 from app_state import state
 from avoid_features_panel import AvoidFeaturesPanel
 from map_search_bar import MapSearchBar
+import state_notify as N
 from ors_reverse_geocode import OrsReverseGeocodeClient
 from routing_profile_bar import RoutingProfileBar
 from svg_icons import tinted_svg_icon
@@ -244,7 +245,7 @@ class MapViewer(QWidget):
         name = display_name.strip() if display_name else None
         state.add_point(lat, lon, display_name=name)
         # Přiblížení na místo (Leaflet zoom ↑ = detailněji; 8 je málo pro POI)
-        state.notify(("center_map", (lat, lon, 16)))
+        state.notify((N.CENTER_MAP, (lat, lon, 16)))
 
     def _on_profile_changed(self, key: str) -> None:
         state.set_ors_routing_profile(key, persist=True)
@@ -321,23 +322,23 @@ class MapViewer(QWidget):
 
         if isinstance(data, tuple):
             match data:
-                case ("point_label", *_):
+                case (N.POINT_LABEL, *_):
                     return
-                case ("pan_map", *_):
+                case (N.PAN_MAP, *_):
                     self._on_notify_pan_map(data)
                     return
-                case ("center_map", *_):
+                case (N.CENTER_MAP, *_):
                     self._on_notify_center_map(data)
                     return
-                case ("route_update", *_):
+                case (N.ROUTE_UPDATE, *_):
                     self._on_notify_route_update(data)
                     return
-                case ("delete", *_):
+                case (N.DELETE, *_):
                     return
-                case ("waypoint_indices", show):
+                case (N.WAYPOINT_INDICES, show):
                     self._js(f"setShowWaypointIndices({str(show).lower()});")
                     return
-                case ("ors_avoid_features", *_):
+                case (N.ORS_AVOID_FEATURES, *_):
                     return
                 case _:
                     pass
