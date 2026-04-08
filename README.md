@@ -12,8 +12,10 @@
 * pustit BIA na BIA? -> cíl: hledání nejlepších parametrů pro danou TSP instanci
 nebo
 * **!!!!!! Nalezení optimálních parametrů na základě rozložení dat na mapě / canvasu - prozkoumat již implementované řešení hledání**
-
 * !!! psát si poznámky při benchmarcích !!!
+* zanalyzovat staticky kód.. linter apod.. (podívat se do SADu a najít ty metriky)
+* udělat testy - code coverage
+
 
 ## ⚡ OPTIONAL (Nice-to-have)
 * Canvas map selection.
