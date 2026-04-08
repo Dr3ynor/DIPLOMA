@@ -1,8 +1,13 @@
 import sys
+from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from main_window import MainWindow
+_ROOT = Path(__file__).resolve().parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from tsp_solver.ui.main_window import MainWindow
 
 
 if __name__ == "__main__":
