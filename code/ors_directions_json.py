@@ -21,7 +21,6 @@ from openrouteservice_routing import (
     _DIRECTIONS_TIMEOUT_S,
     _normalize_base_url,
     _ors_headers,
-    _print_ors_profile_params_before_post,
     build_ors_request_options,
     ors_profile_slug,
     sanitize_avoid_features,
@@ -304,7 +303,6 @@ def ors_post_directions_json_chunk(
         f"ORS directions GeoJSON (detail) profile={profile_slug} (logical={logical_profile}) "
         f"chunk={chunk_index + 1}/{num_chunks} coords={len(coordinates_lonlat)}"
     )
-    _print_ors_profile_params_before_post(body)
     try:
         r = requests.post(
             url,

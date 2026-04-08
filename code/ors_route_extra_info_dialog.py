@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import html
-import json
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -24,6 +23,7 @@ from ors_directions_json import (
     ors_directions_full_detail,
     osrm_fetch_instructions_only,
 )
+from ors_extras_human import format_ors_extras_html
 from sidebar_threading import start_worker_in_qthread
 
 
@@ -88,22 +88,6 @@ class _RouteExtrasFetchWorker(QObject):
 
             traceback.print_exc()
             self.failed.emit(str(ex))
-
-
-def format_ors_extras_html(extras: dict) -> str:
-    if not extras:
-        return "<p>API nevrátilo žádná pole <code>extras</code> (zkuste jiný profil nebo zkontrolujte klíč).</p>"
-    blocks: list[str] = []
-    for k in sorted(extras.keys()):
-        title = _EXTRA_TITLE_CS.get(k, k)
-        raw = extras[k]
-        try:
-            pretty = json.dumps(raw, indent=2, ensure_ascii=False)
-        except (TypeError, ValueError):
-            pretty = str(raw)
-        blocks.append(f"<h3>{html.escape(title)}</h3>")
-        blocks.append(f"<pre style='white-space:pre-wrap'>{html.escape(pretty)}</pre>")
-    return "\n".join(blocks)
 
 
 class OrsRouteExtraInfoDialog(QDialog):
@@ -175,7 +159,13 @@ def open_route_extra_info_from_state(parent: QWidget | None, palette: dict) -> N
             dlg.set_html_body("<p>Nepodařilo se načíst trasu z ORS/OSRM.</p>")
             return
         if detail.extras:
-            dlg.set_html_body(format_ors_extras_html(detail.extras))
+            dlg.set_html_body(
+                format_ors_extras_html(
+                    detail.extras,
+                    title_cs=_EXTRA_TITLE_CS,
+                    palette=palette,
+                )
+            )
             return
         note = (
             "<p>API nevrátilo pole <code>extras</code> "
