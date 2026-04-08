@@ -360,29 +360,6 @@ QPushButton#MapSettingsBtn:hover {{
 """
 
 
-def build_map_chrome_tool_button_style(P: dict) -> str:
-    """QToolButton vedle vyhledávání / profilu — stejný vzhled jako MapSettingsBtn."""
-    return f"""
-QToolButton#MapChromeToolBtn {{
-    background-color: {P['surface']};
-    color: {P['text']};
-    border: 1px solid {P['border']};
-    border-radius: 20px;
-    padding: 0;
-    margin: 0;
-    min-width: 40px;
-    max-width: 40px;
-    min-height: 40px;
-    max-height: 40px;
-}}
-QToolButton#MapChromeToolBtn:hover {{
-    background-color: {P['surface2']};
-    border-color: {P['primary']};
-    color: {P['primary']};
-}}
-"""
-
-
 def build_api_status_panel_style(P: dict) -> str:
     """Stejné materiály jako MapSettingsBtn / combobox (surface, border, radius 8)."""
     return f"""
@@ -489,6 +466,43 @@ QToolButton#AvoidFeatureBtn:checked:hover {{
     border-color: {P['danger_d']};
 }}
 QToolButton#AvoidFeatureBtn:disabled {{
+    color: {P['text_faint']};
+    background-color: transparent;
+    border-color: transparent;
+}}
+"""
+
+
+def build_map_ors_tools_bar_style(P: dict) -> str:
+    """Rámeček vedle AvoidFeaturesPanel: HGV parametry + extra_info (jeden vizuální bar)."""
+    return f"""
+QFrame#MapOrsToolsBar {{
+    background-color: {P['surface']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+QWidget#MapOrsToolsTrack {{
+    background-color: {P['surface2']};
+    border-radius: 8px;
+    border: none;
+}}
+QToolButton#OrsToolsBarBtn {{
+    background-color: transparent;
+    color: {P['text']};
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
+}}
+QToolButton#OrsToolsBarBtn:hover {{
+    border-color: {P['primary']};
+    color: {P['primary']};
+}}
+QToolButton#OrsToolsBarBtn:disabled {{
     color: {P['text_faint']};
     background-color: transparent;
     border-color: transparent;

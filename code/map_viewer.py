@@ -5,7 +5,14 @@ from PyQt6.QtCore import QObject, pyqtSlot, QUrl, pyqtSignal, Qt, QSize
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QPushButton, QToolButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QPushButton,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from api_status import ApiStatusPanel
 from app_state import state
@@ -21,7 +28,7 @@ from theme import (
     PALETTES,
     build_api_status_panel_style,
     build_avoid_features_panel_style,
-    build_map_chrome_tool_button_style,
+    build_map_ors_tools_bar_style,
     build_map_search_bar_style,
     build_map_settings_button_style,
     build_routing_profile_bar_style,
@@ -140,8 +147,24 @@ class MapViewer(QWidget):
             self._on_avoid_panel_selection_changed
         )
 
-        self._hgv_params_btn = QToolButton(self)
-        self._hgv_params_btn.setObjectName("MapChromeToolBtn")
+        # Jeden „bar“ vpravo od avoid panelu: HGV + atributy trasy (stejný vizuální styl).
+        self._ors_tools_bar = QFrame(self)
+        self._ors_tools_bar.setObjectName("MapOrsToolsBar")
+        self._ors_tools_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        _ors_pad = 10
+        _ors_track_spacing = 4
+        _ors_outer = QHBoxLayout(self._ors_tools_bar)
+        _ors_outer.setContentsMargins(_ors_pad, _ors_pad, _ors_pad, _ors_pad)
+        _ors_outer.setSpacing(0)
+        self._ors_tools_track = QWidget(self._ors_tools_bar)
+        self._ors_tools_track.setObjectName("MapOrsToolsTrack")
+        self._ors_tools_track.setFixedHeight(40)
+        _ors_h = QHBoxLayout(self._ors_tools_track)
+        _ors_h.setContentsMargins(0, 0, 0, 0)
+        _ors_h.setSpacing(_ors_track_spacing)
+
+        self._hgv_params_btn = QToolButton(self._ors_tools_track)
+        self._hgv_params_btn.setObjectName("OrsToolsBarBtn")
         self._hgv_params_btn.setText("")
         self._hgv_params_btn.setToolTip(
             "Parametry nákladního vozidla (ORS HGV — výška, hmotnost, …)"
@@ -152,8 +175,8 @@ class MapViewer(QWidget):
         self._hgv_params_btn.setFixedSize(40, 40)
         self._hgv_params_btn.clicked.connect(self._open_hgv_params_dialog)
 
-        self._route_extras_btn = QToolButton(self)
-        self._route_extras_btn.setObjectName("MapChromeToolBtn")
+        self._route_extras_btn = QToolButton(self._ors_tools_track)
+        self._route_extras_btn.setObjectName("OrsToolsBarBtn")
         self._route_extras_btn.setText("")
         self._route_extras_btn.setToolTip(
             "Atributy trasy z ORS (extra_info: státy, povrch, sklon, …)"
@@ -164,18 +187,21 @@ class MapViewer(QWidget):
         self._route_extras_btn.setFixedSize(40, 40)
         self._route_extras_btn.clicked.connect(self._open_route_extras_dialog)
 
+        _ors_h.addWidget(self._hgv_params_btn)
+        _ors_h.addWidget(self._route_extras_btn)
+        _ors_outer.addWidget(self._ors_tools_track)
+        self._ors_tools_bar.adjustSize()
+
     def _apply_initial_chrome(self) -> None:
         self.set_chrome_palette(PALETTES["dark"])
         self._search_bar.raise_()
         self._search_bar.show()
         self._routing_bar.raise_()
         self._routing_bar.show()
-        self._hgv_params_btn.raise_()
-        self._hgv_params_btn.show()
-        self._route_extras_btn.raise_()
-        self._route_extras_btn.show()
         self._avoid_panel.raise_()
         self._avoid_panel.show()
+        self._ors_tools_bar.raise_()
+        self._ors_tools_bar.show()
         self._api_panel.raise_()
         self._api_panel.show()
         self._settings_btn.raise_()
@@ -193,42 +219,49 @@ class MapViewer(QWidget):
         self._search_bar.move(sb_x, m)
         self._routing_bar.move(sb_x + self._search_bar.width() + gap, m)
         rb_right = self._routing_bar.x() + self._routing_bar.width()
-        self._hgv_params_btn.move(rb_right + gap, m)
-        self._route_extras_btn.move(
-            self._hgv_params_btn.x() + self._hgv_params_btn.width() + gap,
-            m,
-        )
+        avoid_x = rb_right + gap
         self._api_panel.adjustSize()
         self._api_panel.move(
             self.width() - self._api_panel.width() - m,
             m,
         )
-        self._avoid_panel.adjustSize()
-        extras_right = self._route_extras_btn.x() + self._route_extras_btn.width()
-        avoid_x = extras_right + gap
         max_right = self._api_panel.x() - gap
-        if avoid_x + self._avoid_panel.width() <= max_right:
-            self._avoid_panel.move(avoid_x, m)
+        self._avoid_panel.adjustSize()
+        self._ors_tools_bar.adjustSize()
+        avoid_vis = self._avoid_panel.isVisible()
+        avoid_w = self._avoid_panel.width() if avoid_vis else 0
+        combined_w = (
+            avoid_w + gap + self._ors_tools_bar.width()
+            if avoid_vis
+            else self._ors_tools_bar.width()
+        )
+        if avoid_x + combined_w <= max_right:
+            if avoid_vis:
+                self._avoid_panel.move(avoid_x, m)
+                self._ors_tools_bar.move(avoid_x + avoid_w + gap, m)
+            else:
+                self._ors_tools_bar.move(avoid_x, m)
         else:
-            self._avoid_panel.move(sb_x, m + self._search_bar.height() + gap)
+            y2 = m + self._search_bar.height() + gap
+            if avoid_vis:
+                self._avoid_panel.move(sb_x, y2)
+                self._ors_tools_bar.move(sb_x + avoid_w + gap, y2)
+            else:
+                self._ors_tools_bar.move(sb_x, y2)
         self._settings_btn.move(
             self.width() - self._settings_btn.width() - m,
             self.height() - self._settings_btn.height() - m,
         )
         self._search_bar.raise_()
         self._routing_bar.raise_()
-        self._hgv_params_btn.raise_()
-        self._route_extras_btn.raise_()
         self._avoid_panel.raise_()
+        self._ors_tools_bar.raise_()
         self._api_panel.raise_()
         self._settings_btn.raise_()
 
     def set_chrome_palette(self, palette: dict):
         self._chrome_palette = dict(palette)
         dpr = self.devicePixelRatioF()
-        chrome_tb = build_map_chrome_tool_button_style(palette)
-        self._hgv_params_btn.setStyleSheet(chrome_tb)
-        self._route_extras_btn.setStyleSheet(chrome_tb)
         self._hgv_params_btn.setIcon(
             tinted_svg_icon("truck.svg", palette["text"], 20, dpr)
         )
@@ -247,6 +280,7 @@ class MapViewer(QWidget):
         self._routing_bar.apply_palette(palette, dpr)
         self._avoid_panel.setStyleSheet(build_avoid_features_panel_style(palette))
         self._avoid_panel.apply_palette(palette, dpr)
+        self._ors_tools_bar.setStyleSheet(build_map_ors_tools_bar_style(palette))
         self._api_panel.apply_chrome_palette(
             build_api_status_panel_style(palette), palette
         )
@@ -380,6 +414,7 @@ class MapViewer(QWidget):
         self._search_bar.set_geo_mode(state.is_geo())
         self._routing_bar.set_geo_enabled(state.is_geo())
         self._sync_avoid_feature_checks()
+        self._layout_chrome_overlays()
 
         if isinstance(data, tuple):
             match data:
