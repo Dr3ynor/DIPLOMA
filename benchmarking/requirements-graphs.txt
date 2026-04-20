@@ -1,0 +1,7 @@
+# pip install -r requirements-graphs.txt
+# Pro graphs.py (vizualizace + AutoRank nad benchmark_results/).
+pandas>=2.0
+matplotlib>=3.7
+numpy>=1.24
+scipy>=1.10
+autorank>=1.3.0

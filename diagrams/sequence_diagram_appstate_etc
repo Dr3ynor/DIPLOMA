@@ -1,0 +1,36 @@
+@startuml
+title Datový tok mezi AppState a mapovou vizualizací
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam ArrowColor #2c3e50
+skinparam DefaultFontName Arial
+
+actor User as U
+participant "Map Viewer\n(QWebEngine + Leaflet)" as MV
+participant "Python-JS Bridge\n(_MapBridge / QWebChannel)" as BR
+participant "AppState\n(Observer Subject)" as ST
+participant "Sidebar / UI panely" as UI
+participant "Geocode cache" as GC
+
+== Vstup z mapy ==
+U -> MV : klik na mapu / akce markeru
+MV -> BR : JS událost\n(onMapClick/onMarkerRightClick)
+BR -> ST : add_point() / remove_point_at()
+ST -> MV : notify(data)
+MV -> MV : sync_with_state()
+MV -> MV : addMarker()/redrawAllMarkers()
+
+== Vstup z ostatních UI panelů ==
+U -> UI : import, solve, změna nastavení
+UI -> ST : set_points(), set_route_result(), notify(...)
+ST -> MV : notify(ROUTE_UPDATE / CENTER_MAP / PAN_MAP)
+MV -> MV : drawRoute()/clearRoute()
+MV -> MV : centerMap()/panMap()
+
+== Doplňkové popisky bodů ==
+MV -> GC : lookup_label() / enqueue reverse geocode
+GC -> ST : set_point_label()
+ST -> MV : notify(POINT_LABEL)
+
+@enduml

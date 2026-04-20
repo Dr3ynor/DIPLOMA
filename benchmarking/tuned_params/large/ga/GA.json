@@ -1,0 +1,33 @@
+{
+  "algorithm": "GA",
+  "best_value": 24.703122915334493,
+  "params": {
+    "pop_size": 120,
+    "generations": 3873,
+    "mutation_rate": 0.9485385757674574
+  },
+  "study_name": "tsp_ga_seed42",
+  "n_trials": 120,
+  "master_seed": 42,
+  "seeds_per_instance": 2,
+  "time_penalty": 0.01,
+  "instances": [
+    "att532",
+    "ali535",
+    "u574",
+    "rat575",
+    "p654",
+    "d657",
+    "gr666",
+    "u724",
+    "rat783",
+    "dsj1000",
+    "pr1002",
+    "u1060",
+    "vm1084",
+    "pcb1173",
+    "d1291"
+  ],
+  "min_n": 501,
+  "max_n": 2000
+}

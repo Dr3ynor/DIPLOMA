@@ -122,6 +122,8 @@ class MainWindow(QMainWindow):
         dlg.map_tile_changed.connect(self._apply_map_tile_url)
         dlg.distance_unit_changed.connect(self._apply_distance_unit)
         dlg.exec()
+        # Settings dialog can be closed by button or Esc; refresh sidebar labels immediately.
+        self.sidebar.refresh_runtime_settings_indicators()
 
     def _commit_waypoint_indices(self, show: bool):
         state.set_show_waypoint_indices(show)

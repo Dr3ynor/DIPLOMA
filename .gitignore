@@ -124,3 +124,48 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.xdv
+
+# LaTeX temporary and cache files
+_minted*/
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.loa
+*.lol
+*.maf
+*.mtc*
+*.pyg
+*.tdo
+*.xdy
+
+# Common LaTeX output directories
+out/
+build/
+
+# Local benchmark outputs
+benchmark_results/

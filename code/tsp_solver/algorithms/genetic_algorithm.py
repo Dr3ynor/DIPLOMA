@@ -2,34 +2,45 @@
 #         3. GENETIC ALGORITHM (GA)
 # ==========================================
 import random
-from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
+import time
 
-def _genetic_algorithm(matrix, pop_size=20, generations=2500, mutation_rate=0.66):
+from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
+from tsp_solver.algorithms.route_ops import polish_route_random_two_opt, tour_length
+
+
+def _genetic_algorithm(
+    matrix,
+    pop_size=20,
+    generations=2500,
+    mutation_rate=0.66,
+    seed=None,
+    rng=None,
+    convergence_trace=None,
+):
     n = len(matrix)
     pop_size = min(pop_size, n * 2)
+    local_rng = rng if rng is not None else random.Random(seed)
 
-    def get_route_distance(route):
-        dist = sum(matrix[route[i]][route[i+1]] for i in range(n - 1))
-        dist += matrix[route[-1]][route[0]]
-        return dist
+    patience = max(40, min(1200, generations // 6, 6 * n))
 
     population = []
-    
+
     nn_route = _nearest_neighbor(matrix)
-    nn_dist = get_route_distance(nn_route)
+    nn_dist = tour_length(nn_route, matrix)
     population.append((nn_route, nn_dist))
-    
+
     best_route = list(nn_route)
     best_distance = nn_dist
 
     base_route = list(range(1, n))
     for _ in range(pop_size - 1):
         ind = base_route.copy()
-        random.shuffle(ind)
+        local_rng.shuffle(ind)
         route = [0] + ind
-        population.append((route, get_route_distance(route)))
+        population.append((route, tour_length(route, matrix)))
 
     generations_without_improvement = 0
+    t0 = time.perf_counter()
 
     for gen in range(generations):
         new_population = []
@@ -38,15 +49,13 @@ def _genetic_algorithm(matrix, pop_size=20, generations=2500, mutation_rate=0.66
         for i in range(pop_size):
             parent_A_route, parent_A_dist = population[i]
 
-            parent_B_route = random.choice(population)[0]
+            parent_B_route = local_rng.choice(population)[0]
             attempts = 0
-            # Pokud po 10 pokusech nenajde jiného rodiče (populace je samý klon), konec
             while parent_B_route == parent_A_route and attempts < 10:
-                parent_B_route = random.choice(population)[0]
+                parent_B_route = local_rng.choice(population)[0]
                 attempts += 1
 
-            # Křížení
-            start, end = sorted(random.sample(range(1, n), 2))
+            start, end = sorted(local_rng.sample(range(1, n), 2))
             child_route = [None] * n
             child_route[0] = 0
             child_route[start:end] = parent_A_route[start:end]
@@ -61,34 +70,60 @@ def _genetic_algorithm(matrix, pop_size=20, generations=2500, mutation_rate=0.66
                     child_route[k] = parent_B_route[p2_idx]
                     p2_idx += 1
 
-            # Mutace
-            if random.random() < mutation_rate:
-                a, b = random.sample(range(1, n), 2)
-                child_route[a], child_route[b] = child_route[b], child_route[a]
+            if local_rng.random() < mutation_rate:
+                if local_rng.random() < 0.78:
+                    a, b = sorted(local_rng.sample(range(1, n), 2))
+                    if b > a:
+                        child_route[a : b + 1] = reversed(child_route[a : b + 1])
+                else:
+                    a, b = local_rng.sample(range(1, n), 2)
+                    child_route[a], child_route[b] = child_route[b], child_route[a]
 
-            # Vyhodnocení
-            child_dist = get_route_distance(child_route)
-            
+            child_dist = tour_length(child_route, matrix)
+
             if child_dist < parent_A_dist:
                 new_population.append((child_route, child_dist))
-                
+
                 if child_dist < best_distance:
                     best_distance = child_dist
-                    best_route = child_route
+                    best_route = list(child_route)
                     improvement_in_this_gen = True
             else:
                 new_population.append((parent_A_route, parent_A_dist))
 
         population = new_population
 
-        # EARLY STOPPING
+        worst_i = max(range(pop_size), key=lambda k: population[k][1])
+        if population[worst_i][1] > best_distance + 1e-9:
+            population[worst_i] = (list(best_route), best_distance)
+
         if improvement_in_this_gen:
             generations_without_improvement = 0
         else:
             generations_without_improvement += 1
 
-        if generations_without_improvement > 300:
-            print(f"DEBUG: GA ukončen předčasně v generaci {gen} (žádné další zlepšení).")
+        if convergence_trace is not None:
+            convergence_trace.append(
+                {
+                    "step": gen,
+                    "best_length": float(best_distance),
+                    "elapsed_s": time.perf_counter() - t0,
+                }
+            )
+
+        if generations_without_improvement > patience:
             break
 
+    best_route = list(best_route)
+    polish_route_random_two_opt(best_route, matrix, local_rng)
+    if convergence_trace is not None:
+        best_distance = tour_length(best_route, matrix)
+        prev = int(convergence_trace[-1]["step"]) if convergence_trace else -1
+        convergence_trace.append(
+            {
+                "step": prev + 1,
+                "best_length": float(best_distance),
+                "elapsed_s": time.perf_counter() - t0,
+            }
+        )
     return best_route

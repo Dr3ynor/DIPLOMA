@@ -1,0 +1,20 @@
+{
+  "algorithm": "SA",
+  "best_value": 10.315359207759368,
+  "params": {
+    "initial_temp": 317.52617529091617,
+    "cooling_rate": 0.9535192617338865,
+    "min_temp": 0.0024396934625893897,
+    "max_steps": 16480
+  },
+  "study_name": "tsp_sa_seed42_a280",
+  "n_trials": 50,
+  "master_seed": 42,
+  "seeds_per_instance": 3,
+  "time_penalty": 0.05,
+  "instances": [
+    "a280"
+  ],
+  "min_n": 10,
+  "max_n": 500
+}

@@ -1,7 +1,10 @@
 import os
+import json
+from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
+    QCheckBox,
     QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
     QProgressBar,
 )
@@ -9,7 +12,11 @@ from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
 
 from tsp_solver.state.app_state import state
-from tsp_solver.state.app_settings import load_auto_recompute_on_add_point
+from tsp_solver.state.app_settings import (
+    load_auto_recompute_on_add_point,
+    load_solver_seed_enabled,
+    load_solver_seed_value,
+)
 from tsp_solver.core.metric_catalog import METRIC_UI_OPTIONS
 from tsp_solver.routing.openrouteservice_routing import OrsRoutingConfig, ors_config_from_state
 from tsp_solver.core.tspmanager import tsp_manager
@@ -20,6 +27,20 @@ from tsp_solver.ui.svg_icons import tinted_svg_icon
 from tsp_solver.ui.theme import PALETTES, build_sidebar_stylesheet, build_solver_param_styles
 
 _SOLVE_LABEL = "SPOČÍTAT TRASU"
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_TUNED_PARAMS_ROOT = _PROJECT_ROOT / "benchmarking" / "tuned_params"
+_TUNED_SIZE_BANDS = (
+    ("small", 3, 80),
+    ("mid", 81, 500),
+    ("large", 501, 2000),
+)
+_TUNED_ALGO_DIR_CANDIDATES = {
+    "ACO": ("ACO", "aco"),
+    "GA": ("GA", "ga"),
+    "SA": ("SA", "sa"),
+    "LK": ("LK", "lk"),
+    "RSO": ("RSO", "rso"),
+}
 
 
 class _SolveWorker(QObject):
@@ -70,15 +91,42 @@ SOLVER_PARAMS = {
     "ACO": [
         {"key": "num_iterations",     "label": "Počet iterací",      "type": "int",   "default": 50,   "min": 5,    "max": 2000, "step": 10,   "tip": "Kolik cyklů ACO proběhne"},
         {"key": "num_ants",           "label": "Počet mravenců",     "type": "int",   "default": 20,   "min": 2,    "max": 200,  "step": 1,    "tip": "Počet agentů na iteraci"},
-        {"key": "alpha",              "label": "Alpha α (feromonů)", "type": "float", "default": 1.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "tip": "Vliv feromonové stopy"},
-        {"key": "beta",               "label": "Beta β (vzdálenost)","type": "float", "default": 2.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "tip": "Vliv vzdálenosti uzlu"},
-        {"key": "vaporization_coeff", "label": "Odpařování ρ",       "type": "float", "default": 0.5,  "min": 0.01, "max": 0.99, "step": 0.05, "tip": "Jak rychle feromony mizí"},
-        {"key": "Q",                  "label": "Q (konstanta)",      "type": "float", "default": 1.0,  "min": 0.1,  "max": 50.0, "step": 0.5,  "tip": "Množství depozitovaného feromonu"},
+        {"key": "alpha",              "label": "Alpha α (feromonů)", "type": "float", "default": 1.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "decimals": 2, "tip": "Vliv feromonové stopy"},
+        {"key": "beta",               "label": "Beta β (vzdálenost)","type": "float", "default": 2.0,  "min": 0.1,  "max": 10.0, "step": 0.1,  "decimals": 2, "tip": "Vliv vzdálenosti uzlu"},
+        {"key": "vaporization_coeff", "label": "Odpařování ρ",       "type": "float", "default": 0.5,  "min": 0.01, "max": 0.99, "step": 0.05, "decimals": 4, "tip": "Jak rychle feromony mizí"},
+        {"key": "Q",                  "label": "Q (konstanta)",      "type": "float", "default": 1.0,  "min": 0.1,  "max": 50.0, "step": 0.5,  "decimals": 2, "tip": "Množství depozitovaného feromonu"},
     ],
     "GA": [
         {"key": "pop_size",      "label": "Velikost populace", "type": "int",   "default": 20,   "min": 4,    "max": 500,  "step": 5,    "tip": "Počet jedinců v populaci"},
         {"key": "generations",   "label": "Max. generace",     "type": "int",   "default": 2500, "min": 100,  "max": 20000,"step": 100,  "tip": "Maximální počet generací"},
-        {"key": "mutation_rate", "label": "Pravděp. mutace",   "type": "float", "default": 0.66, "min": 0.01, "max": 1.0,  "step": 0.01, "tip": "Šance na mutaci chromozomu"},
+        {"key": "mutation_rate", "label": "Pravděp. mutace",   "type": "float", "default": 0.66, "min": 0.01, "max": 1.0,  "step": 0.01, "decimals": 4, "tip": "Šance na mutaci chromozomu"},
+    ],
+    "SA": [
+        {"key": "initial_temp", "label": "Počáteční teplota",  "type": "float", "default": 2000.0, "min": 1.0, "max": 50000.0, "step": 50.0, "decimals": 2, "tip": "Výchozí teplota simulovaného žíhání"},
+        {"key": "cooling_rate", "label": "Rychlost chlazení",  "type": "float", "default": 0.995,  "min": 0.8, "max": 0.9999,  "step": 0.001, "decimals": 4, "tip": "Koeficient, kterým se násobí teplota v každém kroku"},
+        {"key": "min_temp",     "label": "Minimální teplota",  "type": "float", "default": 0.001,  "min": 0.000001, "max": 10.0, "step": 0.001, "decimals": 6, "tip": "Práh, při kterém se SA ukončí"},
+        {"key": "max_steps",    "label": "Max. počet kroků",   "type": "int",   "default": 12000,  "min": 100, "max": 500000, "step": 100, "tip": "Horní limit iterací SA"},
+    ],
+    "LK": [
+        {"key": "max_rounds",   "label": "Max. kola zlepšování", "type": "int", "default": 20, "min": 1, "max": 500, "step": 1, "tip": "Počet průchodů lokálním okolím v LK-lite"},
+    ],
+    "RSO": [
+        {"key": "population_size", "label": "Velikost populace", "type": "int", "default": 30, "min": 6, "max": 2000, "step": 5, "tip": "Počet jedinců v populaci RSO"},
+        {"key": "iterations",      "label": "Počet iterací",     "type": "int", "default": 600, "min": 10, "max": 20000, "step": 10, "tip": "Počet evolučních iterací RSO"},
+        {"key": "chase_ratio",     "label": "Poměr chase/fight", "type": "float", "default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01, "decimals": 4, "tip": "Pravděpodobnost strategie chase"},
+    ],
+    "LKH": [
+        {"key": "runs", "label": "Počet běhů (RUNS)", "type": "int", "default": 1, "min": 1, "max": 50, "step": 1, "tip": "Parametr LKH RUNS (viz dokumentace LKH-3)"},
+        {
+            "key": "max_trials",
+            "label": "Max. pokusů (MAX_TRIALS)",
+            "type": "int",
+            "default": 10000,
+            "min": 100,
+            "max": 500000,
+            "step": 100,
+            "tip": "Parametr LKH MAX_TRIALS",
+        },
     ],
 }
 
@@ -213,6 +261,31 @@ class Sidebar(QWidget):
 
         # ═══ SEKCE: Výpočet trasy ══════════════════════════════════════════
         layout.addWidget(_section_label("Výpočet trasy"))
+        self._seed_indicator = QLabel("")
+        self._seed_indicator.setObjectName("SeedIndicator")
+        self._seed_indicator.setWordWrap(True)
+        self._seed_indicator.setMinimumWidth(0)
+        self._seed_indicator.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        layout.addWidget(self._seed_indicator)
+        self._refresh_seed_indicator()
+
+        self._use_tuned_params_check = QCheckBox(
+            "Použít optimalizované parametry (benchmarking)"
+        )
+        self._use_tuned_params_check.setChecked(False)
+        self._use_tuned_params_check.toggled.connect(self._on_tuned_params_toggled)
+        layout.addWidget(self._use_tuned_params_check)
+
+        self._tuned_params_status = QLabel("Parametry: ruční nastavení")
+        self._tuned_params_status.setObjectName("TunedParamsStatus")
+        self._tuned_params_status.setWordWrap(True)
+        self._tuned_params_status.setMinimumWidth(0)
+        self._tuned_params_status.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        layout.addWidget(self._tuned_params_status)
 
         self.solver_dropdown = QComboBox()
         for k, v in tsp_manager.get_supported_solvers():
@@ -236,7 +309,7 @@ class Sidebar(QWidget):
         # Inicializuj panel pro výchozí solver a připoj změnu solveru
         self._update_params_panel(self.solver_dropdown.currentData())
         self.solver_dropdown.currentIndexChanged.connect(
-            lambda _: self._update_params_panel(self.solver_dropdown.currentData())
+            lambda _: self._on_solver_changed()
         )
 
         self.metric_dropdown = QComboBox()
@@ -384,6 +457,7 @@ class Sidebar(QWidget):
             )
         self._refresh_param_widgets_style()
         self._refresh_solve_progress_bar_style()
+        self._refresh_seed_indicator()
         self._refresh_chrome_icons()
 
     def _refresh_solve_progress_bar_style(self):
@@ -405,6 +479,86 @@ class Sidebar(QWidget):
             }}
             """
         )
+
+    def _refresh_seed_indicator(self) -> None:
+        enabled = load_solver_seed_enabled()
+        if enabled:
+            seed = load_solver_seed_value()
+            text = f"Seed: zapnuto ({seed})"
+            color = self._palette["primary"]
+        else:
+            text = "Seed: vypnuto (náhodný běh)"
+            color = self._palette["text_dim"]
+        self._seed_indicator.setText(text)
+        self._seed_indicator.setStyleSheet(
+            f"color: {color}; font-size: 12px; font-weight: 600;"
+        )
+
+    def refresh_runtime_settings_indicators(self) -> None:
+        """Public refresh hook for settings-dependent labels."""
+        self._refresh_seed_indicator()
+
+    @staticmethod
+    def _size_bucket_for_n(n_points: int) -> str:
+        for name, low, high in _TUNED_SIZE_BANDS:
+            if low <= n_points <= high:
+                return name
+        return "large" if n_points > _TUNED_SIZE_BANDS[-1][2] else "small"
+
+    def _load_tuned_params(self, solver_key: str, n_points: int) -> tuple[dict | None, str]:
+        if solver_key not in _TUNED_ALGO_DIR_CANDIDATES:
+            return None, f"Parametry: solver {solver_key} nemá tuned profil"
+        size_key = self._size_bucket_for_n(n_points)
+        base_name = solver_key
+        for algo_dir in _TUNED_ALGO_DIR_CANDIDATES[solver_key]:
+            candidate = _TUNED_PARAMS_ROOT / size_key / algo_dir / f"{base_name}.json"
+            if candidate.is_file():
+                try:
+                    data = json.loads(candidate.read_text(encoding="utf-8"))
+                except Exception:
+                    return None, f"Parametry: nepodařilo se načíst {size_key}/{algo_dir}"
+                params = data.get("params")
+                if isinstance(params, dict):
+                    return params, f"Parametry: tuned {size_key}/{algo_dir}"
+                return None, f"Parametry: {size_key}/{algo_dir} bez pole params"
+        return None, f"Parametry: tuned profil nenalezen ({size_key}/{solver_key})"
+
+    def _apply_tuned_params_to_widgets(self) -> None:
+        solver_key = self.solver_dropdown.currentData()
+        if not solver_key:
+            self._tuned_params_status.setText("Parametry: ruční nastavení")
+            return
+        if not self._use_tuned_params_check.isChecked():
+            self._tuned_params_status.setText("Parametry: ruční nastavení")
+            return
+
+        n_points = len(state.get_points())
+        tuned, status = self._load_tuned_params(solver_key, n_points)
+        if not tuned:
+            self._tuned_params_status.setText(status)
+            return
+
+        for key, widget in self._param_widgets.items():
+            if key not in tuned:
+                continue
+            try:
+                if isinstance(widget, QSpinBox):
+                    widget.setValue(int(round(float(tuned[key]))))
+                else:
+                    widget.setValue(float(tuned[key]))
+            except Exception:
+                continue
+        self._tuned_params_status.setText(status)
+
+    def _on_solver_changed(self) -> None:
+        self._update_params_panel(self.solver_dropdown.currentData())
+        self._apply_tuned_params_to_widgets()
+
+    def _on_tuned_params_toggled(self, enabled: bool) -> None:
+        if enabled:
+            self._apply_tuned_params_to_widgets()
+        else:
+            self._tuned_params_status.setText("Parametry: ruční nastavení")
 
     def _refresh_param_widgets_style(self):
         label_style, spin_style = build_solver_param_styles(self._palette)
@@ -502,7 +656,11 @@ class Sidebar(QWidget):
         is_geographic = state.is_geo()
         solver_key = self.solver_dropdown.currentData()
         metric_key = self.metric_dropdown.currentData()
+        if self._use_tuned_params_check.isChecked():
+            self._apply_tuned_params_to_widgets()
         solver_kwargs = self._get_solver_params()
+        if load_solver_seed_enabled():
+            solver_kwargs["seed"] = load_solver_seed_value()
         self._pending_metric_key = metric_key
 
         self._solve_running = True
@@ -536,6 +694,10 @@ class Sidebar(QWidget):
 
     def update_ui(self, data):
         """Reaguje na všechny notifikace z AppState."""
+        self._refresh_seed_indicator()
+        if self._use_tuned_params_check.isChecked():
+            # Při změně počtu bodů se může změnit small/mid/large bucket.
+            self._apply_tuned_params_to_widgets()
 
         if isinstance(data, tuple):
             match data:
@@ -661,7 +823,7 @@ class Sidebar(QWidget):
                 spin.setRange(p["min"], p["max"])
                 spin.setSingleStep(p["step"])
                 spin.setValue(p["default"])
-                spin.setDecimals(2)
+                spin.setDecimals(p.get("decimals", 2))
 
             spin.setToolTip(p["tip"])
             spin.setStyleSheet(spin_style)

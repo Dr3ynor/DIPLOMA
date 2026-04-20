@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QLineEdit,
     QMessageBox,
+    QSpinBox,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 
@@ -19,11 +20,15 @@ from tsp_solver.state.app_settings import (
     load_distance_unit,
     load_stored_ors_api_key,
     load_stored_ors_base_url,
+    load_solver_seed_enabled,
+    load_solver_seed_value,
     load_use_local_osrm_fallback,
     save_auto_recompute_on_add_point,
     save_distance_unit,
     save_ors_api_key,
     save_ors_base_url,
+    save_solver_seed_enabled,
+    save_solver_seed_value,
     save_use_local_osrm_fallback,
 )
 from tsp_solver.ui.theme import PALETTES, build_settings_dialog_stylesheet
@@ -119,6 +124,29 @@ class SettingsDialog(QDialog):
         auto_rec_hint.setObjectName("SettingsHint")
         root.addWidget(auto_rec_hint)
 
+        root.addWidget(QLabel("Náhodnost solverů"))
+        self._seed_enabled_check = QCheckBox(
+            "Použít fixní seed pro stochastické algoritmy (ACO, GA, SA, RSO)"
+        )
+        self._seed_enabled_check.setChecked(load_solver_seed_enabled())
+        root.addWidget(self._seed_enabled_check)
+
+        seed_row = QHBoxLayout()
+        seed_row.setSpacing(12)
+        seed_row.addWidget(QLabel("Seed:"), 0)
+        self._seed_spin = QSpinBox()
+        self._seed_spin.setRange(0, 2_147_483_647)
+        self._seed_spin.setValue(load_solver_seed_value())
+        seed_row.addWidget(self._seed_spin, 1)
+        self._seed_reset_btn = QPushButton("Výchozí (42)")
+        self._seed_reset_btn.setObjectName("SecondaryBtn")
+        self._seed_reset_btn.clicked.connect(self._on_seed_reset)
+        seed_row.addWidget(self._seed_reset_btn, 0)
+        root.addLayout(seed_row)
+        self._seed_spin.setEnabled(self._seed_enabled_check.isChecked())
+        self._seed_reset_btn.setEnabled(self._seed_enabled_check.isChecked())
+        self._seed_enabled_check.toggled.connect(self._on_seed_toggle)
+
         root.addWidget(QLabel("OpenRouteService"))
         hint = QLabel(
             "API klíč z openrouteservice.org. Volitelně ORS_API_KEY / ORS_BASE_URL "
@@ -199,7 +227,16 @@ class SettingsDialog(QDialog):
         save_use_local_osrm_fallback(self._local_osrm_check.isChecked())
         save_auto_recompute_on_add_point(self._auto_recompute_add_check.isChecked())
         save_distance_unit(self._distance_unit_combo.currentData())
+        save_solver_seed_enabled(self._seed_enabled_check.isChecked())
+        save_solver_seed_value(self._seed_spin.value())
         self.accept()
+
+    def _on_seed_toggle(self, enabled: bool) -> None:
+        self._seed_spin.setEnabled(enabled)
+        self._seed_reset_btn.setEnabled(enabled)
+
+    def _on_seed_reset(self) -> None:
+        self._seed_spin.setValue(42)
 
     def _on_theme_picked(self, _idx: int):
         mode = self._theme_combo.currentData()

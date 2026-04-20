@@ -24,6 +24,8 @@ _KEY_MAP_TILE_URL = "map/tile_url"
 _KEY_ORS_ROUTING_PROFILE = "routing/ors_profile"
 _KEY_ORS_HGV_RESTRICTIONS = "routing/ors_hgv_restrictions_json"
 _KEY_DISTANCE_UNIT = "ui/distance_unit"
+_KEY_SOLVER_SEED_ENABLED = "solver/seed_enabled"
+_KEY_SOLVER_SEED_VALUE = "solver/seed_value"
 
 # Výchozí HGV omezení pro ORS profile_params.restrictions (m, t).
 DEFAULT_ORS_HGV_RESTRICTIONS: dict[str, Any] = {
@@ -47,6 +49,7 @@ MAP_TILE_SOURCES: dict[str, str] = {
 DEFAULT_MAP_TILE_URL = MAP_TILE_SOURCES["OpenStreetMap (DE)"]
 DISTANCE_UNITS = {"km", "mi"}
 DEFAULT_DISTANCE_UNIT = "km"
+DEFAULT_SOLVER_SEED = 42
 
 
 def _store() -> QSettings:
@@ -213,3 +216,33 @@ def load_distance_unit() -> str:
 
 def save_distance_unit(unit: str) -> None:
     _store().setValue(_KEY_DISTANCE_UNIT, normalize_distance_unit(unit))
+
+
+def normalize_solver_seed(value: int | str | None) -> int:
+    try:
+        seed = int(value)
+    except (TypeError, ValueError):
+        return DEFAULT_SOLVER_SEED
+    # Keep seed in 32-bit signed range for compatibility.
+    if seed < 0:
+        return 0
+    if seed > 2_147_483_647:
+        return 2_147_483_647
+    return seed
+
+
+def load_solver_seed_enabled(default: bool = True) -> bool:
+    return _coerce_bool(_store().value(_KEY_SOLVER_SEED_ENABLED), default)
+
+
+def save_solver_seed_enabled(enabled: bool) -> None:
+    _store().setValue(_KEY_SOLVER_SEED_ENABLED, bool(enabled))
+
+
+def load_solver_seed_value() -> int:
+    raw = _store().value(_KEY_SOLVER_SEED_VALUE, DEFAULT_SOLVER_SEED)
+    return normalize_solver_seed(raw)
+
+
+def save_solver_seed_value(seed: int) -> None:
+    _store().setValue(_KEY_SOLVER_SEED_VALUE, normalize_solver_seed(seed))

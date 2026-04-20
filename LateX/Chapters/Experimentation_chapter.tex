@@ -1,0 +1,119 @@
+\chapter{Experimentální část}
+Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod na referenční instanci TSPLIB \texttt{a280}. Cílem je porovnat kvalitu nalezeného řešení, stabilitu stochastických algoritmů, konvergenční chování a kompromis mezi výpočetním časem a dosaženou odchylkou od optima.
+
+\section{Nastavení experimentu}
+\label{sec:exp_setup}
+Měření bylo provedeno nad instancí \texttt{a280} s rozměrem matice \(280 \times 280\), referenční optimální hodnotou \(2579\). Testovaná sada algoritmů obsahuje metody 2-opt, 3-opt, LK, LKH, GA, ACO, RSO a SA. Parametry metaheuristik byly optimalizovány pomocí knihovny \texttt{Optuna}.
+
+Deterministické metody (2-opt, 3-opt, LK, LKH) byly spuštěny jednou. Stochastické metody (GA, ACO, RSO, SA) byly vyhodnoceny ve 30 opakováních se synchronizovanou politikou seedů, aby bylo možné statistické porovnání výsledků.
+
+Volba jedné středně velké instance je v této práci záměrná. Instance \texttt{a280} je dostatečně rozsáhlá, aby se projevily rozdíly v kvalitě i dynamice konvergence, současně však zůstává výpočetně zvládnutelná na lokálním stroji v přijatelném čase. Použití výrazně větších instancí by vedlo k neúměrně dlouhému běhu stochastických metod při zachování stejného počtu opakování.
+
+\section{Konvergenční průběhy metaheuristik}
+\label{sec:exp_convergence}
+Konvergenční chování bylo analyzováno na obrázcích \ref{fig:conv_aco} až \ref{fig:conv_sa}. Osa \(x\) představuje normalizovaný průběh iterací od začátku do konce běhu a osa \(y\) odchylku od optima v procentech.
+
+Z porovnání jednotlivých průběhů je patrné, že všechny testované metaheuristiky dosahují nejvýraznějšího zlepšení v úvodní části běhu, ale liší se rychlostí stabilizace a zejména rozptylem výsledků mezi opakováními. ACO začíná s nejvyšší počáteční odchylkou, protože v prvních iteracích ještě není vytvořena dostatečně informativní feromonová stopa, následně však vykazuje konzistentní pokles a nejnižší střední koncovou odchylku mezi stochastickými metodami (medián přibližně \(6{,}75\,\%\), nejlepší běh \(3{,}96\,\%\)). GA se vyznačuje rychlou ranou konvergencí a následnou stabilizací v relativně úzkém pásmu okolo mediánu \(8{,}03\,\%\), což potvrzuje dobrý poměr mezi rychlostí a robustností. RSO má průběh rovněž plynulý a opakovatelný, avšak konverguje do kvalitativně slabší oblasti (medián přibližně \(9{,}19\,\%\)), tedy s menší schopností dosahovat nejlepších hodnot. Nejvyšší variabilitu vykazuje SA, kde část běhů končí na akceptovatelných řešeních, zatímco část zůstává výrazně nad ostatními metodami; medián \(11{,}28\,\%\) a maximum přes \(40\,\%\) ukazují citlivost na náhodnou trajektorii hledání i na konkrétní realizaci ochlazovacího procesu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_ACO.png}
+    \caption{Konvergenční průběhy ACO}
+    \label{fig:conv_aco}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_GA.png}
+    \caption{Konvergenční průběhy GA}
+    \label{fig:conv_ga}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_RSO.png}
+    \caption{Konvergenční průběhy RSO}
+    \label{fig:conv_rso}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_SA.png}
+    \caption{Konvergenční průběhy SA}
+    \label{fig:conv_sa}
+\end{figure}
+
+\section{Rozdělení kvality řešení a statistická významnost}
+\label{sec:exp_distribution}
+Rozdělení výsledků stochastických metod je zachyceno na obrázcích \ref{fig:boxplots_meta} a \ref{fig:violin_meta}. Oba pohledy konzistentně ukazují nejlepší centrální tendenci u ACO, následovanou GA, dále RSO a nejhůře SA.
+
+Boxplot zvýrazňuje medián a kvartily, violin graf navíc ukazuje tvar rozdělení a hustotu výskytu hodnot. U SA je patrná největší variabilita i nejširší pravý ocas směrem k horším řešením. Naopak GA a ACO mají kompaktnější rozdělení.
+
+Statistické porovnání je uvedeno na obrázku \ref{fig:autorank_frequentist}. Neparametrický Friedmanův test potvrzuje statisticky významný rozdíl mezi algoritmy. Následný Nemenyiho test neprokazuje významný rozdíl pouze mezi dvojicí ACO a GA, zatímco u ostatních dvojic je rozdíl statisticky významný.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/boxplots_metaheuristics.png}
+    \caption{Boxplot rozdělení odchylek metaheuristik}
+    \label{fig:boxplots_meta}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/violin_metaheuristics_strip.png}
+    \caption{Violin plot rozdělení odchylek metaheuristik}
+    \label{fig:violin_meta}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Figures/autorank_plot_frequentist.png}
+    \caption{Statistické srovnání metod pomocí autorank}
+    \label{fig:autorank_frequentist}
+\end{figure}
+
+\section{Globální srovnání všech metod}
+\label{sec:exp_global}
+Komplexní porovnání napříč všemi metodami poskytují obrázky \ref{fig:ecdf_all_methods}, \ref{fig:scatter_time_vs_gap} a \ref{fig:summary_table_optimum_vs_stats}.
+
+\subsection{ECDF a pořadí metod}
+ECDF graf ukazuje, že LKH dosahuje přesně referenčního optima \(2579\) při daném nastavení. Mezi stochastickými metodami je nejkvalitnější ACO, poté GA a RSO. SA má nejhorší rozdělení kvality.
+
+Deterministické algoritmy poskytly na této instanci tyto výsledky: LK \(2812\), 2-opt \(2835\), 3-opt \(2990\). Zejména 3-opt v použité implementaci a konfiguraci neposkytl na instanci \texttt{a280} konkurenceschopný výsledek vůči ostatním metodám.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Figures/ecdf_tour_length_by_algorithm.png}
+    \caption{ECDF délky tras pro všechny porovnávané metody}
+    \label{fig:ecdf_all_methods}
+\end{figure}
+
+\subsection{Kompromis čas vs. kvalita}
+Graf na obrázku \ref{fig:scatter_time_vs_gap} potvrzuje, že mezi kvalitou řešení a výpočetní náročností existuje zřetelný praktický kompromis. SA dosahuje nejkratších běhových časů mezi stochastickými metodami (řádově \(0{,}30\) s), avšak za cenu nejvyšší odchylky a nízké stability. GA a RSO tvoří střední pásmo, ve kterém dochází k vyvážení obou kritérií: jejich časy se pohybují přibližně mezi \(8{,}8\) a \(9{,}5\) s a výsledná kvalita je stabilnější než u SA, přesto stále horší než u ACO. ACO nabízí nejlepší kvalitu mezi stochastickými přístupy, ale vyžaduje nejdelší výpočet (přibližně \(31{,}8\) s), což odpovídá vyšší výpočetní ceně koloniálního modelu. LKH pak představuje referenční bod z hlediska praktické efektivity, protože v daném experimentu kombinuje minimální odchylku od optima s velmi nízkým časem běhu. Pro aplikační praxi to znamená, že volba metody má být odvozena od priorit konkrétního nasazení: při důrazu na rychlou odezvu je akceptovatelný kompromis SA/GA, zatímco při důrazu na kvalitu je výhodnější ACO nebo LKH.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Figures/scatter_time_vs_gap.png}
+    \caption{Kompromis mezi časem výpočtu a odchylkou od optima}
+    \label{fig:scatter_time_vs_gap}
+\end{figure}
+
+\subsection{Souhrnné číselné výsledky}
+Souhrnná tabulka na obrázku~\ref{fig:summary_table_optimum_vs_stats} shrnuje číselné charakteristiky běhů a potvrzuje hlavní závěry experimentu. Metoda LKH dosahuje referenčního optima instance \texttt{a280}, tedy hodnoty \(2579\), a tím slouží jako horní mez kvality vůči ostatním přístupům. Mezi stochastickými algoritmy vychází nejlépe ACO s průměrnou odchylkou řádu \(\approx 6{,}75\,\%\), což odpovídá nejstabilnějšímu středu rozdělení kvality v měřené sadě opakování.
+
+Genetický algoritmus a RSO spadají do středního pásma: GA dosahuje přibližně \(\approx 8{,}15\,\%\) průměrné odchylky, RSO přibližně \(\approx 9{,}19\,\%\), obě metody tedy nacházejí akceptovatelná, avšak výrazně horší řešení než ACO a výrazně lepší než simulované žíhání. SA vykazuje nejvyšší průměrnou odchylku (\(\approx 22{,}72\,\%\)) a současně největší rozptyl mezi běhy, což je v souladu s pozorovanou vysokou variabilitou konvergenčních křivek i rozložením finálních délek tras.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/summary_table_optimum_vs_stats.png}
+    \caption{Souhrnná tabulka: optimum versus dosažené statistiky}
+    \label{fig:summary_table_optimum_vs_stats}
+\end{figure}
+
+\section{Diskuze a omezení interpretace}
+\label{sec:exp_limits}
+Přestože výsledky poskytují jasné pořadí metod na instanci \texttt{a280}, je nutné interpretovat je v kontextu zvoleného experimentálního návrhu.
+
+Prvním omezením je použití jediné instance. Výsledky nelze přenášet na všechny typy TSP instancí, zejména na podstatně větší úlohy. Druhým omezením je závislost na konkrétním ladění parametrů, které může při jiné instanci měnit relativní pořadí stochastických metod, což odpovídá chování stochastických algoritmů.
+
+Z pohledu praktického nasazení nicméně měření ukazuje použitelný závěr. Pokud je prioritou kvalita řešení, je vhodné upřednostnit LKH, případně ACO. Pokud je dominantním kritériem rychlost, je vhodná SA nebo GA, avšak za cenu vyšší očekávané odchylky od optima.

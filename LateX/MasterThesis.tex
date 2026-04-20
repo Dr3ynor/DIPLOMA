@@ -1,0 +1,114 @@
+% Nejprve uvedeme tridu dokumentu s volbami
+\documentclass[czech,master]{diploma}
+% Dalsi doplnujici baliky maker
+\usepackage[autostyle=true,czech=quotes]{csquotes} % korektni sazba uvozovek, podpora pro balik biblatex
+\usepackage[backend=biber, style=iso-numeric, alldates=iso]{biblatex} % bibliografie
+\usepackage{dcolumn} % sloupce tabulky s ciselnymi hodnotami
+\usepackage{subfig} % makra pro "podobrazky" a "podtabulky"
+\usepackage[cpp]{diplomalst}
+
+\usepackage{graphicx}
+\usepackage[ruled,vlined,czech]{algorithm2e}
+\usepackage{amsmath}
+\usepackage{float}
+
+% Zadame pozadovane vstupy pro generovani titulnich stran.
+\ThesisAuthor{Bc. Jakub Růžička}
+
+\ThesisSupervisor{prof. Ing. Krömer Pavel, Ph.D.}
+
+\CzechThesisTitle{Generátor instancí problému obchodního cestujícího}
+
+\EnglishThesisTitle{Traveling Salesman Problem Instance Generator}
+
+\SubmissionYear{2026}
+
+\ThesisAssignmentFileName{thesis_specification.pdf}
+
+% Pokud nechceme nikomu dekovat makro zapoznamkujeme.
+\Acknowledgement{Rád bych na tomto místě poděkoval všem, kteří mi s prací pomohli, protože bez nich by tato práce nevznikla.}
+
+\CzechAbstract{}
+
+\CzechKeywords{Travelling Salesman Problem, mapy, Python}
+
+\EnglishAbstract{}
+
+\EnglishKeywords{}
+
+\AddAcronym{TSP}{Traveling Salesman Problem}
+\AddAcronym{STSP}{Symmetric Traveling Salesman Problem}
+\AddAcronym{ATSP}{Asymmetric Traveling Salesman Problem}
+\AddAcronym{TSPLIB}{Traveling Salesman Problem Library}
+
+% Grafy a matematika
+\AddAcronym{MST}{Minimum Spanning Tree}
+\AddAcronym{NP}{Nondeterministic Polynomial time}
+\AddAcronym{EUC\_2D}{Euclidean 2D distance}
+
+% Algoritmy a heuristiky
+\AddAcronym{GA}{Genetic Algorithm}
+\AddAcronym{ACO}{Ant Colony Optimization}
+\AddAcronym{SA}{Simulated Annealing}
+\AddAcronym{PSO}{Particle Swarm Optimization}
+\AddAcronym{RSO}{Rat Swarm Optimizer}
+\AddAcronym{L-K}{Lin-Kernighan algorithm}
+
+% Technologie a Data
+\AddAcronym{API}{Application Programming Interface}
+\AddAcronym{OSM}{OpenStreetMap}
+\AddAcronym{OSRM}{Open Source Routing Machine}
+\AddAcronym{JSON}{JavaScript Object Notation}
+\AddAcronym{UML}{Unified Modeling Language}
+%\AddAcronym{GUI}{Graphical User Interface}
+%\AddAcronym{I/O}{Input/Output}
+%\AddAcronym{QE}{Quantization Error}
+%\AddAcronym{TE}{Topographic Error}
+
+
+
+\addbibresource{biblatex-examples.bib}
+\addbibresource{coffee.bib}
+
+% Novy druh tabulkoveho sloupce, ve kterem jsou cisla zarovnana podle desetinne carky
+\newcolumntype{d}[1]{D{,}{,}{#1}}
+
+
+% Zacatek dokumentu
+\begin{document}
+
+% Nechame vysazet titulni strany.
+\MakeTitlePages
+
+% Jsou v praci obrazky? Pokud ano vysazime jejich seznam a odstrankujeme.
+% Pokud ne smazeme nasledujici dve makra.
+\listoffigures
+\clearpage
+
+% Jsou v praci tabulky? Pokud ano vysazime jejich seznam a odstrankujeme.
+% Pokud ne smazeme nasledujici dve makra.
+\listoftables
+\clearpage
+
+% A nasleduje text zaverecne prace.
+\input{Chapters/Introduction.tex}
+\input{Chapters/Theory_chapter.tex}
+\input{Chapters/Analysis_chapter}
+\input{Chapters/Implementation_chapter}
+\input{Chapters/Experimentation_chapter}
+\input{Chapters/Discussion_chapter}
+\input{Chapters/Conclusion.tex}
+
+% Seznam literatury
+% \printbibliography[title={Literatura}, heading=bibintoc]
+
+% Prilohy
+\appendix
+\input{Chapters/Appendix1.tex}
+\input{Chapters/Appendix2.tex}
+
+% Priloha vlozena primo do hlavniho LaTeX souboru. Ne vsechny prilohy je nutne mit ve zvlastnich souborech.
+%\chapter{Dlouhý zdrojový kód}
+%\lstinputlisting[label=src:CppExternal,caption={Dlouhý zdrojový kód v jazyce C++ načtený s externího %souboru}]{SourceCodes/ArraySortingAlgorithms.cpp}
+
+\end{document}

@@ -1,0 +1,18 @@
+{
+  "algorithm": "LK",
+  "best_value": 1.7824616864137033,
+  "params": {
+    "max_rounds": 44
+  },
+  "study_name": "tsp_lk_seed42",
+  "n_trials": 70,
+  "master_seed": 42,
+  "seeds_per_instance": 3,
+  "time_penalty": 0.05,
+  "instances": [
+    "gr96",
+    "rat99"
+  ],
+  "min_n": 81,
+  "max_n": 500
+}
