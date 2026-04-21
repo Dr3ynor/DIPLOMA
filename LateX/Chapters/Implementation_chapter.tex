@@ -141,7 +141,7 @@ Kromě výběru více solverů jsou přímo v kódu implementovány mikrooptimal
     \item optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH nad jednotným datovým rozhraním matice
     \item u ACO je předpočtena matice viditelnosti \(\eta^\beta\)
     \item počet mravenců je výchozí hodnotou omezen horní hranicí \texttt{min(n, 20)} pro stabilnější dobu běhu, popřípadě lze načíst předem připravené laděné parametry pro určité velikosti instancí
-    \item metrický katalog centralizuje validní metriky dle typu instance a omezuje nevhodné kombinace
+    \item katalog metrik centralizuje validní metriky dle typu instance a omezuje nevhodné kombinace
 \end{itemize}
 
 \subsection{Správa síťových zdrojů}
@@ -206,17 +206,17 @@ Hrany trasy se vykreslují buď jako:
 \subsection{Zobrazení nalezeného řešení}
 Po solve se do stavu uloží:
 \begin{itemize}
-    \item polyline trasy,
-    \item pořadí zastávek včetně návratu na start,
-    \item agregovaná hodnota (km nebo min),
-    \item klíč použité metriky.
+    \item polyline trasy
+    \item pořadí zastávek včetně návratu na start
+    \item agregovaná hodnota (km nebo min)
+    \item klíč použité metriky
 \end{itemize}
 
 Pravý panel nad mapou rozšiřuje vizualizaci o:
 \begin{itemize}
     \item textové navigační instrukce
     \item výškový profil (pokud ORS vrátí 3D geometrii)
-    \item odhad spotřeby paliva.
+    \item odhad spotřeby paliva
 \end{itemize}
 
 Výškový profil je kreslen  widgetem (\texttt{QPainter}), kde osa X reprezentuje kumulativní vzdálenost a osa Y nadmořskou výšku.

@@ -1,8 +1,27 @@
 \chapter{Diskuze}
-% Vyhodnocení úspěšnosti vytvořeného generátoru
 
-% Výhody a limity použitého přístupu
+\section{Smysl řešení a místo v praxi}
 
-% Možnosti rozšíření (např. zahrnutí dopravních dat, časových oken, dynamického TSP)
+Tato práce vznikla jako pokus spojit generování a práci s instancemi problému obchodního cestujícího s prostředím, které inženýr nebo student skutečně používá při práci s reálnými daty, tedy s mapou, adresami a trasami. Desktopová aplikace v Pythonu s knihovnou Qt není sama o sobě jediná možná cesta, ale umožňuje rychle propojit výpočet, nastavení algoritmů a vizualizaci na jedné obrazovce bez nutnosti skládat dohromady několik nesourodých skriptů. Z pohledu někoho, kdo vstupuje do oboru, je na tom hodnota v tom, že je vidět celý řetězec od vstupních bodů přes matici vzdáleností až po výsledek a jeho geometrii na mapě, ne jen izolovaný výpis čísel z terminálu.
 
-\endinput
+Záměr nebyl nahradit specializované výzkumné nástroje ani dosáhnout nových světových rekordů v řešení knihovních instancí. Šlo o to postavit použitelný most mezi teoretickým popisem heuristik a každodenním rozhodováním, které metodu zvolit, jak nastavit parametry a jak interpretovat rozptyl výsledků u stochastických běhů. V tomto smyslu práce plní spíše edukační a integrační roli než roli čistě publikovatelného algoritmického objevu.
+
+\section{Co implementace zvládá dobře a kde je to náročné}
+
+Silná stránka současné architektury je oddělení uživatelského rozhraní od výpočetního jádra a od routovacích služeb. Díky tomu lze měnit způsob výpočtu matice vzdáleností nebo přidávat solver, aniž by se musela přepisovat celá aplikace. U náročnějších operací je rozhraní odděleno od samotného výpočtu tak, aby práce s mapou zůstala plynulá. Import a export ve formátech, které se v oboru běžně používají, včetně varianty geografických souřadnic v knihovně TSPLIB, snižuje riziko, že si uživatel data připraví v jednom nástroji a aplikace je nerozezná.
+
+Na druhé straně stojí závislost na externích službách a lokální infrastruktuře. Bez platného přístupu k mapovému rozhraní a bez správně nastaveného klíče k veřejné službě tras klesá kvalita nebo úplnost výpočtu matice na jednodušší geometrické odhady, které sice fungují, ale neodpovídají reálnému provozu po silnicích. Lokální alternativa tras přes OSRM zase předpokládá, že na stroji někdo službu spustí a udržuje v konfiguraci sladěné s tím, co aplikace očekává. To není chyba návrhu, ale realita nasazení, na kterou je dobré upozornit každého, kdo by chtěl aplikaci používat mimo vlastní nastavený stroj a služby.
+
+\section{Čtení experimentů a jejich omezení}
+
+Výsledky měření na jedné středně velké instanci dávají srozumitelný obrázek o chování implementovaných metod, ale neslouží jako univerzální žebříček algoritmů pro všechny typy úloh. Potvrzuje se očekávání, že specializovaný nástroj typu LKH drží referenční kvalitu. U metaheuristik je naopak typické delší trvání běhu a větší rozptyl hodnot mezi opakováními. Mezi mravenčí kolonií, genetickým algoritmem, hejnem potkanů a simulovaným žíháním proto nejde v praxi vybrat metodu jen podle názvu, ale podle toho, kolik času a kolik opakování je uživatel ochoten obětovat, aby získal úzké rozmezí výsledků.
+
+Zároveň je třeba připomenout, že ladění parametrů metaheuristik bylo provedeno v konkrétním experimentálním rámci. Jiná instance, jiný počet měst nebo jiný rozpočet iterací může pořadí metod mírně rozhodit jinak. To neznamená, že měření postrádá hodnotu, ale že závěry mají platit jako usměrnění pro výběr metody a interpretaci stability, nikoli jako definitivní soud nad algoritmem samým mimo kontext implementace a hardwaru.
+
+\section{Další možná rozšíření}
+
+Přirozeným rozšířením by byla podpora úloh s časovými okny nebo s dynamickým doplňováním bodů v průběhu plánování, protože právě tam se často setkáváme s reálnou logistikou mimo statický model z učebnice. Zlepšení vyhledávání míst na mapě o významné body zájmu nebo o kompaktní adresní kódy by zjednodušilo práci uživatelům, kteří nechtějí ručně klikat souřadnice. Z hlediska šíření software pak stojí za úvahu oddělit výpočetní server od desktopového klienta, aby šlo službu nasadit centrálně a uživatelům zůstal tenký klient, byť by to znamenalo přepsat část rozhraní do webové podoby a pečlivěji řešit autentizaci a limity volání rozhraní.
+
+Do budoucna by také pomohlo důslednější využití mezipaměti geokódů a matic a přehlednější ukládání nastavení měření, aby bylo při delší práci na projektu snadné se k výsledkům vracet a porovnávat je v kontextu stejných parametrů.
+
+Celkově lze říci, že práce ukazuje, jak lze problematiku obchodního cestujícího uchopit věcně od dat až po algoritmy a zároveň nezamlčovat limity, které v praxi stejně narazí na každého, kdo podobný systém skutečně provozuje.

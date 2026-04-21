@@ -26,15 +26,25 @@
 \ThesisAssignmentFileName{thesis_specification.pdf}
 
 % Pokud nechceme nikomu dekovat makro zapoznamkujeme.
-\Acknowledgement{Rád bych na tomto místě poděkoval všem, kteří mi s prací pomohli, protože bez nich by tato práce nevznikla.}
+\Acknowledgement{Děkuji své rodině za podporu při studiu a při zpracování této práce. Rád bych poděkoval prof.\,Ing.\,Pavlu Krömerovi, Ph.D.\ za odborné vedení diplomové práce a za klidný průběh její tvorby.}
 
-\CzechAbstract{}
+\CzechAbstract{%
+Práce se zabývá návrhem a implementací softwarového nástroje pro práci s instancemi problému obchodního cestujícího vycházejícími z reálných geografických vstupů. Aplikace umožňuje zadat lokality na mapě nebo je importovat ve standardních formátech, sestavit matici vzdáleností nebo dob jízdy pomocí služby OpenRouteService a v případě potřeby přepnout na lokální Open Source Routing Machine anebo na záložní výpočet vzdálenosti na sféře, pokud trasová data nejsou dostupná. Optimalizační jádro podporuje škálu heuristik a metaheuristik včetně nástroje LKH a výsledek lze ověřit vizualizací nad mapovým podkladem.
 
-\CzechKeywords{Travelling Salesman Problem, mapy, Python}
+Experimentální část porovnává vybrané metody na referenční instanci knihovny TSPLIB a ukazuje rozdíly v čase běhu, kvalitě řešení a stabilitě stochastických přístupů. Výsledky jsou vázané na konkrétní nastavení a testovací instanci.
 
-\EnglishAbstract{}
+Cílem je nabídnout provázaný nástroj pro výuku i pro ověřování chování algoritmů na datech blízkých silniční dopravě, s upozorněním na závislost na externích službách a na konfiguraci prostředí.}
 
-\EnglishKeywords{}
+\CzechKeywords{problém obchodního cestujícího, generátor instancí, matice vzdáleností, optimalizace tras, OpenRouteService, OSRM, TSPLIB, metaheuristiky, Python, Qt}
+
+\EnglishAbstract{%
+This thesis deals with the design and implementation of a software tool for working with instances of the traveling salesman problem derived from real geographic inputs. The application allows locations to be specified on a map or imported in standard formats, builds a matrix of distances or travel times using the OpenRouteService platform and, when needed, can switch to a local Open Source Routing Machine instance or to a fallback spherical distance computation when routing data are unavailable. The optimization core supports a range of heuristics and metaheuristics including the LKH solver, and the result can be checked by visualization on a map.
+
+The experimental part compares selected methods on a reference TSPLIB instance and illustrates differences in runtime, solution quality, and stability of stochastic approaches. The findings are tied to a specific configuration and a test instance. It does not imply a universal ranking of algorithms outside this implementation.
+
+The aim is to provide a coherent tool for teaching and for studying algorithm behaviour on road-like data, while making clear the dependence on external services and on the deployment environment.}
+
+\EnglishKeywords{traveling salesman problem, instance generator, distance matrix, route optimization, OpenRouteService, OSRM, TSPLIB, metaheuristics, Python, Qt}
 
 \AddAcronym{TSP}{Traveling Salesman Problem}
 \AddAcronym{STSP}{Symmetric Traveling Salesman Problem}
@@ -52,18 +62,26 @@
 \AddAcronym{SA}{Simulated Annealing}
 \AddAcronym{PSO}{Particle Swarm Optimization}
 \AddAcronym{RSO}{Rat Swarm Optimizer}
-\AddAcronym{L-K}{Lin-Kernighan algorithm}
+\AddAcronym{LK}{Lin-Kernighan solver}
+\AddAcronym{LKH}{Lin-Kernighan-Helsgaun solver}
 
 % Technologie a Data
 \AddAcronym{API}{Application Programming Interface}
 \AddAcronym{OSM}{OpenStreetMap}
 \AddAcronym{OSRM}{Open Source Routing Machine}
+\AddAcronym{ORS}{OpenRouteService}
 \AddAcronym{JSON}{JavaScript Object Notation}
 \AddAcronym{UML}{Unified Modeling Language}
-%\AddAcronym{GUI}{Graphical User Interface}
-%\AddAcronym{I/O}{Input/Output}
-%\AddAcronym{QE}{Quantization Error}
-%\AddAcronym{TE}{Topographic Error}
+\AddAcronym{GPX}{GPS Exchange Format}
+\AddAcronym{Qt}{Cross-platform application framework}
+\AddAcronym{VLSI}{Very Large Scale Integration}
+\AddAcronym{ECDF}{Empirical Cumulative Distribution Function}
+\AddAcronym{CPU}{Central Processing Unit}
+\AddAcronym{HTTP}{Hypertext Transfer Protocol}
+\AddAcronym{CSV}{Comma-Separated Values}
+\AddAcronym{UI}{User Interface}
+\AddAcronym{GEO}{TSPLIB geographic coordinate type}
+\AddAcronym{I/O}{Input/Output}
 
 
 
