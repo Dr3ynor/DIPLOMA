@@ -72,6 +72,7 @@ def run_job(job: dict[str, Any]) -> dict[str, Any]:
             _progress_put(
                 {
                     "type": "pulse",
+                    "algorithm": algo,
                     "job_id": job_id,
                     "label": job_label,
                     "elapsed_s": time.perf_counter() - t_wall,
@@ -84,6 +85,7 @@ def run_job(job: dict[str, Any]) -> dict[str, Any]:
         _progress_put(
             {
                 "type": "start",
+                "algorithm": algo,
                 "job_id": job_id,
                 "label": job_label,
                 "progress_note": progress_note,
@@ -110,6 +112,7 @@ def run_job(job: dict[str, Any]) -> dict[str, Any]:
         _progress_put(
             {
                 "type": "done",
+                "algorithm": algo,
                 "job_id": job_id,
                 "label": job_label,
                 "status": status,

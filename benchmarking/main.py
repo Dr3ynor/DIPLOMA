@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Performance benchmark: a280.tsp (EUC_2D), structured outputs under benchmark_results/."""
+"""TSPLIB benchmark (coordinates or EXPLICIT FULL_MATRIX), structured outputs under benchmark_results/."""
 
 from __future__ import annotations
 
@@ -25,22 +25,26 @@ if str(_BASE_DIR) not in sys.path:
     sys.path.insert(0, str(_BASE_DIR))
 
 from bench_io import (
-    build_tsplib_matrix,
     derive_algo_seed,
     infer_profile_by_n,
+    load_tsplib_distance_matrix,
     load_tuned_params_index,
     parse_solutions,
-    parse_tsplib_instance,
     resolve_algo_tuned_config,
 )
 from bench_worker import init_worker, run_job
 
 STOCHASTIC_ALGOS = ("GA", "ACO", "SA", "RSO")
-LOCAL_ALGOS = ("2OPT", "3OPT", "LK")
+# Jednou na instanci (deterministický průchod okolím bez smyslu opakovat).
+SINGLE_RUN_LOCAL_ALGOS = ("2OPT", "3OPT")
+# Pořadí opakovaných běhů (--repeats): náhodné / seedované meta + LKH + LK.
+MULTI_SEED_BENCH_ORDER = ("RSO", "ACO", "GA", "SA", "LKH", "LK")
 LKH_ALGO = "LKH"
 
 BENCHMARK_ALGO_CHOICES = tuple(
-    sorted(frozenset(LOCAL_ALGOS + (LKH_ALGO,) + STOCHASTIC_ALGOS))
+    sorted(
+        frozenset(SINGLE_RUN_LOCAL_ALGOS + ("LK", LKH_ALGO) + STOCHASTIC_ALGOS),
+    )
 )
 
 
@@ -91,6 +95,32 @@ def _try_fork_progress_queue() -> tuple[Any, Any] | tuple[None, None]:
     except ValueError:
         return None, None
     return ctx, ctx.Queue()
+
+
+def _print_tuned_params_for_algorithm(algo: str, section: dict[str, Any]) -> None:
+    """Vypíše parametry načtené z tuned JSONu (jednou při startu daného algoritmu)."""
+    params = dict(section.get("params_used") or {})
+    path = section.get("tuned_path")
+    note = section.get("note")
+    print(f"\n[benchmark] === {algo} — načtené parametry (tuned JSON) ===", flush=True)
+    if path:
+        print(f"[benchmark] soubor: {path}", flush=True)
+    if note:
+        print(f"[benchmark] poznámka: {note}", flush=True)
+    if params:
+        print(json.dumps(params, indent=2, ensure_ascii=False), flush=True)
+    else:
+        print("[benchmark] (prázdný slovník — žádný tuned soubor nebo výchozí chování)", flush=True)
+
+
+def _print_tuned_banners_in_job_order(jobs: list[dict[str, Any]], algo_manifest: dict[str, Any]) -> None:
+    seen: set[str] = set()
+    for j in jobs:
+        algo = str(j["algorithm"])
+        if algo in seen:
+            continue
+        seen.add(algo)
+        _print_tuned_params_for_algorithm(algo, algo_manifest.get(algo, {}))
 
 
 def _start_progress_reporter(progress_q: Any, total_jobs: int, max_workers: int) -> threading.Thread:
@@ -173,8 +203,12 @@ def _build_jobs(
     stochastic_repeats: int,
     selected_algos: frozenset[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Returns (jobs, manifest_algo_section)."""
-    all_alg = frozenset(LOCAL_ALGOS + (LKH_ALGO,) + STOCHASTIC_ALGOS)
+    """
+    Returns (jobs, manifest_algo_section).
+
+    2OPT a 3OPT: jeden běh. RSO, ACO, GA, SA, LKH, LK: ``stochastic_repeats`` běhů se seedem.
+    """
+    all_alg = frozenset(SINGLE_RUN_LOCAL_ALGOS + ("LK", LKH_ALGO) + STOCHASTIC_ALGOS)
     want = all_alg if selected_algos is None else frozenset(selected_algos)
     if not want:
         raise ValueError("Vyber alespoň jeden algoritmus.")
@@ -185,7 +219,7 @@ def _build_jobs(
     algo_manifest: dict[str, Any] = {}
     jobs: list[dict[str, Any]] = []
 
-    for algo in LOCAL_ALGOS:
+    for algo in SINGLE_RUN_LOCAL_ALGOS:
         if algo not in want:
             continue
         cfg = resolve_algo_tuned_config(algo, n, tuned_index)
@@ -196,6 +230,8 @@ def _build_jobs(
             "tuned_path": cfg["path"],
             "tuned_fallback": cfg["fallback"],
             "params_used": params,
+            "benchmark_runs": 1,
+            "note": "Deterministická lokální heuristika — jeden běh na instanci.",
         }
         jobs.append(
             {
@@ -204,57 +240,83 @@ def _build_jobs(
                 "instance_name": instance_name,
                 "seed": None,
                 "params": params,
-                "convergence": algo == "LK",
-            }
-        )
-
-    if LKH_ALGO in want:
-        lkh_seed = derive_algo_seed(master_seed, instance_name, LKH_ALGO, 0)
-        algo_manifest[LKH_ALGO] = {
-            "tuned_target_profile": infer_profile_by_n(n),
-            "tuned_chosen_profile": None,
-            "tuned_path": None,
-            "tuned_fallback": False,
-            "params_used": {},
-            "seed": lkh_seed,
-            "note": "LKH defaults (runs=1, max_trials=10000); seed for reproducibility.",
-        }
-        jobs.append(
-            {
-                "algorithm": LKH_ALGO,
-                "run_index": 0,
-                "instance_name": instance_name,
-                "seed": lkh_seed,
-                "params": {},
                 "convergence": False,
             }
         )
 
-    for algo in STOCHASTIC_ALGOS:
+    for algo in MULTI_SEED_BENCH_ORDER:
         if algo not in want:
             continue
-        cfg = resolve_algo_tuned_config(algo, n, tuned_index)
-        params = dict(cfg["params"])
-        algo_manifest[algo] = {
-            "tuned_target_profile": cfg["target_profile"],
-            "tuned_chosen_profile": cfg["chosen_profile"],
-            "tuned_path": cfg["path"],
-            "tuned_fallback": cfg["fallback"],
-            "params_used": params,
-            "stochastic_repeats": stochastic_repeats,
-        }
-        for r in range(stochastic_repeats):
-            seed = derive_algo_seed(master_seed, instance_name, algo, r)
-            jobs.append(
-                {
-                    "algorithm": algo,
-                    "run_index": r,
-                    "instance_name": instance_name,
-                    "seed": seed,
-                    "params": params,
-                    "convergence": True,
-                }
-            )
+        if algo == LKH_ALGO:
+            algo_manifest[LKH_ALGO] = {
+                "tuned_target_profile": infer_profile_by_n(n),
+                "tuned_chosen_profile": None,
+                "tuned_path": None,
+                "tuned_fallback": False,
+                "params_used": {},
+                "stochastic_repeats": stochastic_repeats,
+                "note": (
+                    f"LKH-3: uvnitř každého jobu runs=1, max_trials=10000; "
+                    f"{stochastic_repeats} nezávislých jobů s odlišným seedem."
+                ),
+            }
+            for r in range(stochastic_repeats):
+                jobs.append(
+                    {
+                        "algorithm": LKH_ALGO,
+                        "run_index": r,
+                        "instance_name": instance_name,
+                        "seed": derive_algo_seed(master_seed, instance_name, LKH_ALGO, r),
+                        "params": {},
+                        "convergence": False,
+                    }
+                )
+            continue
+        if algo == "LK":
+            cfg = resolve_algo_tuned_config("LK", n, tuned_index)
+            params = dict(cfg["params"])
+            algo_manifest["LK"] = {
+                "tuned_target_profile": cfg["target_profile"],
+                "tuned_chosen_profile": cfg["chosen_profile"],
+                "tuned_path": cfg["path"],
+                "tuned_fallback": cfg["fallback"],
+                "params_used": params,
+                "stochastic_repeats": stochastic_repeats,
+            }
+            for r in range(stochastic_repeats):
+                jobs.append(
+                    {
+                        "algorithm": "LK",
+                        "run_index": r,
+                        "instance_name": instance_name,
+                        "seed": derive_algo_seed(master_seed, instance_name, "LK", r),
+                        "params": params,
+                        "convergence": True,
+                    }
+                )
+            continue
+        if algo in STOCHASTIC_ALGOS:
+            cfg = resolve_algo_tuned_config(algo, n, tuned_index)
+            params = dict(cfg["params"])
+            algo_manifest[algo] = {
+                "tuned_target_profile": cfg["target_profile"],
+                "tuned_chosen_profile": cfg["chosen_profile"],
+                "tuned_path": cfg["path"],
+                "tuned_fallback": cfg["fallback"],
+                "params_used": params,
+                "stochastic_repeats": stochastic_repeats,
+            }
+            for r in range(stochastic_repeats):
+                jobs.append(
+                    {
+                        "algorithm": algo,
+                        "run_index": r,
+                        "instance_name": instance_name,
+                        "seed": derive_algo_seed(master_seed, instance_name, algo, r),
+                        "params": params,
+                        "convergence": True,
+                    }
+                )
 
     return jobs, algo_manifest
 
@@ -318,12 +380,14 @@ def _summarize(results: list[dict[str, Any]], optimum: float | None) -> dict[str
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="a280 (EUC_2D) benchmark with structured outputs.")
+    parser = argparse.ArgumentParser(
+        description="TSPLIB benchmark (.tsp / .atsp) with structured outputs under benchmark_results/.",
+    )
     parser.add_argument(
         "--tsp",
         type=Path,
-        default=_PROJECT_ROOT / "code" / "tsplib" / "a280.tsp",
-        help="Path to .tsp file (default: code/tsplib/a280.tsp).",
+        default=_PROJECT_ROOT / "code" / "resources" / "tsplib" / "a280.tsp",
+        help="Path to .tsp / .atsp file (default: code/resources/tsplib/a280.tsp).",
     )
     parser.add_argument(
         "--solutions",
@@ -332,7 +396,15 @@ def main() -> None:
         help="Path to TSPLIB solutions file (default: alongside .tsp).",
     )
     parser.add_argument("--master-seed", type=int, default=42)
-    parser.add_argument("--repeats", type=int, default=30, help="Runs per stochastic algorithm.")
+    parser.add_argument(
+        "--repeats",
+        type=int,
+        default=30,
+        help=(
+            "Počet nezávislých běhů pro RSO, ACO, GA, SA, LKH a LK (výchozí 30). "
+            "2OPT a 3OPT: vždy jeden běh."
+        ),
+    )
     parser.add_argument("--max-workers", type=int, default=4)
     parser.add_argument(
         "--output-dir",
@@ -365,21 +437,21 @@ def main() -> None:
 
     stochastic_repeats = max(1, int(args.repeats))
 
-    edge_type, points = parse_tsplib_instance(tsp_path)
-    n = len(points)
-    if edge_type is None or n < 2:
-        print("ERROR: invalid TSP (missing EDGE_WEIGHT_TYPE or n<2).", file=sys.stderr)
+    loaded = load_tsplib_distance_matrix(tsp_path)
+    if loaded is None:
+        print(
+            "ERROR: Nelze načíst matici vzdáleností (očekávám NODE_COORD_SECTION + známý EDGE_WEIGHT_TYPE, "
+            "nebo EXPLICIT FULL_MATRIX u TYPE TSP/ATSP).",
+            file=sys.stderr,
+        )
         sys.exit(1)
-    matrix = build_tsplib_matrix(points, edge_type)
-    if matrix is None:
-        print(f"ERROR: unsupported EDGE_WEIGHT_TYPE {edge_type!r}.", file=sys.stderr)
-        sys.exit(1)
+    matrix, n, tuned_params_subdir, edge_summary = loaded
 
     instance_name = tsp_path.stem
     optimal_solutions = parse_solutions(solutions_path)
     optimum = optimal_solutions.get(instance_name)
 
-    tuned_root = _BASE_DIR / "tuned_params"
+    tuned_root = (_BASE_DIR / "tuned_params" / tuned_params_subdir).resolve()
     tuned_index = load_tuned_params_index(tuned_root)
 
     selected = frozenset(args.algos) if args.algos is not None else None
@@ -401,12 +473,15 @@ def main() -> None:
         "instance": instance_name,
         "tsp_path": str(tsp_path),
         "n": n,
-        "edge_weight_type": edge_type,
+        "edge_weight_type": edge_summary,
+        "tuned_params_root": str(tuned_root),
         "solutions_path": str(solutions_path),
         "optimum": optimum,
         "master_seed": args.master_seed,
         "max_workers": int(args.max_workers),
         "stochastic_repeats": stochastic_repeats,
+        "single_run_algorithms": list(SINGLE_RUN_LOCAL_ALGOS),
+        "multi_seed_bench_order": list(MULTI_SEED_BENCH_ORDER),
         "python": sys.version.split()[0],
         "algorithms_run": sorted({str(j["algorithm"]) for j in jobs}),
         "convergence_sampling": {
@@ -447,6 +522,8 @@ def main() -> None:
             "initargs": (matrix, None),
         }
 
+    _print_tuned_banners_in_job_order(jobs, algo_manifest)
+
     with ProcessPoolExecutor(**pool_kw) as pool:
         futures = {pool.submit(run_job, j): j for j in jobs}
         for fut in as_completed(futures):
@@ -482,7 +559,7 @@ def main() -> None:
                 "algorithm": algo,
                 "run_index": run_index,
                 "instance": instance_name,
-                "stochastic": algo in STOCHASTIC_ALGOS,
+                "stochastic": algo in STOCHASTIC_ALGOS or algo in (LKH_ALGO, "LK"),
                 "wall_time_s": row.get("wall_time_s"),
                 "tour_length": row.get("tour_length"),
                 "gap_vs_opt_pct": None,

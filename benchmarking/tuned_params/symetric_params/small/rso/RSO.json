@@ -1,0 +1,27 @@
+{
+  "algorithm": "RSO",
+  "best_value": 2.1771247219726244,
+  "params": {
+    "population_size": 115,
+    "iterations": 1935,
+    "chase_ratio": 0.6535651606267971
+  },
+  "study_name": "tsp_rso_seed42",
+  "n_trials": 320,
+  "master_seed": 42,
+  "seeds_per_instance": 3,
+  "time_penalty": 0.05,
+  "instances": [
+    "burma14",
+    "ulysses16",
+    "ulysses22",
+    "att48",
+    "eil51",
+    "berlin52",
+    "st70",
+    "eil76",
+    "pr76"
+  ],
+  "min_n": 3,
+  "max_n": 80
+}

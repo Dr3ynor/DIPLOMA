@@ -1,0 +1,27 @@
+{
+  "algorithm": "GA",
+  "best_value": 7.9662637048470515,
+  "params": {
+    "pop_size": 113,
+    "generations": 2949,
+    "mutation_rate": 0.9488539176003942
+  },
+  "study_name": "tsp_ga_seed42",
+  "n_trials": 350,
+  "master_seed": 42,
+  "seeds_per_instance": 3,
+  "time_penalty": 0.05,
+  "instances": [
+    "burma14",
+    "ulysses16",
+    "ulysses22",
+    "att48",
+    "eil51",
+    "berlin52",
+    "st70",
+    "eil76",
+    "pr76"
+  ],
+  "min_n": 3,
+  "max_n": 80
+}

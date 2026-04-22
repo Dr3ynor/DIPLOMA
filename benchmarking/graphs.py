@@ -198,6 +198,13 @@ def run_autorank_tour_length(
 
     wide = sub.pivot(index="run_index", columns="algorithm", values="tour_length")
     wide = wide.reindex(columns=list(META_ALGOS))
+    wide = wide.dropna(axis=1, how="all")
+    if wide.shape[1] < 2:
+        print(
+            "[graphs] AutoRank: méně než 2 meta-algoritmy s tour_length — přeskakuji.",
+            file=sys.stderr,
+        )
+        return written
     wide = wide.dropna(how="any")
     if len(wide) < 3:
         print(
@@ -206,15 +213,30 @@ def run_autorank_tour_length(
         )
         return written
 
+    wide = wide.astype(np.float64)
+    wide = wide.reset_index(drop=True)
+
     note = (
         "Párování: řádek = stejný run_index napříč GA, ACO, SA, RSO (stejná politika seedů v benchmarku).\n\n"
     )
 
     def _run_one(approach: str | None, tag: str) -> None:
-        kwargs: dict[str, Any] = {"alpha": 0.05, "verbose": False}
+        kwargs: dict[str, Any] = {
+            "alpha": 0.05,
+            "verbose": False,
+            "order": "ascending",
+        }
         if approach:
             kwargs["approach"] = approach
-        result = autorank(wide, **kwargs)
+        try:
+            result = autorank(wide, **kwargs)
+        except Exception as exc:
+            print(
+                f"[graphs] AutoRank ({tag}) selhalo ({type(exc).__name__}: {exc}). "
+                "Zkuste aktualizovat scipy/autorank, nebo použijte --only bez autorank.",
+                file=sys.stderr,
+            )
+            return
         report_path = out_dir / f"autorank_report_{tag}.txt"
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -225,7 +247,14 @@ def run_autorank_tour_length(
         report_path.write_text(note + body, encoding="utf-8")
         written.append(report_path)
 
-        plot_obj = plot_stats(result)
+        try:
+            plot_obj = plot_stats(result, allow_insignificant=True)
+        except Exception as exc:
+            print(
+                f"[graphs] AutoRank ({tag}) plot_stats: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            return
         if plot_obj is None:
             fig = plt.gcf()
         elif hasattr(plot_obj, "savefig"):

@@ -1,0 +1,30 @@
+{
+  "algorithm": "ACO",
+  "best_value": 3.8109803169422416,
+  "params": {
+    "num_iterations": 195,
+    "num_ants": 47,
+    "alpha": 1.0125621883484521,
+    "beta": 3.6471295678102416,
+    "vaporization_coeff": 0.8050841296083311,
+    "Q": 2.5788515531506357
+  },
+  "study_name": "tsp_aco_seed42",
+  "n_trials": 350,
+  "master_seed": 42,
+  "seeds_per_instance": 3,
+  "time_penalty": 0.05,
+  "instances": [
+    "burma14",
+    "ulysses16",
+    "ulysses22",
+    "att48",
+    "eil51",
+    "berlin52",
+    "st70",
+    "eil76",
+    "pr76"
+  ],
+  "min_n": 3,
+  "max_n": 80
+}

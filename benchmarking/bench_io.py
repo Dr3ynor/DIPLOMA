@@ -140,6 +140,104 @@ def build_tsplib_matrix(points: list[tuple[float, float]], edge_weight_type: str
     return matrix
 
 
+def parse_tsplib_explicit_full_matrix(
+    tsp_file: Path,
+) -> tuple[str | None, list[list[float]] | None]:
+    """
+    Parse TYPE TSP/ATSP with EXPLICIT FULL_MATRIX weights.
+    Returns (problem_type, matrix) or (None, None) if unsupported/invalid.
+    """
+    problem_type: str | None = None
+    edge_weight_type: str | None = None
+    edge_weight_format: str | None = None
+    dimension: int | None = None
+    in_weights = False
+    values: list[float] = []
+
+    try:
+        with tsp_file.open("r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line:
+                    continue
+                upper = line.upper()
+
+                if not in_weights:
+                    if upper.startswith("TYPE"):
+                        _, value = line.split(":", 1)
+                        problem_type = value.strip().upper()
+                    elif upper.startswith("EDGE_WEIGHT_TYPE"):
+                        _, value = line.split(":", 1)
+                        edge_weight_type = value.strip().upper()
+                    elif upper.startswith("EDGE_WEIGHT_FORMAT"):
+                        _, value = line.split(":", 1)
+                        edge_weight_format = value.strip().upper()
+                    elif upper.startswith("DIMENSION"):
+                        _, value = line.split(":", 1)
+                        dimension = int(value.strip())
+                    elif upper == "EDGE_WEIGHT_SECTION":
+                        in_weights = True
+                    continue
+
+                if upper == "EOF":
+                    break
+                values.extend(float(x) for x in line.split())
+    except (OSError, ValueError):
+        return None, None
+
+    if problem_type not in {"TSP", "ATSP"}:
+        return None, None
+    if edge_weight_type != "EXPLICIT" or edge_weight_format != "FULL_MATRIX":
+        return None, None
+    if dimension is None or dimension < 2:
+        return None, None
+    need = dimension * dimension
+    if len(values) < need:
+        return None, None
+
+    dense = values[:need]
+    matrix = [dense[i * dimension : (i + 1) * dimension] for i in range(dimension)]
+    return problem_type, matrix
+
+
+def load_tsplib_distance_matrix(
+    tsp_file: Path,
+) -> tuple[list[list[float]], int, str, str] | None:
+    """
+    Load a dense distance matrix for benchmarking.
+
+    Returns (matrix, n, tuned_params_subdir, edge_summary) where tuned_params_subdir is
+    ``symetric_params`` (coordinate / symmetric explicit) or ``asymmetric_params`` (ATSP),
+    matching the layout under ``benchmarking/tuned_params/``.
+    """
+    if tsp_file.suffix.lower() == ".atsp":
+        prob, matrix = parse_tsplib_explicit_full_matrix(tsp_file)
+        if matrix is None or len(matrix) < 2:
+            return None
+        if prob != "ATSP":
+            return None
+        return (
+            matrix,
+            len(matrix),
+            "asymmetric_params",
+            "EXPLICIT_FULL_MATRIX (ATSP)",
+        )
+
+    edge_type, points = parse_tsplib_instance(tsp_file)
+    if edge_type is not None and len(points) >= 2:
+        matrix = build_tsplib_matrix(points, edge_type)
+        if matrix is not None and len(matrix) >= 2:
+            return matrix, len(points), "symetric_params", edge_type
+
+    prob, explicit_matrix = parse_tsplib_explicit_full_matrix(tsp_file)
+    if explicit_matrix is not None and len(explicit_matrix) >= 2:
+        sub = "asymmetric_params" if prob == "ATSP" else "symetric_params"
+        label = f"EXPLICIT_FULL_MATRIX ({prob})"
+        return explicit_matrix, len(explicit_matrix), sub, label
+
+    return None
+
+
 def read_dimension_from_header(tsp_file: Path) -> int | None:
     dim_re = re.compile(r"^\s*DIMENSION\s*:\s*(\d+)\s*$", re.IGNORECASE)
     try:

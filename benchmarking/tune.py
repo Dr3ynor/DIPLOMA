@@ -32,6 +32,36 @@ import bench_io as bench
 META_HEURISTICS = ("GA", "ACO", "SA", "RSO")
 
 
+def _normalize_instance_stem(name: str) -> str:
+    lower = name.lower()
+    if lower.endswith(".tsp"):
+        return name[:-4]
+    if lower.endswith(".atsp"):
+        return name[:-5]
+    return name
+
+
+def _read_dimension_any(tsplib_file: Path) -> int | None:
+    dim = bench.read_dimension_from_header(tsplib_file)
+    if dim is not None:
+        return dim
+    try:
+        with tsplib_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                s = line.strip()
+                if not s:
+                    continue
+                up = s.upper()
+                if up.startswith("DIMENSION"):
+                    _, value = s.split(":", 1)
+                    return int(value.strip())
+                if up in ("NODE_COORD_SECTION", "EDGE_WEIGHT_SECTION"):
+                    break
+    except Exception:
+        return None
+    return None
+
+
 def derive_eval_seed(
     master_seed: int, instance_name: str, algo: str, trial_number: int, rep: int
 ) -> int:
@@ -48,18 +78,14 @@ def collect_instances(
     only_stems: set[str] | None = None,
 ) -> list[Path]:
     candidates: list[tuple[Path, int]] = []
-    for tsp_file in sorted(tsplib_dir.glob("*.tsp")):
+    files = sorted(list(tsplib_dir.glob("*.tsp")) + list(tsplib_dir.glob("*.atsp")))
+    for tsp_file in files:
         if only_stems is not None and tsp_file.stem not in only_stems:
             continue
-        dim = bench.read_dimension_from_header(tsp_file)
+        dim = _read_dimension_any(tsp_file)
         if dim is None or dim < min_n or dim > max_n:
             continue
-        if tsp_file.stem not in solutions:
-            continue
-        edge_type, points = bench.parse_tsplib_instance(tsp_file)
-        if edge_type is None or len(points) < 2:
-            continue
-        if bench.build_tsplib_matrix(points, edge_type) is None:
+        if load_matrix(tsp_file) is None:
             continue
         candidates.append((tsp_file, dim))
 
@@ -76,13 +102,11 @@ def infer_size_profile_from_output_dir(output_dir: Path) -> str | None:
 
 
 def load_matrix(tsp_file: Path) -> tuple[list[list[float]], int] | None:
-    edge_type, points = bench.parse_tsplib_instance(tsp_file)
-    if edge_type is None:
+    loaded = bench.load_tsplib_distance_matrix(tsp_file)
+    if loaded is None:
         return None
-    matrix = bench.build_tsplib_matrix(points, edge_type)
-    if matrix is None or len(matrix) < 2:
-        return None
-    return matrix, len(points)
+    matrix, n, _subdir, _summary = loaded
+    return matrix, n
 
 
 def suggest_params(trial, algo: str, n: int) -> dict:
@@ -143,8 +167,6 @@ def evaluate_trial(
             continue
         matrix, n = loaded
         optimal = solutions.get(tsp_file.stem)
-        if optimal is None or optimal <= 0:
-            continue
 
         p = dict(params)
         if algo == "ACO" and "num_ants" in p:
@@ -158,8 +180,12 @@ def evaluate_trial(
             route = engine.run(algo, matrix, seed=seed, quiet=True, **p)
             elapsed = time.perf_counter() - t0
             dist = bench.tour_distance(route, matrix)
-            gap_pct = (dist - optimal) / optimal * 100.0
-            gaps.append(gap_pct)
+            if optimal is not None and optimal > 0:
+                score = (dist - optimal) / optimal * 100.0
+            else:
+                # Fallback objective for instances without known optimum (e.g. many ATSP files).
+                score = dist
+            gaps.append(score)
             times.append(elapsed)
 
     if not gaps:
@@ -282,7 +308,7 @@ def main() -> None:
 
     only_stems: set[str] | None = None
     if args.only_instances:
-        only_stems = {s.removesuffix(".tsp") for s in args.only_instances}
+        only_stems = {_normalize_instance_stem(s) for s in args.only_instances}
 
     instance_files = collect_instances(
         tsplib_dir,
@@ -293,7 +319,7 @@ def main() -> None:
         only_stems=only_stems,
     )
 
-    max_dim = max(bench.read_dimension_from_header(p) or 0 for p in instance_files) if instance_files else 0
+    max_dim = max(_read_dimension_any(p) or 0 for p in instance_files) if instance_files else 0
     profile_guess = bench.infer_profile_by_n(max_dim) if max_dim else "small"
     size_profile = infer_size_profile_from_output_dir(args.output_dir) if args.output_dir else None
     effective_max_instances = args.max_instances
@@ -340,7 +366,7 @@ def main() -> None:
         else:
             study = optuna.create_study(direction="minimize")
 
-        n_ref = max(bench.read_dimension_from_header(p) or 0 for p in instance_files)
+        n_ref = max(_read_dimension_any(p) or 0 for p in instance_files)
 
         def objective(trial: optuna.Trial, _algo: str = algo) -> float:
             params = suggest_params(trial, _algo, max(n_ref, 20))
@@ -366,7 +392,9 @@ def main() -> None:
             else:
                 out_dir = args.output_dir.resolve()
         else:
-            out_dir = (base_dir / "tuned_params" / profile_guess / algo).resolve()
+            has_atsp = any(p.suffix.lower() == ".atsp" for p in instance_files)
+            mode_dir = "asymmetric_params" if has_atsp else "symetric_params"
+            out_dir = (base_dir / "tuned_params" / mode_dir / profile_guess / algo).resolve()
 
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{algo}.json"

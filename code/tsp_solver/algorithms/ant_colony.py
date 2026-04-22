@@ -9,6 +9,21 @@ from tsp_solver.algorithms.route_ops import (
 )
 
 
+def _directed_matrix_is_asymmetric(matrix: list[list[float]]) -> bool:
+    """True pokud existuje pár (i,j) s výrazně odlišnou vahou i→j vs j→i (ATSP / orientovaný graf)."""
+    n = len(matrix)
+    if n < 2:
+        return False
+    for i in range(n):
+        for j in range(i + 1, n):
+            a = float(matrix[i][j])
+            b = float(matrix[j][i])
+            tol = 1e-9 + 1e-6 * max(1.0, abs(a), abs(b))
+            if abs(a - b) > tol:
+                return True
+    return False
+
+
 def _ant_colony(
     matrix,
     num_iterations=50,
@@ -26,7 +41,13 @@ def _ant_colony(
     """Ant System style ACO with matrix precomputation and elite pheromone updates."""
     n = len(matrix)
     local_rng = rng if rng is not None else random.Random(seed)
-    is_atsp = str(problem_type).upper() == "ATSP"
+    pt = str(problem_type).upper()
+    if pt == "ATSP":
+        use_atsp_polish = True
+    elif pt == "TSP":
+        use_atsp_polish = _directed_matrix_is_asymmetric(matrix)
+    else:
+        use_atsp_polish = _directed_matrix_is_asymmetric(matrix)
 
     if num_ants is None:
         num_ants = min(n, 20)
@@ -134,7 +155,7 @@ def _ant_colony(
         return list(range(n))
 
     best_route = list(best_route)
-    if is_atsp:
+    if use_atsp_polish:
         polish_route_random_atsp(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
     else:
         polish_route_random_two_opt(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
