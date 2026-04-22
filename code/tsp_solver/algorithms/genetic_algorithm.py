@@ -5,7 +5,12 @@ import random
 import time
 
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
-from tsp_solver.algorithms.route_ops import polish_route_random_two_opt, tour_length
+from tsp_solver.algorithms.route_ops import (
+    polish_route_random_atsp,
+    polish_route_random_two_opt,
+    random_atsp_neighbor,
+    tour_length,
+)
 
 
 def _genetic_algorithm(
@@ -16,10 +21,12 @@ def _genetic_algorithm(
     seed=None,
     rng=None,
     convergence_trace=None,
+    problem_type="TSP",
 ):
     n = len(matrix)
     pop_size = min(pop_size, n * 2)
     local_rng = rng if rng is not None else random.Random(seed)
+    is_atsp = str(problem_type).upper() == "ATSP"
 
     patience = max(40, min(1200, generations // 6, 6 * n))
 
@@ -71,13 +78,16 @@ def _genetic_algorithm(
                     p2_idx += 1
 
             if local_rng.random() < mutation_rate:
-                if local_rng.random() < 0.78:
-                    a, b = sorted(local_rng.sample(range(1, n), 2))
-                    if b > a:
-                        child_route[a : b + 1] = reversed(child_route[a : b + 1])
+                if is_atsp:
+                    child_route = random_atsp_neighbor(child_route, local_rng)
                 else:
-                    a, b = local_rng.sample(range(1, n), 2)
-                    child_route[a], child_route[b] = child_route[b], child_route[a]
+                    if local_rng.random() < 0.78:
+                        a, b = sorted(local_rng.sample(range(1, n), 2))
+                        if b > a:
+                            child_route[a : b + 1] = reversed(child_route[a : b + 1])
+                    else:
+                        a, b = local_rng.sample(range(1, n), 2)
+                        child_route[a], child_route[b] = child_route[b], child_route[a]
 
             child_dist = tour_length(child_route, matrix)
 
@@ -115,7 +125,10 @@ def _genetic_algorithm(
             break
 
     best_route = list(best_route)
-    polish_route_random_two_opt(best_route, matrix, local_rng)
+    if is_atsp:
+        polish_route_random_atsp(best_route, matrix, local_rng)
+    else:
+        polish_route_random_two_opt(best_route, matrix, local_rng)
     if convergence_trace is not None:
         best_distance = tour_length(best_route, matrix)
         prev = int(convergence_trace[-1]["step"]) if convergence_trace else -1

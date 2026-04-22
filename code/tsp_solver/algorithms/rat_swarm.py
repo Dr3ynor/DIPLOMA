@@ -4,7 +4,9 @@ import time
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 from tsp_solver.algorithms.route_ops import (
     default_polish_budget,
+    polish_route_random_atsp,
     polish_route_random_two_opt,
+    random_atsp_neighbor,
     tour_length,
 )
 
@@ -32,18 +34,22 @@ def _crossover_perm(parent_a, parent_b, rng):
     return child
 
 
-def _chase(best_route, rat_route, rng):
+def _chase(best_route, rat_route, rng, *, is_atsp=False):
     candidate = _crossover_perm(best_route, rat_route, rng)
+    if is_atsp:
+        return random_atsp_neighbor(candidate, rng)
     if rng.random() < 0.6:
         i, j = sorted(rng.sample(range(1, len(candidate)), 2))
         candidate[i : j + 1] = reversed(candidate[i : j + 1])
     return candidate
 
 
-def _fight(rat_route, rng):
+def _fight(rat_route, rng, *, is_atsp=False):
     candidate = list(rat_route)
     i, j = sorted(rng.sample(range(1, len(candidate)), 2))
     candidate[i], candidate[j] = candidate[j], candidate[i]
+    if is_atsp:
+        return random_atsp_neighbor(candidate, rng)
     if rng.random() < 0.5:
         a, b = sorted(rng.sample(range(1, len(candidate)), 2))
         candidate[a : b + 1] = reversed(candidate[a : b + 1])
@@ -58,12 +64,14 @@ def _rat_swarm_optimizer(
     seed=None,
     rng=None,
     convergence_trace=None,
+    problem_type="TSP",
 ):
     n = len(matrix)
     if n < 2:
         return []
 
     local_rng = rng if rng is not None else random.Random(seed)
+    is_atsp = str(problem_type).upper() == "ATSP"
     population_size = max(6, min(population_size, n * 4))
 
     population = [_nearest_neighbor(matrix)]
@@ -79,9 +87,9 @@ def _rat_swarm_optimizer(
     for it in range(iterations):
         for i in range(population_size):
             if local_rng.random() < chase_ratio:
-                candidate = _chase(best_route, population[i], local_rng)
+                candidate = _chase(best_route, population[i], local_rng, is_atsp=is_atsp)
             else:
-                candidate = _fight(population[i], local_rng)
+                candidate = _fight(population[i], local_rng, is_atsp=is_atsp)
 
             candidate_cost = tour_length(candidate, matrix)
             if candidate_cost < costs[i]:
@@ -100,7 +108,10 @@ def _rat_swarm_optimizer(
                 }
             )
 
-    polish_route_random_two_opt(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
+    if is_atsp:
+        polish_route_random_atsp(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
+    else:
+        polish_route_random_two_opt(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
     if convergence_trace is not None:
         best_cost = tour_length(best_route, matrix)
         prev = int(convergence_trace[-1]["step"]) if convergence_trace else -1

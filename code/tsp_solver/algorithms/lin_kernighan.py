@@ -12,13 +12,19 @@ def _route_distance(route, matrix):
     return total
 
 
-def _lin_kernighan(matrix, route=None, max_rounds=20, convergence_trace=None):
+def _lin_kernighan(
+    matrix, route=None, max_rounds=20, convergence_trace=None, problem_type="TSP"
+):
     """
     LK-lite:
     - start z NN (nebo route)
     - střídá 2-opt a relocation tahy
     - jede do lokálního minima / max_rounds
     """
+    if str(problem_type).upper() == "ATSP":
+        raise ValueError(
+            "Lin-Kernighan (lite) v aktuální implementaci podporuje jen TYPE: TSP."
+        )
     n = len(matrix)
     if n < 2:
         return []

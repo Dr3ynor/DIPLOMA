@@ -5,7 +5,9 @@ import time
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 from tsp_solver.algorithms.route_ops import (
     default_polish_budget,
+    polish_route_random_atsp,
     polish_route_random_two_opt,
+    random_atsp_neighbor,
     random_tour_zero_fixed,
     tour_length,
     two_opt_delta,
@@ -58,6 +60,7 @@ def _simulated_annealing(
     convergence_trace=None,
     auto_temp=False,
     p_nn_start=0.55,
+    problem_type="TSP",
 ):
     n = len(matrix)
     if n < 2:
@@ -76,14 +79,19 @@ def _simulated_annealing(
     current_cost = tour_length(current, matrix)
     best = list(current)
     best_cost = current_cost
+    is_atsp = str(problem_type).upper() == "ATSP"
 
     t_init = max(float(min_temp), float(initial_temp))
     t_high = t_init
     if auto_temp:
         probe: list[float] = []
         for _ in range(min(160, max(40, 4 * n))):
-            i, j = _sample_two_opt_ij(n, local_rng)
-            dlt = abs(two_opt_delta(current, matrix, i, j))
+            if is_atsp:
+                candidate = random_atsp_neighbor(current, local_rng)
+                dlt = abs(tour_length(candidate, matrix) - current_cost)
+            else:
+                i, j = _sample_two_opt_ij(n, local_rng)
+                dlt = abs(two_opt_delta(current, matrix, i, j))
             if dlt > 0:
                 probe.append(dlt)
         if probe:
@@ -107,16 +115,29 @@ def _simulated_annealing(
         temperature = _temperature_at_step(
             steps - 1, ms, t_high, float(min_temp), cooling_rate
         )
-        i, j = _sample_two_opt_ij(n, local_rng)
-        delta = two_opt_delta(current, matrix, i, j)
-        if delta <= 0 or local_rng.random() < math.exp(
-            -delta / max(temperature, 1e-12)
-        ):
-            current[i : j + 1] = reversed(current[i : j + 1])
-            current_cost += delta
-            if current_cost < best_cost:
-                best = list(current)
-                best_cost = current_cost
+        if is_atsp:
+            candidate = random_atsp_neighbor(current, local_rng)
+            candidate_cost = tour_length(candidate, matrix)
+            delta = candidate_cost - current_cost
+            if delta <= 0 or local_rng.random() < math.exp(
+                -delta / max(temperature, 1e-12)
+            ):
+                current = candidate
+                current_cost = candidate_cost
+                if current_cost < best_cost:
+                    best = list(current)
+                    best_cost = current_cost
+        else:
+            i, j = _sample_two_opt_ij(n, local_rng)
+            delta = two_opt_delta(current, matrix, i, j)
+            if delta <= 0 or local_rng.random() < math.exp(
+                -delta / max(temperature, 1e-12)
+            ):
+                current[i : j + 1] = reversed(current[i : j + 1])
+                current_cost += delta
+                if current_cost < best_cost:
+                    best = list(current)
+                    best_cost = current_cost
 
         if convergence_trace is not None:
             improved = best_cost < last_logged_best
@@ -131,7 +152,10 @@ def _simulated_annealing(
             if improved:
                 last_logged_best = best_cost
 
-    polish_route_random_two_opt(best, matrix, local_rng, max_checks=default_polish_budget(n))
+    if is_atsp:
+        polish_route_random_atsp(best, matrix, local_rng, max_checks=default_polish_budget(n))
+    else:
+        polish_route_random_two_opt(best, matrix, local_rng, max_checks=default_polish_budget(n))
     best_cost = tour_length(best, matrix)
 
     if convergence_trace is not None:

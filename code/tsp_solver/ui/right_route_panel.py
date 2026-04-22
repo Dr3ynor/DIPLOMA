@@ -394,7 +394,7 @@ class RightRoutePanel(QWidget):
 
         self._fuel_spin = QDoubleSpinBox()
         self._fuel_spin.setObjectName("RightRouteSpin")
-        self._fuel_spin.setRange(1.0, 40.0)
+        self._fuel_spin.setRange(1.0, 10_000.0)
         self._fuel_spin.setDecimals(1)
         self._fuel_spin.setSuffix(" l/100km")
         self._fuel_spin.setValue(6.0)

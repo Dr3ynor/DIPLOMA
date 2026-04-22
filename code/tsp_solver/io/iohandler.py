@@ -1,4 +1,9 @@
-from tsp_solver.io.file_strategies import GpxStrategy, TspEuc2DStrategy, TspGeoStrategy
+from tsp_solver.io.file_strategies import (
+    GpxStrategy,
+    TspEuc2DStrategy,
+    TspExplicitMatrixStrategy,
+    TspGeoStrategy,
+)
 
 
 class IOHandler:
@@ -6,11 +11,13 @@ class IOHandler:
         self._strategies = {
             "TSP_GEO": TspGeoStrategy(),
             "TSP_EUC_2D": TspEuc2DStrategy(),
+            "TSP_EXPLICIT_FULL_MATRIX": TspExplicitMatrixStrategy(),
             "GPX": GpxStrategy(),
         }
 
     def get_supported_formats(self):
-        return list(self._strategies.keys())
+        # EXPLICIT/FULL_MATRIX je podporovaný jen pro import, ne pro tvorbu/export z GUI.
+        return [k for k in self._strategies.keys() if k != "TSP_EXPLICIT_FULL_MATRIX"]
     
     def _to_payload(self, loaded, fallback_is_geo=True):
         if isinstance(loaded, dict):
@@ -18,11 +25,15 @@ class IOHandler:
             payload.setdefault("points", [])
             payload.setdefault("route_points", [])
             payload.setdefault("is_geographic", fallback_is_geo)
+            payload.setdefault("problem_type", "TSP")
+            payload.setdefault("distance_matrix", None)
             return payload
         return {
             "points": list(loaded) if loaded else [],
             "route_points": [],
             "is_geographic": fallback_is_geo,
+            "problem_type": "TSP",
+            "distance_matrix": None,
         }
 
     def load(self, filepath):
@@ -44,6 +55,15 @@ class IOHandler:
                 target_strategy = self._strategies["GPX"]
                 fallback_is_geo = True
                 print("DEBUG: Detected: GPX")
+            elif "TYPE: AGTSP" in header or "TYPE : AGTSP" in header:
+                raise ValueError("AGTSP není podporované.")
+            elif (
+                ("EDGE_WEIGHT_TYPE: EXPLICIT" in header or "EDGE_WEIGHT_TYPE : EXPLICIT" in header)
+                and ("EDGE_WEIGHT_FORMAT: FULL_MATRIX" in header or "EDGE_WEIGHT_FORMAT : FULL_MATRIX" in header)
+            ):
+                target_strategy = self._strategies["TSP_EXPLICIT_FULL_MATRIX"]
+                fallback_is_geo = False
+                print("DEBUG: Detected: EXPLICIT/FULL_MATRIX")
             elif "EDGE_WEIGHT_TYPE: GEO" in header or "EDGE_WEIGHT_TYPE : GEO" in header:
                 target_strategy = self._strategies["TSP_GEO"]
                 fallback_is_geo = True

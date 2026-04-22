@@ -34,7 +34,13 @@ def export_instance_interactive(
     route_points = state.get_route() or []
     suggested_ext = ".gpx" if fmt == "GPX" else ".tsp"
     suggested_name = f"instance{suggested_ext}"
-    file_filter = "GPX soubory (*.gpx);;TSP soubory (*.tsp);;Všechny soubory (*)"
+    file_filter = (
+        "GPX soubory (*.gpx);;"
+        "TSP/ATSP soubory (*.tsp *.atsp);;"
+        "ATSP soubory (*.atsp);;"
+        "TSP soubory (*.tsp);;"
+        "Všechny soubory (*)"
+    )
 
     filepath, _ = QFileDialog.getSaveFileName(
         parent,
@@ -129,7 +135,14 @@ def import_instance_interactive(parent: QWidget, *, state) -> ImportInteractiveR
         parent,
         "Načíst instanci",
         "",
-        "Podporované soubory (*.tsp *.gpx);;TSP soubory (*.tsp);;GPX soubory (*.gpx);;Všechny soubory (*)",
+        (
+            "Podporované soubory (*.tsp *.atsp *.gpx);;"
+            "TSP/ATSP soubory (*.tsp *.atsp);;"
+            "ATSP soubory (*.atsp);;"
+            "TSP soubory (*.tsp);;"
+            "GPX soubory (*.gpx);;"
+            "Všechny soubory (*)"
+        ),
     )
     if not filepath:
         return ImportInteractiveResult(status="cancelled")
@@ -139,6 +152,8 @@ def import_instance_interactive(parent: QWidget, *, state) -> ImportInteractiveR
         new_points = payload.get("points", [])
         route_points = payload.get("route_points", [])
         is_geo = bool(payload.get("is_geographic", True))
+        problem_type = str(payload.get("problem_type", "TSP")).upper()
+        distance_matrix = payload.get("distance_matrix")
 
         if new_points:
             state.clear_all()
@@ -146,6 +161,8 @@ def import_instance_interactive(parent: QWidget, *, state) -> ImportInteractiveR
                 new_points,
                 is_geographic=is_geo,
                 route_points=route_points,
+                problem_type=problem_type,
+                distance_matrix=distance_matrix,
             )
             state.notify((CENTER_MAP, new_points[0]))
             if route_points:

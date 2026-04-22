@@ -5,11 +5,13 @@ from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 from tsp_solver.algorithms.route_ops import two_opt_delta
 
 
-def _two_opt(matrix, route=None):
+def _two_opt(matrix, route=None, problem_type="TSP"):
     """
     Vezme počáteční trasu (pokud není, vytvoří ji přes NN) a 'rozplete' 
     překřížené cesty zrcadlovým otočením segmentů.
     """
+    if str(problem_type).upper() == "ATSP":
+        raise ValueError("2-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
     n = len(matrix)
     # Odrazový můstek
     if route is None:

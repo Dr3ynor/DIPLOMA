@@ -3,6 +3,7 @@ import time
 
 from tsp_solver.algorithms.route_ops import (
     default_polish_budget,
+    polish_route_random_atsp,
     polish_route_random_two_opt,
     tour_length,
 )
@@ -20,10 +21,12 @@ def _ant_colony(
     rng=None,
     convergence_trace=None,
     elitist_weight=None,
+    problem_type="TSP",
 ):
     """Ant System style ACO with matrix precomputation and elite pheromone updates."""
     n = len(matrix)
     local_rng = rng if rng is not None else random.Random(seed)
+    is_atsp = str(problem_type).upper() == "ATSP"
 
     if num_ants is None:
         num_ants = min(n, 20)
@@ -131,7 +134,10 @@ def _ant_colony(
         return list(range(n))
 
     best_route = list(best_route)
-    polish_route_random_two_opt(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
+    if is_atsp:
+        polish_route_random_atsp(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
+    else:
+        polish_route_random_two_opt(best_route, matrix, local_rng, max_checks=default_polish_budget(n))
     if convergence_trace is not None:
         best_distance = tour_length(best_route, matrix)
         prev = int(convergence_trace[-1]["step"]) if convergence_trace else -1

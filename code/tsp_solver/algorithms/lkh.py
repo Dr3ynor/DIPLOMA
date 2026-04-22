@@ -66,11 +66,14 @@ def _quantize_to_explicit_int_matrix(matrix: list[list[float]]) -> list[list[int
     return out
 
 
-def _build_tsplib_explicit_problem_text(int_matrix: list[list[int]]) -> str:
+def _build_tsplib_explicit_problem_text(
+    int_matrix: list[list[int]], problem_type: str = "TSP"
+) -> str:
     n = len(int_matrix)
+    ptype = "ATSP" if str(problem_type).upper() == "ATSP" else "TSP"
     lines = [
         "NAME: TSP_APP_LKH",
-        "TYPE: TSP",
+        f"TYPE: {ptype}",
         "COMMENT: Generated for LKH-3 via tsp_solver",
         f"DIMENSION: {n}",
         "EDGE_WEIGHT_TYPE: EXPLICIT",
@@ -121,6 +124,7 @@ def _lkh(
     runs: int = 1,
     max_trials: int = 10_000,
     seed: int | None = None,
+    problem_type: str = "TSP",
 ):
     """
     Spustí LKH-3 přes balíček ``lkh``.
@@ -142,7 +146,7 @@ def _lkh(
 
     exe = _resolve_lkh_executable()
     int_mat = _quantize_to_explicit_int_matrix(matrix)
-    text = _build_tsplib_explicit_problem_text(int_mat)
+    text = _build_tsplib_explicit_problem_text(int_mat, problem_type=problem_type)
     problem = lkh.LKHProblem.parse(text)
 
     extra: dict = {"runs": int(runs), "max_trials": int(max_trials)}

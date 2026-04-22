@@ -57,6 +57,8 @@ class _SolveWorker(QObject):
         solver_kwargs: dict,
         is_geographic: bool,
         ors: OrsRoutingConfig,
+        problem_type: str = "TSP",
+        distance_matrix: list[list[float]] | None = None,
     ):
         super().__init__()
         self._points = list(points)
@@ -65,6 +67,8 @@ class _SolveWorker(QObject):
         self._solver_kwargs = dict(solver_kwargs)
         self._is_geographic = is_geographic
         self._ors = ors
+        self._problem_type = str(problem_type).upper()
+        self._distance_matrix = distance_matrix
 
     def run(self):
         try:
@@ -74,6 +78,8 @@ class _SolveWorker(QObject):
                 distance_metric=self._metric_key,
                 is_geographic=self._is_geographic,
                 ors=self._ors,
+                problem_type=self._problem_type,
+                distance_matrix=self._distance_matrix,
                 **self._solver_kwargs,
             )
             self.finished.emit(result)
@@ -654,6 +660,8 @@ class Sidebar(QWidget):
             return
 
         is_geographic = state.is_geo()
+        problem_type = state.get_problem_type()
+        distance_matrix = state.get_distance_matrix()
         solver_key = self.solver_dropdown.currentData()
         metric_key = self.metric_dropdown.currentData()
         if self._use_tuned_params_check.isChecked():
@@ -682,6 +690,8 @@ class Sidebar(QWidget):
             solver_kwargs,
             is_geographic,
             ors_cfg,
+            problem_type,
+            distance_matrix,
         )
         start_worker_in_qthread(
             self._solve_thread,

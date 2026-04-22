@@ -3,6 +3,20 @@ import os
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 
+
+def _parse_key_value_header(lines: list[str]) -> dict[str, str]:
+    header: dict[str, str] = {}
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            continue
+        if line.upper().startswith(("NODE_COORD_SECTION", "EDGE_WEIGHT_SECTION", "EOF")):
+            break
+        if ":" in line:
+            key, value = line.split(":", 1)
+            header[key.strip().upper()] = value.strip()
+    return header
+
 def tsplib_geo_to_decimal(coord):
     """
     Převede TSPLIB GEO formát (DDD.MM) na desetinné stupně (Decimal Degrees).
@@ -106,6 +120,7 @@ class TspGeoStrategy(TspFileStrategy):
                 "route_points": [],
                 "is_geographic": True,
                 "format": "TSP_GEO",
+                "problem_type": "TSP",
             }
             
         return {
@@ -113,6 +128,7 @@ class TspGeoStrategy(TspFileStrategy):
             "route_points": [],
             "is_geographic": True,
             "format": "TSP_GEO",
+            "problem_type": "TSP",
         }
 
 class TspEuc2DStrategy(TspFileStrategy):
@@ -141,6 +157,85 @@ class TspEuc2DStrategy(TspFileStrategy):
             "route_points": [],
             "is_geographic": False,
             "format": "TSP_EUC_2D",
+            "problem_type": "TSP",
+        }
+
+
+class TspExplicitMatrixStrategy(TspFileStrategy):
+    """TSPLIB explicit matrix loader (supports ATSP/TSP FULL_MATRIX)."""
+
+    def export(self, filepath: str, points: list, route_points: list | None = None):
+        raise ValueError("Export EXPLICIT/FULL_MATRIX není podporován v GUI exportu.")
+
+    def load(self, filepath: str):
+        with open(filepath, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        header = _parse_key_value_header(lines)
+        problem_type = header.get("TYPE", "TSP").upper()
+        if problem_type == "AGTSP":
+            raise ValueError("AGTSP není podporovaný formát (fail-fast).")
+        if problem_type not in {"TSP", "ATSP"}:
+            raise ValueError(f"Nepodporovaný TYPE: {problem_type}")
+
+        ewt = header.get("EDGE_WEIGHT_TYPE", "").upper()
+        ewf = header.get("EDGE_WEIGHT_FORMAT", "").upper()
+        if ewt != "EXPLICIT" or ewf != "FULL_MATRIX":
+            raise ValueError(
+                "Podporováno je jen EDGE_WEIGHT_TYPE: EXPLICIT + EDGE_WEIGHT_FORMAT: FULL_MATRIX."
+            )
+
+        dim_raw = header.get("DIMENSION")
+        if dim_raw is None:
+            raise ValueError("Chybí DIMENSION.")
+        try:
+            n = int(dim_raw)
+        except ValueError as exc:
+            raise ValueError(f"Neplatná DIMENSION: {dim_raw}") from exc
+        if n < 2:
+            raise ValueError("DIMENSION musí být >= 2.")
+
+        in_weights = False
+        tokens: list[float] = []
+        for raw in lines:
+            line = raw.strip()
+            if not line:
+                continue
+            up = line.upper()
+            if up.startswith("EDGE_WEIGHT_SECTION"):
+                in_weights = True
+                continue
+            if not in_weights:
+                continue
+            if up.startswith("EOF"):
+                break
+            for part in line.split():
+                try:
+                    tokens.append(float(part))
+                except ValueError:
+                    raise ValueError(f"Neplatná váha v EDGE_WEIGHT_SECTION: {part}")
+
+        expected = n * n
+        if len(tokens) != expected:
+            raise ValueError(
+                f"EDGE_WEIGHT_SECTION má {len(tokens)} hodnot, očekáváno {expected} (n*n)."
+            )
+
+        matrix: list[list[float]] = []
+        idx = 0
+        for _ in range(n):
+            row = tokens[idx : idx + n]
+            matrix.append(row)
+            idx += n
+
+        points = [(float(i), 0.0) for i in range(n)]
+        return {
+            "points": points,
+            "route_points": [],
+            "is_geographic": False,
+            "format": "TSP_EXPLICIT_FULL_MATRIX",
+            "problem_type": problem_type,
+            "distance_matrix": matrix,
         }
 
 

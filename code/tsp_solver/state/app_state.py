@@ -22,6 +22,8 @@ class AppState(Subject):
         self._route_metric_key: str | None = None
         self._map_url = "https://tile.openstreetmap.de/{z}/{x}/{y}.png"
         self._is_geographic = True
+        self._problem_type = "TSP"
+        self._distance_matrix: list[list[float]] | None = None
         self._show_waypoint_indices = True
         self._ors_routing_profile = DEFAULT_ORS_PROFILE_KEY
         self._ors_avoid_features: list[str] = []
@@ -30,6 +32,8 @@ class AppState(Subject):
         self._ors_hgv_restrictions: dict = load_ors_hgv_restrictions()
 
     def add_point(self, lat, lon, *, display_name: str | None = None):
+        if self.is_point_edit_locked():
+            return
         from tsp_solver.services.geocode_cache import geocode_cache
 
         self._points.append((lat, lon))
@@ -64,12 +68,18 @@ class AppState(Subject):
         *,
         is_geographic=True,
         route_points=None,
+        problem_type: str = "TSP",
+        distance_matrix: list[list[float]] | None = None,
     ):
         self.set_points(points, is_geographic=is_geographic)
+        self._problem_type = str(problem_type or "TSP").upper()
+        self._distance_matrix = distance_matrix
         self.set_route(route_points or [])
 
     def clear_all(self):
         self._is_geographic = True
+        self._problem_type = "TSP"
+        self._distance_matrix = None
         self._points.clear()
         self._point_labels.clear()
         self._route.clear()
@@ -106,6 +116,8 @@ class AppState(Subject):
         self.notify((POINT_LABEL, index))
 
     def remove_point_at(self, index):
+        if self.is_point_edit_locked():
+            return
         if 0 <= index < len(self._points):
             self._points.pop(index)
             if index < len(self._point_labels):
@@ -184,6 +196,19 @@ class AppState(Subject):
 
     def is_geo(self):
         return self._is_geographic
+
+    def get_problem_type(self) -> str:
+        return self._problem_type
+
+    def get_distance_matrix(self) -> list[list[float]] | None:
+        return self._distance_matrix
+
+    def is_point_edit_locked(self) -> bool:
+        """
+        Matrix-only imported instances (EXPLICIT/FULL_MATRIX) have no real coordinates.
+        Locking point edits prevents accidental desync between points and fixed matrix.
+        """
+        return self._distance_matrix is not None
     
     def remove_point_silent(self, index):
         """Smaže bod z databáze, ale nespustí překreslení celého UI."""

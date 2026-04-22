@@ -4,11 +4,13 @@
 
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 
-def _three_opt(matrix, route=None):
+def _three_opt(matrix, route=None, problem_type="TSP"):
     """
     Předchůdce a jádro Lin-Kernighan algoritmu.
     Využívá Search Window (okno), aby nezavařil procesor u velkých instancí.
     """
+    if str(problem_type).upper() == "ATSP":
+        raise ValueError("3-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
     n = len(matrix)
     
     # 1. Odrazový můstek: Nejprve to proženeme rychlým 2-Optem

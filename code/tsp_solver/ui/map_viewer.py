@@ -318,15 +318,21 @@ class MapViewer(QWidget):
 
     def _handle_click(self, lat: float, lon: float):
         """Uživatel klikl na mapu → přidej bod do state."""
+        if state.is_point_edit_locked():
+            return
         state.add_point(lat, lon)
 
     def _handle_remove(self, index: int):
         """Uživatel pravým klikl na marker → odstraň bod."""
+        if state.is_point_edit_locked():
+            return
         state.remove_point_at(index)          # informuje sidebar přes notify
         self._js(f"removeMarker({index})")     # aktualizuje JS markery
         self._marker_count = max(0, self._marker_count - 1)
 
     def _on_search_location(self, lat: float, lon: float, display_name: str = ""):
+        if state.is_point_edit_locked():
+            return
         if not state.is_geo():
             return
         name = display_name.strip() if display_name else None
