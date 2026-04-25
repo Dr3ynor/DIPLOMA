@@ -2,10 +2,12 @@
   "algorithm": "SA",
   "best_value": 10.315359207759368,
   "params": {
-    "initial_temp": 317.52617529091617,
-    "cooling_rate": 0.9535192617338865,
+    "initial_temp": 800.0,
+    "cooling_rate": 0.9982,
     "min_temp": 0.0024396934625893897,
-    "max_steps": 16480
+    "max_steps": 50000,
+    "auto_temp": true,
+    "p_nn_start": 0.0
   },
   "study_name": "tsp_sa_seed42_a280",
   "n_trials": 50,

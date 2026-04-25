@@ -18,6 +18,7 @@ def _genetic_algorithm(
     pop_size=20,
     generations=2500,
     mutation_rate=0.66,
+    tournament_k=3,
     seed=None,
     rng=None,
     convergence_trace=None,
@@ -25,6 +26,7 @@ def _genetic_algorithm(
 ):
     n = len(matrix)
     pop_size = min(pop_size, n * 2)
+    tournament_k = max(2, int(tournament_k))
     local_rng = rng if rng is not None else random.Random(seed)
     is_atsp = str(problem_type).upper() == "ATSP"
 
@@ -49,18 +51,23 @@ def _genetic_algorithm(
     generations_without_improvement = 0
     t0 = time.perf_counter()
 
+    def _tournament_pick(exclude_idx: int | None = None) -> int:
+        candidates = [idx for idx in range(pop_size) if idx != exclude_idx]
+        if not candidates:
+            return 0
+        k = min(tournament_k, len(candidates))
+        picked = local_rng.sample(candidates, k)
+        return min(picked, key=lambda idx: population[idx][1])
+
     for gen in range(generations):
         new_population = []
         improvement_in_this_gen = False
 
         for i in range(pop_size):
-            parent_A_route, parent_A_dist = population[i]
-
-            parent_B_route = local_rng.choice(population)[0]
-            attempts = 0
-            while parent_B_route == parent_A_route and attempts < 10:
-                parent_B_route = local_rng.choice(population)[0]
-                attempts += 1
+            a_idx = _tournament_pick()
+            b_idx = _tournament_pick(exclude_idx=a_idx)
+            parent_A_route, parent_A_dist = population[a_idx]
+            parent_B_route = population[b_idx][0]
 
             start, end = sorted(local_rng.sample(range(1, n), 2))
             child_route = [None] * n

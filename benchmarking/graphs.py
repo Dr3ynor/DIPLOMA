@@ -104,18 +104,62 @@ def plot_convergence_gap_spaghetti(
         fig, ax = plt.subplots(figsize=(10, 6))
         cmap = plt.get_cmap("viridis")
         n_runs = len(sub)
+        # Společná normalizovaná osa pro robustní medián napříč běhy různých délek trace.
+        median_grid = np.linspace(0.0, 1.0, 201)
+        median_samples: list[np.ndarray] = []
         for i, (_, row) in enumerate(sub.iterrows()):
             p = row["convergence_path"]
             if p is None or not isinstance(p, Path) or not p.exists():
                 continue
             conv = pd.read_json(p, lines=True)
-            if conv.empty or "gap_vs_opt_pct" not in conv.columns:
+            if conv.empty:
+                continue
+            y_col = (
+                "current_gap_vs_opt_pct"
+                if "current_gap_vs_opt_pct" in conv.columns
+                and conv["current_gap_vs_opt_pct"].notna().any()
+                else "gap_vs_opt_pct"
+            )
+            if y_col not in conv.columns:
                 continue
             smax = float(conv["step"].max()) if len(conv) else 1.0
             x = conv["step"].astype(float) / max(smax, 1.0)
-            y = conv["gap_vs_opt_pct"].astype(float)
+            y = conv[y_col].astype(float)
             color = cmap(i / max(n_runs - 1, 1))
             ax.plot(x, y, alpha=0.35, color=color, lw=1.0)
+
+            # Interpolace každého běhu na jednotnou osu pro výpočet mediánu.
+            x_np = x.to_numpy(dtype=float)
+            y_np = y.to_numpy(dtype=float)
+            if len(x_np) >= 2:
+                order_idx = np.argsort(x_np, kind="mergesort")
+                x_sorted = x_np[order_idx]
+                y_sorted = y_np[order_idx]
+                # U některých algoritmů (např. SA po finálním polish) může být stejný
+                # krok zapsán vícekrát; chceme zachovat poslední (nejaktuálnější) hodnotu.
+                dedup = pd.DataFrame({"x": x_sorted, "y": y_sorted}).groupby(
+                    "x", as_index=False
+                ).last()
+                x_unique = dedup["x"].to_numpy(dtype=float)
+                y_unique = dedup["y"].to_numpy(dtype=float)
+                if len(x_unique) >= 2:
+                    y_interp = np.interp(median_grid, x_unique, y_unique, left=np.nan, right=np.nan)
+                    median_samples.append(y_interp)
+
+        # Medián napříč běhy v jednotlivých normalizovaných "generacích/iteracích".
+        if median_samples:
+            stack = np.vstack(median_samples)
+            median_curve = np.nanmedian(stack, axis=0)
+            valid = np.isfinite(median_curve)
+            if np.any(valid):
+                ax.plot(
+                    median_grid[valid],
+                    median_curve[valid],
+                    color="red",
+                    lw=2.4,
+                    alpha=0.95,
+                    label="medián průběhu",
+                )
 
         ax.axhline(0.0, color="tab:green", ls="--", lw=1.2, label="optimum (gap 0 %)")
         ax.set_xlabel("Normalizovaný krok (0 = start, 1 = konec trace)")

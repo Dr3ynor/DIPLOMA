@@ -11,29 +11,9 @@ Z hlediska odpovědnosti modulů je systém rozdělen následovně:
     \item \texttt{tsp\_solver/state} -- centrální aplikační stav a perzistence nastavení.
 \end{itemize}
 
-Jádrem výpočtu je třída \texttt{TSPManager}, která zajišťuje celý výpočetní pipeline: validaci vstupu, volbu efektivní metriky, sestavení matice vzdáleností/časů, spuštění zvoleného solveru, výpočet agregované hodnoty trasy a následné vygenerování geometrie pro mapovou vizualizaci.
+Jádrem výpočtu je třída \texttt{TSPManager}, která zajišťuje celý výpočetní pipeline: validaci vstupu, volbu efektivní metriky, sestavení matice vzdáleností/časů, spuštění zvoleného solveru, výpočet agregované hodnoty trasy a následné vygenerování geometrie pro mapovou vizualizaci. Detailní výpis je uveden v příloze \ref{sec:appendix_long_listings}, výpis \ref{src:tspmanager_pipeline}.
 
-\lstinputlisting[
-    language=Python,
-    basicstyle=\footnotesize\ttfamily,
-    columns=fullflexible,
-    breaklines=true,
-    tabsize=2,
-    caption={Řízení výpočtu trasy v \texttt{TSPManager}},
-    label=src:tspmanager_pipeline
-]{SourceCodes/tspmanager_pipeline.py}
-
-Jednotné volání konkrétních solverů obstarává \texttt{OptimizationEngine}. Podle zvoleného klíče vybere implementační funkci a předá jí pouze argumenty, které signatura této funkce přijímá.
-
-\lstinputlisting[
-    language=Python,
-    basicstyle=\footnotesize\ttfamily,
-    columns=fullflexible,
-    breaklines=true,
-    tabsize=2,
-    caption={Mapování solverů a metoda \texttt{run} v \texttt{OptimizationEngine}},
-    label=src:optimization_engine_dispatch
-]{SourceCodes/optimization_engine_dispatch.py}
+Jednotné volání konkrétních solverů obstarává \texttt{OptimizationEngine}. Podle zvoleného klíče vybere implementační funkci a předá jí pouze argumenty, které signatura této funkce přijímá. Detailní výpis je uveden v příloze \ref{sec:appendix_long_listings}, výpis \ref{src:optimization_engine_dispatch}.
 
 \section{Implementace generátoru instancí}
 Generování instancí je v implementaci řešeno kombinací interaktivního a dávkového přístupu. Historicky byl v návrhu samostatný \texttt{InstanceGenerator}, ale výsledná implementace tuto funkcionalitu rozpouští do UI a I/O strategie, což se v praxi ukázalo jako jednodušší na údržbu.

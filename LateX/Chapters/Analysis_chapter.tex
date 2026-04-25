@@ -68,13 +68,7 @@ Popisuje generování instance od vstupu až po finální export s pomocí exter
 Výpočet matice vzdáleností pro trasové metriky využívá dávkové volání maticových rozhraní služeb ORS a OSRM. Počet vyhodnocovaných dvojic je $n^2-n$, ale v praxi se neřeší samostatným dotazem pro každou dvojici; matice je sestavována po blocích. Paralelní sekce v diagramu (\ref{fig:activity_diagram}) proto reprezentuje neblokující obsluhu síťových operací a následné skládání dílčích výsledků. Celková doba je ovlivněna latencí, limity služeb i lokálním zpracováním dat.
 
 \subsection{Třídní diagram}
-Diagram tříd na obrázku \ref{fig:class_diagram} znázorňuje statickou strukturu navrženého systému. Architektura je striktně rozdělena do několika logických celků, které zajišťují oddělení odpovědnosti a vysokou míru rozšiřitelnosti.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=17cm, angle=-90]{Figures/class_diagram.png}
-    \caption{Diagram tříd aplikace}
-    \label{fig:class_diagram}
-\end{figure}
+Diagram tříd \ref{fig:class_diagram}. Znázorňuje statickou strukturu navrženého systému. Architektura je striktně rozdělena do několika logických celků, které zajišťují oddělení odpovědnosti a rozšiřitelnost.
 \textbf{Klíčové komponenty a jejich vazby:}
 
 \begin{itemize}

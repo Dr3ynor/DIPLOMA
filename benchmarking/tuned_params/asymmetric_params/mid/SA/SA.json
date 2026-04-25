@@ -2,10 +2,12 @@
   "algorithm": "SA",
   "best_value": 15.641488679490912,
   "params": {
-    "initial_temp": 406.50132333542336,
-    "cooling_rate": 0.9460866226422978,
+    "initial_temp": 900.0,
+    "cooling_rate": 0.9968,
     "min_temp": 0.0033948182560532675,
-    "max_steps": 3696
+    "max_steps": 12000,
+    "auto_temp": true,
+    "p_nn_start": 0.0
   },
   "study_name": "tsp_sa_seed42_kro124p",
   "n_trials": 50,

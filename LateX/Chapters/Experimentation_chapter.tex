@@ -1,119 +1,178 @@
 \chapter{Experimentální část}
-Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod na referenční instanci TSPLIB \texttt{a280}. Cílem je porovnat kvalitu nalezeného řešení, stabilitu stochastických algoritmů, konvergenční chování a kompromis mezi výpočetním časem a dosaženou odchylkou od optima.
+Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod na dvojici instancí TSPLIB \texttt{a280} (symetrická) a \texttt{kro124p} (asymetrická). Cílem je porovnat kvalitu nalezeného řešení, stabilitu heuristik a metaheuristik, konvergenční chování i kompromis mezi výpočetním časem a dosaženou odchylkou od optima ve dvou odlišných typech úloh.
 
 \section{Nastavení experimentu}
 \label{sec:exp_setup}
-Měření bylo provedeno nad instancí \texttt{a280} s rozměrem matice \(280 \times 280\), referenční optimální hodnotou \(2579\). Testovaná sada algoritmů obsahuje metody 2-opt, 3-opt, LK, LKH, GA, ACO, RSO a SA. Parametry metaheuristik byly optimalizovány pomocí knihovny \texttt{Optuna}.
+Měření bylo provedeno nad instancemi \texttt{a280} a \texttt{kro124p}. Testovaná sada algoritmů obsahuje metody 2-opt, 3-opt, LK, LKH, GA, ACO, RSO a SA a jejich parametrizace byla převzata z ladění pomocí knihovny \texttt{Optuna}. Všechny heuristiky i metaheuristiky byly v rámci jednotného protokolu vyhodnoceny ve 30 bězích, aby bylo možné konzistentně posoudit stabilitu i rozptyl výsledků.
 
-Deterministické metody (2-opt, 3-opt, LK, LKH) byly spuštěny jednou. Stochastické metody (GA, ACO, RSO, SA) byly vyhodnoceny ve 30 opakováních se synchronizovanou politikou seedů, aby bylo možné statistické porovnání výsledků.
+Každý běh byl řízen pevným master seedem, z něhož se odvozovaly seed hodnoty pro jednotlivé algoritmy a opakování, takže experiment je reprodukovatelný a porovnání mezi metodami zůstává férové napříč oběma instancemi. U deterministických metod tímto postupem nevzniká variabilita řešení, ale zachovává se jednotný experimentální režim a stejná reportovací logika.
 
-Volba jedné středně velké instance je v této práci záměrná. Instance \texttt{a280} je dostatečně rozsáhlá, aby se projevily rozdíly v kvalitě i dynamice konvergence, současně však zůstává výpočetně zvládnutelná na lokálním stroji v přijatelném čase. Použití výrazně větších instancí by vedlo k neúměrně dlouhému běhu stochastických metod při zachování stejného počtu opakování.
+V závěrečné fázi byl každý algoritmus doplněn lokálním vylepšením trasy, aby výsledná hodnota reprezentovala nejen hrubý výstup hlavní heuristiky, ale i běžnou praktickou finalizaci řešení. U symetrické instance byl tento krok realizován především pomocí 2-opt zlepšování, zatímco u asymetrické instance byl použit lokální průchod bez reverzace segmentů založený na operátorech \emph{swap}, \emph{relocate} a \emph{or-opt}, které zachovávají orientaci hran. Metody 2-opt, 3-opt a LK jsou v této implementaci navrženy pro symetrické TSP a na asymetrické instanci nejsou nasazovány, protože jejich klasické kroky založené na reverzaci segmentu nejsou pro orientované hrany přímo použitelné.
+
+Instance \texttt{a280} a \texttt{kro124p} byly zvoleny záměrně, protože společně pokrývají dva odlišné charaktery úlohy a umožňují sledovat, jak se stejné algoritmické principy chovají v symetrickém i asymetrickém prostředí. Současně jde o velikosti, které jsou dostatečně náročné pro vznik měřitelných rozdílů mezi metodami, ale stále výpočetně zvládnutelné při zachování 30 opakování pro každou metodu.
 
 \section{Konvergenční průběhy metaheuristik}
 \label{sec:exp_convergence}
-Konvergenční chování bylo analyzováno na obrázcích \ref{fig:conv_aco} až \ref{fig:conv_sa}. Osa \(x\) představuje normalizovaný průběh iterací od začátku do konce běhu a osa \(y\) odchylku od optima v procentech.
+Konvergenční chování je hodnoceno samostatně pro obě instance. Osa \(x\) v grafech představuje normalizovaný průběh iterací od začátku do konce běhu a osa \(y\) odchylku od referenčního optima v procentech.
 
-Z porovnání jednotlivých průběhů je patrné, že všechny testované metaheuristiky dosahují nejvýraznějšího zlepšení v úvodní části běhu, ale liší se rychlostí stabilizace a zejména rozptylem výsledků mezi opakováními. ACO začíná s nejvyšší počáteční odchylkou, protože v prvních iteracích ještě není vytvořena dostatečně informativní feromonová stopa, následně však vykazuje konzistentní pokles a nejnižší střední koncovou odchylku mezi stochastickými metodami (medián přibližně \(6{,}75\,\%\), nejlepší běh \(3{,}96\,\%\)). GA se vyznačuje rychlou ranou konvergencí a následnou stabilizací v relativně úzkém pásmu okolo mediánu \(8{,}03\,\%\), což potvrzuje dobrý poměr mezi rychlostí a robustností. RSO má průběh rovněž plynulý a opakovatelný, avšak konverguje do kvalitativně slabší oblasti (medián přibližně \(9{,}19\,\%\)), tedy s menší schopností dosahovat nejlepších hodnot. Nejvyšší variabilitu vykazuje SA, kde část běhů končí na akceptovatelných řešeních, zatímco část zůstává výrazně nad ostatními metodami; medián \(11{,}28\,\%\) a maximum přes \(40\,\%\) ukazují citlivost na náhodnou trajektorii hledání i na konkrétní realizaci ochlazovacího procesu.
+\subsection{Symetrická instance \texttt{a280}}
+Na instanci \texttt{a280} je patrné, že všechny metaheuristiky dosahují nejvýraznějšího zlepšení v úvodní fázi běhu a následně přecházejí do jemnějšího dolaďování. Konvergenční průběhy ACO \ref{fig:conv_aco_a280} a GA \ref{fig:conv_ga_a280} jsou stabilnější než SA \ref{fig:conv_sa_a280}, která má širší rozptyl trajektorií, a RSO \ref{fig:conv_rso_a280} se obvykle drží ve středním pásmu mezi robustností a kvalitou finálního řešení.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_ACO.png}
-    \caption{Konvergenční průběhy ACO}
-    \label{fig:conv_aco}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_ACO.png}
+    \caption{Konvergenční průběhy ACO pro instanci \texttt{a280}}
+    \label{fig:conv_aco_a280}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_GA.png}
-    \caption{Konvergenční průběhy GA}
-    \label{fig:conv_ga}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_GA.png}
+    \caption{Konvergenční průběhy GA pro instanci \texttt{a280}}
+    \label{fig:conv_ga_a280}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_RSO.png}
-    \caption{Konvergenční průběhy RSO}
-    \label{fig:conv_rso}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_RSO.png}
+    \caption{Konvergenční průběhy RSO pro instanci \texttt{a280}}
+    \label{fig:conv_rso_a280}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/convergence_spaghetti_SA.png}
-    \caption{Konvergenční průběhy SA}
-    \label{fig:conv_sa}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_SA.png}
+    \caption{Konvergenční průběhy SA pro instanci \texttt{a280}}
+    \label{fig:conv_sa_a280}
+\end{figure}
+
+\subsection{Asymetrická instance \texttt{kro124p}}
+Na instanci \texttt{kro124p} zůstává průběh analogický v tom, že největší část zlepšení probíhá na začátku běhu, ale rozdíly mezi metodami jsou více ovlivněny asymetrií hran a volbou ATSP-safe sousedství. Konvergenční průběhy ACO \ref{fig:conv_aco_kro124p}, GA \ref{fig:conv_ga_kro124p}, RSO \ref{fig:conv_rso_kro124p} a SA \ref{fig:conv_sa_kro124p} potvrzují, že metody lépe využívající kombinaci \emph{swap}/\emph{relocate}/\emph{or-opt} mají obvykle vyšší stabilitu než přístupy citlivé na počáteční trajektorii.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/convergence_spaghetti_ACO.png}
+    \caption{Konvergenční průběhy ACO pro instanci \texttt{kro124p}}
+    \label{fig:conv_aco_kro124p}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/convergence_spaghetti_GA.png}
+    \caption{Konvergenční průběhy GA pro instanci \texttt{kro124p}}
+    \label{fig:conv_ga_kro124p}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/convergence_spaghetti_RSO.png}
+    \caption{Konvergenční průběhy RSO pro instanci \texttt{kro124p}}
+    \label{fig:conv_rso_kro124p}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/convergence_spaghetti_SA.png}
+    \caption{Konvergenční průběhy SA pro instanci \texttt{kro124p}}
+    \label{fig:conv_sa_kro124p}
 \end{figure}
 
 \section{Rozdělení kvality řešení a statistická významnost}
 \label{sec:exp_distribution}
-Rozdělení výsledků stochastických metod je zachyceno na obrázcích \ref{fig:boxplots_meta} a \ref{fig:violin_meta}. Oba pohledy konzistentně ukazují nejlepší centrální tendenci u ACO, následovanou GA, dále RSO a nejhůře SA.
+Rozdělení výsledků stochastických metod je opět uvedeno odděleně pro symetrickou a asymetrickou instanci, aby bylo možné přesně odlišit vliv typu úlohy od vlivu samotného algoritmu.
 
-Boxplot zvýrazňuje medián a kvartily, violin graf navíc ukazuje tvar rozdělení a hustotu výskytu hodnot. U SA je patrná největší variabilita i nejširší pravý ocas směrem k horším řešením. Naopak GA a ACO mají kompaktnější rozdělení.
+\subsection{Symetrická instance \texttt{a280}}
+Na instanci \texttt{a280} je v boxplotu \ref{fig:boxplots_meta_a280} nejdříve patrné ostré rozdělení na dvě výkonnostní skupiny. ACO, GA a RSO drží délky tras v relativně úzkém pásmu nad referenčním optimem (v grafu vyznačeným zelenou vodorovnou čárou): ACO má nejnižší medián i střední hodnotu (obě zhruba kolem \(2{,}75\cdot 10^3\)) a současně nejlepší spodní hranici rozptylu, takže i horší běhy zůstávají blíže optimu než u GA a RSO. GA a RSO mají podobně úzké krabice a krátké vousy, což ukazuje na vysokou opakovatelnost výsledku napříč 30 běhy; GA je v mediánu mírně lepší než RSO (řádově o desítky jednotek délky). Naproti tomu SA koncentruje výsledky výrazně výše (medián zhruba kolem \(3{,}5\cdot 10^3\)) a má širší krabici, takže na této instanci a při použité parametrizaci nedosahuje kvality srovnatelné s ostatními metaheuristikami.
 
-Statistické porovnání je uvedeno na obrázku \ref{fig:autorank_frequentist}. Neparametrický Friedmanův test potvrzuje statisticky významný rozdíl mezi algoritmy. Následný Nemenyiho test neprokazuje významný rozdíl pouze mezi dvojicí ACO a GA, zatímco u ostatních dvojic je rozdíl statisticky významný.
+Houslový graf se stripplotem \ref{fig:violin_meta_a280} stejný obraz doplňuje o tvar rozdělení a o jednotlivé realizace běhů. U ACO je vidět, že hustota není nejužší, ale je posunutá k nejnižším délkám a stripové body sahají do nejlepších hodnot v celém souboru měření; praktický závěr je, že ACO častěji nachází velmi dobré trasy, i když variabilita mezi běhy není minimální. U GA a RSO jsou body těsně seskupené kolem vlastního mediánu, což potvrzuje stabilní, málo kolísavý výkon bez extrémně špatných výkyvů. U SA se všechny body nacházejí v odděleném pásmu bez překryvu s ostatními metodami, takže rozdíl není jen průměrný efekt, ale platí pro každý zaznamenaný běh.
+
+AutoRank (CD diagram) \ref{fig:autorank_frequentist_a280} shrnuje pořadí metod podle průměrných řádů napříč synchronními opakováními (stejný \texttt{run\_index} pro všechny metaheuristiky) a tlusté spojnice označují páry algoritmů, u nichž post-hoc test po Friedmanově hodnocení neshledal statisticky významný rozdíl na hladině \(p = 0{,}05\). ACO má nejlepší průměrný řád a v diagramu nemá spojnici s žádnou z ostatních metod, takže je na \texttt{a280} statisticky významně lepší než GA, RSO i SA. GA a RSO jsou v diagramu spojeny, takže rozdíl pozorovaný v boxplotu sice naznačuje mírnou výhodu GA, ale v tomto párovém experimentálním uspořádání nelze jednostranně tvrdit statisticky prokázanou převahu jedné z nich nad druhou. SA zůstává izolovaně na nejhorším řádu a je významně horší než všechny ostatní testované metaheuristiky.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/boxplots_metaheuristics.png}
-    \caption{Boxplot rozdělení odchylek metaheuristik}
-    \label{fig:boxplots_meta}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/boxplots_metaheuristics.png}
+    \caption{Boxplot rozdělení odchylek metaheuristik pro instanci \texttt{a280}}
+    \label{fig:boxplots_meta_a280}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/violin_metaheuristics_strip.png}
-    \caption{Violin plot rozdělení odchylek metaheuristik}
-    \label{fig:violin_meta}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/violin_metaheuristics_strip.png}
+    \caption{Houslový graf rozdělení odchylek metaheuristik pro instanci \texttt{a280}}
+    \label{fig:violin_meta_a280}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Figures/autorank_plot_frequentist.png}
-    \caption{Statistické srovnání metod pomocí autorank}
-    \label{fig:autorank_frequentist}
+    \includegraphics[width=0.95\textwidth]{Figures/symmetric_a280/autorank_plot_frequentist.png}
+    \caption{Statistické srovnání metod pomocí autorank pro instanci \texttt{a280}}
+    \label{fig:autorank_frequentist_a280}
+\end{figure}
+
+\subsection{Asymetrická instance \texttt{kro124p}}
+Na \texttt{kro124p} se distribuce výsledků mění v návaznosti na orientované náklady hran, takže statistická významnost rozdílů odráží nejen kvalitu metaheuristiky jako takové, ale i její schopnost pracovat s asymetrickým sousedstvím. Boxplot \ref{fig:boxplots_meta_kro124p} a houslový graf \ref{fig:violin_meta_kro124p} ukazují rozptyl výsledků, zatímco Autorank \ref{fig:autorank_frequentist_kro124p} slouží jako kontrola toho, zda pozorované rozdíly představují stabilní trend, nebo pouze důsledek náhodného rozptylu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/boxplots_metaheuristics.png}
+    \caption{Boxplot rozdělení odchylek metaheuristik pro instanci \texttt{kro124p}}
+    \label{fig:boxplots_meta_kro124p}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/violin_metaheuristics_strip.png}
+    \caption{Houslový graf rozdělení odchylek metaheuristik pro instanci \texttt{kro124p}}
+    \label{fig:violin_meta_kro124p}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Figures/asymmetric_kro124p/autorank_plot_frequentist.png}
+    \caption{Statistické srovnání metod pomocí autorank pro instanci \texttt{kro124p}}
+    \label{fig:autorank_frequentist_kro124p}
 \end{figure}
 
 \section{Globální srovnání všech metod}
 \label{sec:exp_global}
-Komplexní porovnání napříč všemi metodami poskytují obrázky \ref{fig:ecdf_all_methods}, \ref{fig:scatter_time_vs_gap} a \ref{fig:summary_table_optimum_vs_stats}.
+Komplexní porovnání všech metod je uvedeno samostatně pro obě instance pomocí grafu kompromisu čas versus kvalita a souhrnné tabulky statistik.
 
-\subsection{ECDF a pořadí metod}
-ECDF graf ukazuje, že LKH dosahuje přesně referenčního optima \(2579\) při daném nastavení. Mezi stochastickými metodami je nejkvalitnější ACO, poté GA a RSO. SA má nejhorší rozdělení kvality.
-
-Deterministické algoritmy poskytly na této instanci tyto výsledky: LK \(2812\), 2-opt \(2835\), 3-opt \(2990\). Zejména 3-opt v použité implementaci a konfiguraci neposkytl na instanci \texttt{a280} konkurenceschopný výsledek vůči ostatním metodám.
+\subsection{Symetrická instance \texttt{a280}}
+Scatter graf \ref{fig:scatter_time_vs_gap_a280} umožňuje na instanci \texttt{a280} číst výsledky ve dvou dimenzích současně: na horizontální ose je výpočetní čas a na vertikální ose relativní odchylka od optima. Metody umístěné blíže levému dolnímu rohu proto představují nejvýhodnější kompromis, protože dosahují nízké chyby při současně nízké časové náročnosti. Rozptýlení bodů navíc ukazuje, zda je daný algoritmus stabilní napříč opakováními, nebo zda jeho výkon výrazně kolísá mezi jednotlivými běhy. Souhrnná tabulka \ref{fig:summary_table_optimum_vs_stats_a280} tento grafický pohled rozšiřuje o konkrétní statistiky (minimum, medián, průměr, směrodatná odchylka a nejlepší dosažená hodnota), což umožňuje přesněji oddělit algoritmy s konzistentně dobrým výkonem od metod, které dosáhnou kvalitního řešení jen v části běhů.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Figures/ecdf_tour_length_by_algorithm.png}
-    \caption{ECDF délky tras pro všechny porovnávané metody}
-    \label{fig:ecdf_all_methods}
+    \includegraphics[width=0.95\textwidth]{Figures/symmetric_a280/scatter_time_vs_gap.png}
+    \caption{Kompromis mezi časem výpočtu a odchylkou od optima pro instanci \texttt{a280}}
+    \label{fig:scatter_time_vs_gap_a280}
 \end{figure}
-
-\subsection{Kompromis čas vs. kvalita}
-Graf na obrázku \ref{fig:scatter_time_vs_gap} potvrzuje, že mezi kvalitou řešení a výpočetní náročností existuje zřetelný praktický kompromis. SA dosahuje nejkratších běhových časů mezi stochastickými metodami (řádově \(0{,}30\) s), avšak za cenu nejvyšší odchylky a nízké stability. GA a RSO tvoří střední pásmo, ve kterém dochází k vyvážení obou kritérií: jejich časy se pohybují přibližně mezi \(8{,}8\) a \(9{,}5\) s a výsledná kvalita je stabilnější než u SA, přesto stále horší než u ACO. ACO nabízí nejlepší kvalitu mezi stochastickými přístupy, ale vyžaduje nejdelší výpočet (přibližně \(31{,}8\) s), což odpovídá vyšší výpočetní ceně koloniálního modelu. LKH pak představuje referenční bod z hlediska praktické efektivity, protože v daném experimentu kombinuje minimální odchylku od optima s velmi nízkým časem běhu. Pro aplikační praxi to znamená, že volba metody má být odvozena od priorit konkrétního nasazení: při důrazu na rychlou odezvu je akceptovatelný kompromis SA/GA, zatímco při důrazu na kvalitu je výhodnější ACO nebo LKH.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Figures/scatter_time_vs_gap.png}
-    \caption{Kompromis mezi časem výpočtu a odchylkou od optima}
-    \label{fig:scatter_time_vs_gap}
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/summary_table_optimum_vs_stats.png}
+    \caption{Souhrnná tabulka výsledků pro instanci \texttt{a280}}
+    \label{fig:summary_table_optimum_vs_stats_a280}
 \end{figure}
 
-\subsection{Souhrnné číselné výsledky}
-Souhrnná tabulka na obrázku~\ref{fig:summary_table_optimum_vs_stats} shrnuje číselné charakteristiky běhů a potvrzuje hlavní závěry experimentu. Metoda LKH dosahuje referenčního optima instance \texttt{a280}, tedy hodnoty \(2579\), a tím slouží jako horní mez kvality vůči ostatním přístupům. Mezi stochastickými algoritmy vychází nejlépe ACO s průměrnou odchylkou řádu \(\approx 6{,}75\,\%\), což odpovídá nejstabilnějšímu středu rozdělení kvality v měřené sadě opakování.
-
-Genetický algoritmus a RSO spadají do středního pásma: GA dosahuje přibližně \(\approx 8{,}15\,\%\) průměrné odchylky, RSO přibližně \(\approx 9{,}19\,\%\), obě metody tedy nacházejí akceptovatelná, avšak výrazně horší řešení než ACO a výrazně lepší než simulované žíhání. SA vykazuje nejvyšší průměrnou odchylku (\(\approx 22{,}72\,\%\)) a současně největší rozptyl mezi běhy, což je v souladu s pozorovanou vysokou variabilitou konvergenčních křivek i rozložením finálních délek tras.
+\subsection{Asymetrická instance \texttt{kro124p}}
+U instance \texttt{kro124p} je dvojici pohledů přiřazena role ověřit, jak se mění pořadí a stabilita metod v asymetrickém režimu. Scatter graf \ref{fig:scatter_time_vs_gap_kro124p} vyjadřuje časovou cenu dosažené přesnosti a souhrnná tabulka \ref{fig:summary_table_optimum_vs_stats_kro124p} uzavírá porovnání numerickým přehledem.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/summary_table_optimum_vs_stats.png}
-    \caption{Souhrnná tabulka: optimum versus dosažené statistiky}
-    \label{fig:summary_table_optimum_vs_stats}
+    \includegraphics[width=0.95\textwidth]{Figures/asymmetric_kro124p/scatter_time_vs_gap.png}
+    \caption{Kompromis mezi časem výpočtu a odchylkou od optima pro instanci \texttt{kro124p}}
+    \label{fig:scatter_time_vs_gap_kro124p}
 \end{figure}
 
-\section{Diskuze a omezení interpretace}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/asymmetric_kro124p/summary_table_optimum_vs_stats.png}
+    \caption{Souhrnná tabulka výsledků pro instanci \texttt{kro124p}}
+    \label{fig:summary_table_optimum_vs_stats_kro124p}
+\end{figure}
+
+\section{Zhodnocení a omezení interpretace}
 \label{sec:exp_limits}
-Přestože výsledky poskytují jasné pořadí metod na instanci \texttt{a280}, je nutné interpretovat je v kontextu zvoleného experimentálního návrhu.
+Zařazení instancí \texttt{a280} a \texttt{kro124p} poskytuje robustnější pohled než vyhodnocení jediné úlohy, protože umožňuje sledovat chování metod v symetrickém i asymetrickém prostředí. Přesto je nutné výsledky interpretovat s ohledem na to, že jde stále o omezenou experimentální sadu a že relativní pořadí stochastických metod může být citlivé na konkrétní kombinaci instance a naladění parametrů.
 
-Prvním omezením je použití jediné instance. Výsledky nelze přenášet na všechny typy TSP instancí, zejména na podstatně větší úlohy. Druhým omezením je závislost na konkrétním ladění parametrů, které může při jiné instanci měnit relativní pořadí stochastických metod, což odpovídá chování stochastických algoritmů.
-
-Z pohledu praktického nasazení nicméně měření ukazuje použitelný závěr. Pokud je prioritou kvalita řešení, je vhodné upřednostnit LKH, případně ACO. Pokud je dominantním kritériem rychlost, je vhodná SA nebo GA, avšak za cenu vyšší očekávané odchylky od optima.
+Z praktického hlediska měření potvrzuje, že volba algoritmu musí vycházet z požadované rovnováhy mezi kvalitou a časem výpočtu a současně respektovat vlastnosti řešené úlohy. U asymetrických instancí je zejména důležité počítat s tím, že část klasických lokálních metod určených pro symetrický TSP není přímo použitelná a musí být nahrazena operátory navrženými pro orientované hrany.

@@ -201,13 +201,19 @@ def _build_jobs(
     n: int,
     tuned_index: dict[str, dict[str, dict[str, object]]],
     stochastic_repeats: int,
+    lkh_runs: int,
+    lkh_max_trials: int,
+    problem_type: str,
+    allow_local_2opt_3opt: bool = True,
     selected_algos: frozenset[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """
     Returns (jobs, manifest_algo_section).
 
     2OPT a 3OPT: jeden běh. RSO, ACO, GA, SA, LKH, LK: ``stochastic_repeats`` běhů se seedem.
+    U LKH má každý job navíc interní budget ``runs`` a ``max_trials``.
     """
+    ptype = "ATSP" if str(problem_type).upper() == "ATSP" else "TSP"
     all_alg = frozenset(SINGLE_RUN_LOCAL_ALGOS + ("LK", LKH_ALGO) + STOCHASTIC_ALGOS)
     want = all_alg if selected_algos is None else frozenset(selected_algos)
     if not want:
@@ -220,10 +226,13 @@ def _build_jobs(
     jobs: list[dict[str, Any]] = []
 
     for algo in SINGLE_RUN_LOCAL_ALGOS:
+        if not allow_local_2opt_3opt:
+            continue
         if algo not in want:
             continue
         cfg = resolve_algo_tuned_config(algo, n, tuned_index)
         params = dict(cfg["params"])
+        params["problem_type"] = ptype
         algo_manifest[algo] = {
             "tuned_target_profile": cfg["target_profile"],
             "tuned_chosen_profile": cfg["chosen_profile"],
@@ -231,7 +240,7 @@ def _build_jobs(
             "tuned_fallback": cfg["fallback"],
             "params_used": params,
             "benchmark_runs": 1,
-            "note": "Deterministická lokální heuristika — jeden běh na instanci.",
+            "note": "Deterministic local heuristic — one run per instance.",
         }
         jobs.append(
             {
@@ -248,16 +257,22 @@ def _build_jobs(
         if algo not in want:
             continue
         if algo == LKH_ALGO:
+            lkh_params = {
+                "runs": int(max(1, lkh_runs)),
+                "max_trials": int(max(100, lkh_max_trials)),
+                "problem_type": ptype,
+            }
             algo_manifest[LKH_ALGO] = {
                 "tuned_target_profile": infer_profile_by_n(n),
                 "tuned_chosen_profile": None,
                 "tuned_path": None,
                 "tuned_fallback": False,
-                "params_used": {},
+                "params_used": lkh_params,
                 "stochastic_repeats": stochastic_repeats,
                 "note": (
-                    f"LKH-3: uvnitř každého jobu runs=1, max_trials=10000; "
-                    f"{stochastic_repeats} nezávislých jobů s odlišným seedem."
+                    f"LKH-3: each job runs with runs={lkh_params['runs']}, "
+                    f"max_trials={lkh_params['max_trials']}; "
+                    f"{stochastic_repeats} independent jobs with different seeds."
                 ),
             }
             for r in range(stochastic_repeats):
@@ -267,7 +282,7 @@ def _build_jobs(
                         "run_index": r,
                         "instance_name": instance_name,
                         "seed": derive_algo_seed(master_seed, instance_name, LKH_ALGO, r),
-                        "params": {},
+                        "params": dict(lkh_params),
                         "convergence": False,
                     }
                 )
@@ -275,6 +290,7 @@ def _build_jobs(
         if algo == "LK":
             cfg = resolve_algo_tuned_config("LK", n, tuned_index)
             params = dict(cfg["params"])
+            params["problem_type"] = ptype
             algo_manifest["LK"] = {
                 "tuned_target_profile": cfg["target_profile"],
                 "tuned_chosen_profile": cfg["chosen_profile"],
@@ -298,6 +314,13 @@ def _build_jobs(
         if algo in STOCHASTIC_ALGOS:
             cfg = resolve_algo_tuned_config(algo, n, tuned_index)
             params = dict(cfg["params"])
+            if algo == "SA":
+                # Konzistentní SA průběh v benchmarku:
+                # - start vždy z náhodné trasy (bez NN bias),
+                # - auto-teplota podle škály instance.
+                params["p_nn_start"] = 0.0
+                params["auto_temp"] = True
+            params["problem_type"] = ptype
             algo_manifest[algo] = {
                 "tuned_target_profile": cfg["target_profile"],
                 "tuned_chosen_profile": cfg["chosen_profile"],
@@ -339,6 +362,9 @@ def _write_convergence(
             bl = rec.get("best_length")
             if optimum is not None and optimum > 0 and isinstance(bl, (int, float)):
                 rec["gap_vs_opt_pct"] = ((float(bl) - optimum) / optimum) * 100.0
+            cl = rec.get("current_length")
+            if optimum is not None and optimum > 0 and isinstance(cl, (int, float)):
+                rec["current_gap_vs_opt_pct"] = ((float(cl) - optimum) / optimum) * 100.0
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     return str(rel.as_posix())
 
@@ -407,6 +433,24 @@ def main() -> None:
     )
     parser.add_argument("--max-workers", type=int, default=4)
     parser.add_argument(
+        "--lkh-runs",
+        type=int,
+        default=5,
+        help=(
+            "Interní parametr LKH RUNS pro každý LKH job "
+            "(výchozí 5; dříve implicitně 1)."
+        ),
+    )
+    parser.add_argument(
+        "--lkh-max-trials",
+        type=int,
+        default=30000,
+        help=(
+            "Interní parametr LKH MAX_TRIALS pro každý LKH job "
+            "(výchozí 30000; dříve implicitně 10000)."
+        ),
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=_BASE_DIR / "benchmark_results",
@@ -446,6 +490,8 @@ def main() -> None:
         )
         sys.exit(1)
     matrix, n, tuned_params_subdir, edge_summary = loaded
+    is_atsp_instance = "ATSP" in str(edge_summary).upper()
+    problem_type = "ATSP" if is_atsp_instance else "TSP"
 
     instance_name = tsp_path.stem
     optimal_solutions = parse_solutions(solutions_path)
@@ -455,12 +501,26 @@ def main() -> None:
     tuned_index = load_tuned_params_index(tuned_root)
 
     selected = frozenset(args.algos) if args.algos is not None else None
+    if is_atsp_instance and selected is not None:
+        invalid = selected.intersection(SINGLE_RUN_LOCAL_ALGOS)
+        if invalid:
+            print(
+                "ERROR: 2OPT/3OPT v této implementaci nepodporují ATSP instance. "
+                f"Odstraňte z --algos: {sorted(invalid)}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
     jobs, algo_manifest = _build_jobs(
         instance_name=instance_name,
         master_seed=args.master_seed,
         n=n,
         tuned_index=tuned_index,
         stochastic_repeats=stochastic_repeats,
+        lkh_runs=max(1, int(args.lkh_runs)),
+        lkh_max_trials=max(100, int(args.lkh_max_trials)),
+        problem_type=problem_type,
+        allow_local_2opt_3opt=not is_atsp_instance,
         selected_algos=selected,
     )
 

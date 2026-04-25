@@ -108,7 +108,12 @@ def _simulated_annealing(
 
     if convergence_trace is not None:
         convergence_trace.append(
-            {"step": 0, "best_length": float(best_cost), "elapsed_s": 0.0}
+            {
+                "step": 0,
+                "best_length": float(best_cost),
+                "current_length": float(current_cost),
+                "elapsed_s": 0.0,
+            }
         )
 
     for steps in range(1, ms + 1):
@@ -138,18 +143,19 @@ def _simulated_annealing(
                 if current_cost < best_cost:
                     best = list(current)
                     best_cost = current_cost
+        improved_now = best_cost < last_logged_best
 
         if convergence_trace is not None:
-            improved = best_cost < last_logged_best
-            if improved or steps % log_stride == 0:
+            if improved_now or steps % log_stride == 0:
                 convergence_trace.append(
                     {
                         "step": steps,
                         "best_length": float(best_cost),
+                        "current_length": float(current_cost),
                         "elapsed_s": time.perf_counter() - t0,
                     }
                 )
-            if improved:
+            if improved_now:
                 last_logged_best = best_cost
 
     if is_atsp:
@@ -161,8 +167,9 @@ def _simulated_annealing(
     if convergence_trace is not None:
         convergence_trace.append(
             {
-                "step": steps,
+                "step": steps + 1,
                 "best_length": float(best_cost),
+                "current_length": float(current_cost),
                 "elapsed_s": time.perf_counter() - t0,
             }
         )

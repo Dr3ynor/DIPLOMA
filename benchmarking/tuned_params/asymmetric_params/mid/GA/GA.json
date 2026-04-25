@@ -4,7 +4,8 @@
   "params": {
     "pop_size": 120,
     "generations": 899,
-    "mutation_rate": 0.7037463399364883
+    "mutation_rate": 0.7037463399364883,
+    "tournament_k": 3
   },
   "study_name": "tsp_ga_seed42_kro124p",
   "n_trials": 50,
