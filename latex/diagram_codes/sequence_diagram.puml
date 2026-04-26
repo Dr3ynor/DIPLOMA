@@ -13,7 +13,7 @@ skinparam sequence {
   GroupFontColor black
 }
 
-title Sekvenční diagram: Výpočet trasy v aktuální implementaci
+title Sekvenční diagram: Výpočet trasy
 
 actor "Uživatel" as User
 participant "Frontend / UI\n(Sidebar, MapViewer)" as UI

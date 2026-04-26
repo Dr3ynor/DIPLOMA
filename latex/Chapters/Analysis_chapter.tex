@@ -13,7 +13,7 @@ Na základě zadání práce byly definovány klíčové požadavky, které jsou
 F1 & Systém umožní import seznamu lokalit (názvy měst, GPS souřadnice) z externího souboru. \\ \hline
 F2 & Systém provede výpočet matice vzdáleností a časů pomocí mapového API nebo lokálního modelu %%\cite{20, 23}. 
 \\ \hline
-F3 & Systém umožní export vygenerované instance do formátů JSON, CSV a standardizovaného formátu TSPLIB %%\cite{26}. 
+F3 & Systém umožní export vygenerované instance do formátů standardizovaného formátu TSPLIB %%\cite{26}. 
 \\ \hline
 F4 & Systém zajistí vizualizaci vstupních bodů a vypočtené optimální trasy nad mapovým podkladem %%\cite{20}. 
 \\ \hline
@@ -60,7 +60,7 @@ Diagram komponent \ref{fig:component_diagram} znázorňuje modulární strukturu
 Popisuje generování instance od vstupu až po finální export s pomocí externího API. Podobně lze přistupovat i k lokálnímu OSRM modelu.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/TSP_gen_activity_diagram.png}
+    \includegraphics[width=0.78\textwidth,height=0.58\textheight,keepaspectratio]{Figures/TSP_gen_activity_diagram.png}
     \caption{Diagram aktivit v aplikaci}
     \label{fig:activity_diagram}
 \end{figure}
@@ -107,7 +107,7 @@ Základním objektem systému je \texttt{TSPInstance}, která vnitřně reprezen
 V paměti bude instance uložena jako objekt obsahující:
 \begin{itemize}
     \item \texttt{nodes}: Seznam objektů (ID, název, lat, lon).
-    \item \texttt{distance\_matrix}: Dvourozměrné pole (numpy array) typu $n \times n$.
+    \item \texttt{distance\_matrix}: Dvourozměrné pole $n \times n$.
     \item \texttt{metadata}: Informace o zdroji dat, typu dopravy a datu vytvoření.
 \end{itemize}
 
@@ -133,14 +133,7 @@ Pro řešení výše zmíněného problému je v aplikaci použito neblokující
 \end{itemize}
 
 \subsection{Sekvenční diagram získávání dat}
-Následující diagram (Obr. \ref{fig:sequence_diagram}) ilustruje interakci mezi frontendem, backendem (generátorem) a API. Je patrné, že generátor nečeká na dokončení prvního požadavku, ale v rychlém sledu odesílá další, přičemž odpovědi zpracovává v pořadí, v jakém přicházejí ze sítě.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/sequence_diagram.png}
-    \caption{Sekvenční diagram komunikace mezi jednotlivými částmi systému a API}
-    \label{fig:sequence_diagram}
-\end{figure}
+Sekvenční diagram komunikace mezi frontendem, backendem (generátorem) a API je z důvodu čitelnosti uveden v příloze na obrázku~\ref{fig:sequence_diagram}. Ilustruje, že generátor nečeká na dokončení prvního požadavku, ale v rychlém sledu odesílá další, přičemž odpovědi zpracovává v pořadí, v jakém přicházejí ze sítě.
 
 \subsection{Návrh mezipaměti pro redukci duplicitních dotazů}
 Vzhledem k limitům veřejných služeb je důležitou částí návrhu mezipaměť geokódování. 
