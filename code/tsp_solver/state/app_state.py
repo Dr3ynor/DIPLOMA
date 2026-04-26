@@ -209,25 +209,13 @@ class AppState(Subject):
         Locking point edits prevents accidental desync between points and fixed matrix.
         """
         return self._distance_matrix is not None
-    
-    def remove_point_silent(self, index):
-        """Smaže bod z databáze, ale nespustí překreslení celého UI."""
-        if 0 <= index < len(self._points):
-            self._points.pop(index)
-            if index < len(self._point_labels):
-                self._point_labels.pop(index)
 
     def set_route(self, route_points):
         """Uloží trasu pro mapu. Bez metadat řešiče (import) vymaže ordered_stops / souhrn."""
         self._route = list(route_points) if route_points else []
-        if not self._route:
-            self._route_ordered_stops.clear()
-            self._route_total_value = None
-            self._route_metric_key = None
-        else:
-            self._route_ordered_stops.clear()
-            self._route_total_value = None
-            self._route_metric_key = None
+        self._route_ordered_stops.clear()
+        self._route_total_value = None
+        self._route_metric_key = None
         self.notify((ROUTE_UPDATE, self._route))
 
     def get_route(self):
@@ -246,9 +234,6 @@ class AppState(Subject):
         self._route_total_value = float(total_value)
         self._route_metric_key = str(metric_key)
         self.notify((ROUTE_UPDATE, self._route))
-
-    def update_route(self, points):
-        self.set_route(points)
 
     def get_route_ordered_stops(self) -> list[tuple[float, float]]:
         return list(self._route_ordered_stops)

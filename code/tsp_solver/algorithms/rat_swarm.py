@@ -39,20 +39,24 @@ def _chase(best_route, rat_route, rng, *, is_atsp=False):
     if is_atsp:
         return random_atsp_neighbor(candidate, rng)
     if rng.random() < 0.6:
-        i, j = sorted(rng.sample(range(1, len(candidate)), 2))
-        candidate[i : j + 1] = reversed(candidate[i : j + 1])
+        segment_start, segment_end = sorted(rng.sample(range(1, len(candidate)), 2))
+        candidate[segment_start : segment_end + 1] = reversed(
+            candidate[segment_start : segment_end + 1]
+        )
     return candidate
 
 
 def _fight(rat_route, rng, *, is_atsp=False):
     candidate = list(rat_route)
-    i, j = sorted(rng.sample(range(1, len(candidate)), 2))
-    candidate[i], candidate[j] = candidate[j], candidate[i]
+    swap_idx_a, swap_idx_b = sorted(rng.sample(range(1, len(candidate)), 2))
+    candidate[swap_idx_a], candidate[swap_idx_b] = candidate[swap_idx_b], candidate[swap_idx_a]
     if is_atsp:
         return random_atsp_neighbor(candidate, rng)
     if rng.random() < 0.5:
-        a, b = sorted(rng.sample(range(1, len(candidate)), 2))
-        candidate[a : b + 1] = reversed(candidate[a : b + 1])
+        segment_start, segment_end = sorted(rng.sample(range(1, len(candidate)), 2))
+        candidate[segment_start : segment_end + 1] = reversed(
+            candidate[segment_start : segment_end + 1]
+        )
     return candidate
 
 

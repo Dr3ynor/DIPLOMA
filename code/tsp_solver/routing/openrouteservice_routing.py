@@ -41,7 +41,6 @@ DEFAULT_ORS_BASE_URL = "https://api.openrouteservice.org"
 # Lokální OSRM (DistanceMatrixBuilder, ApiStatusPanel healthcheck) – výchozí = driving.
 OSRM_LOCAL_HOST = "http://localhost:5000"
 OSRM_LOCAL_TABLE_URL = f"{OSRM_LOCAL_HOST}/table/v1/driving/"
-OSRM_LOCAL_ROUTE_URL = f"{OSRM_LOCAL_HOST}/route/v1/driving/"
 
 # Logický klíč aplikace → segment URL u ORS v2 (viz https://openrouteservice.org/dev/#/api-docs/v2/matrix/{profile}/post )
 ORS_PROFILE_SLUGS: dict[str, str] = {
@@ -263,20 +262,20 @@ def ors_post_matrix_block(
     n_pairs = len(sources) * len(destinations)
 
     try:
-        r = requests.post(
+        response = requests.post(
             url,
             json=body,
             headers=_ors_headers(api_key),
             timeout=_MATRIX_TIMEOUT_S,
         )
-        print(f"ORS matrix response HTTP {r.status_code}")
-        data = r.json()
-        if r.status_code != 200:
-            err = data.get("error") if isinstance(data, dict) else None
-            print(f"ORS matrix chyba: {err or data}")
+        print(f"ORS matrix response HTTP {response.status_code}")
+        response_payload = response.json()
+        if response.status_code != 200:
+            err = response_payload.get("error") if isinstance(response_payload, dict) else None
+            print(f"ORS matrix chyba: {err or response_payload}")
             return None
         want_km = "distance" in metrics
-        return _parse_matrix_response(data, len(sources), len(destinations), want_km)
+        return _parse_matrix_response(response_payload, len(sources), len(destinations), want_km)
     except Exception as e:
         print(f"ORS matrix výjimka: {e}")
         return None
@@ -298,15 +297,15 @@ def ors_build_full_matrix(
 
     matrix = [[0.0 if i == j else float("inf") for j in range(n)] for i in range(n)]
 
-    bs = max(1, int(math.sqrt(ORS_MATRIX_MAX_PAIRS)))
-    if bs * bs > ORS_MATRIX_MAX_PAIRS:
-        bs -= 1
+    block_size = max(1, int(math.sqrt(ORS_MATRIX_MAX_PAIRS)))
+    if block_size * block_size > ORS_MATRIX_MAX_PAIRS:
+        block_size -= 1
 
-    for si in range(0, n, bs):
-        for dj in range(0, n, bs):
-            src_range = list(range(si, min(si + bs, n)))
-            dst_range = list(range(dj, min(dj + bs, n)))
-            sub = ors_post_matrix_block(
+    for source_block_start in range(0, n, block_size):
+        for dest_block_start in range(0, n, block_size):
+            src_range = list(range(source_block_start, min(source_block_start + block_size, n)))
+            dst_range = list(range(dest_block_start, min(dest_block_start + block_size, n)))
+            block_matrix = ors_post_matrix_block(
                 locations,
                 src_range,
                 dst_range,
@@ -318,11 +317,11 @@ def ors_build_full_matrix(
                 avoid_features,
                 profile_params,
             )
-            if sub is None:
+            if block_matrix is None:
                 return None
             for ri, i in enumerate(src_range):
                 for cj, j in enumerate(dst_range):
-                    matrix[i][j] = sub[ri][cj]
+                    matrix[i][j] = block_matrix[ri][cj]
     return matrix
 
 
@@ -356,37 +355,37 @@ def ors_post_directions_chunk(
     )
 
     try:
-        r = requests.post(
+        response = requests.post(
             url,
             json=body,
             headers=_ors_headers(api_key),
             timeout=_DIRECTIONS_TIMEOUT_S,
         )
-        print(f"ORS directions response HTTP {r.status_code} (chunk {chunk_index + 1}/{num_chunks})")
-        data = r.json()
+        print(f"ORS directions response HTTP {response.status_code} (chunk {chunk_index + 1}/{num_chunks})")
+        response_payload = response.json()
 
-        if r.status_code != 200:
-            err = data.get("error") if isinstance(data, dict) else None
-            print(f"ORS directions chyba: {err or data}")
+        if response.status_code != 200:
+            err = response_payload.get("error") if isinstance(response_payload, dict) else None
+            print(f"ORS directions chyba: {err or response_payload}")
             return None
-        geom = None
-        if isinstance(data, dict):
-            if data.get("type") == "Feature":
-                geom = data.get("geometry") or {}
+        route_geometry = None
+        if isinstance(response_payload, dict):
+            if response_payload.get("type") == "Feature":
+                route_geometry = response_payload.get("geometry") or {}
             else:
-                feats = data.get("features")
+                feats = response_payload.get("features")
                 if feats:
-                    geom = feats[0].get("geometry") or {}
-        if not geom:
+                    route_geometry = feats[0].get("geometry") or {}
+        if not route_geometry:
             print("ORS directions: chybí geometry (Feature/FeatureCollection)")
             return None
-        coords = geom.get("coordinates")
+        coords = route_geometry.get("coordinates")
         if not coords:
             print("ORS directions: chybí geometry.coordinates")
             return None
-        out = [[p[1], p[0]] for p in coords]
-        print(f"ORS directions: chunk {chunk_index + 1} bodů geometrie={len(out)}")
-        return out
+        route_points_latlon = [[p[1], p[0]] for p in coords]
+        print(f"ORS directions: chunk {chunk_index + 1} bodů geometrie={len(route_points_latlon)}")
+        return route_points_latlon
     except Exception as e:
         print(f"ORS directions výjimka chunk {chunk_index}: {e}")
         return None
@@ -406,20 +405,20 @@ def ors_route_geometry_latlon(
     Chunkování waypointů (max. počet na jeden POST), překryv o 1 bod.
     ordered_points: (lat, lon), uzavřený kruh včetně návratu na start.
     """
-    pts = ordered_points_latlon
-    if len(pts) < 2:
+    waypoints = ordered_points_latlon
+    if len(waypoints) < 2:
         return []
 
     full_geometry: list[list[float]] = []
     step = chunk_size - 1
-    n_chunks = max(1, (len(pts) - 2) // step + 1)
-    for idx, i in enumerate(range(0, len(pts) - 1, step)):
-        chunk = pts[i : i + chunk_size]
+    n_chunks = max(1, (len(waypoints) - 2) // step + 1)
+    for idx, i in enumerate(range(0, len(waypoints) - 1, step)):
+        chunk = waypoints[i : i + chunk_size]
         if len(chunk) < 2:
             break
-        coords_ll = [[p[1], p[0]] for p in chunk]
+        coordinates_lonlat = [[p[1], p[0]] for p in chunk]
         chunk_geom = ors_post_directions_chunk(
-            coords_ll,
+            coordinates_lonlat,
             profile_slug,
             api_key,
             base_url,

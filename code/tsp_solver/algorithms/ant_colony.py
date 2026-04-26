@@ -41,10 +41,10 @@ def _ant_colony(
     """Ant System style ACO with matrix precomputation and elite pheromone updates."""
     n = len(matrix)
     local_rng = rng if rng is not None else random.Random(seed)
-    pt = str(problem_type).upper()
-    if pt == "ATSP":
+    normalized_problem_type = str(problem_type).upper()
+    if normalized_problem_type == "ATSP":
         use_atsp_polish = True
-    elif pt == "TSP":
+    elif normalized_problem_type == "TSP":
         use_atsp_polish = _directed_matrix_is_asymmetric(matrix)
     else:
         use_atsp_polish = _directed_matrix_is_asymmetric(matrix)

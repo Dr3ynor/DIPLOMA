@@ -43,9 +43,9 @@ def _genetic_algorithm(
 
     base_route = list(range(1, n))
     for _ in range(pop_size - 1):
-        ind = base_route.copy()
-        local_rng.shuffle(ind)
-        route = [0] + ind
+        individual_route = base_route.copy()
+        local_rng.shuffle(individual_route)
+        route = [0] + individual_route
         population.append((route, tour_length(route, matrix)))
 
     generations_without_improvement = 0
@@ -76,25 +76,29 @@ def _genetic_algorithm(
 
             inherited_from_A = set(parent_A_route[start:end])
 
-            p2_idx = 1
+            parent_b_idx = 1
             for k in range(1, n):
                 if child_route[k] is None:
-                    while parent_B_route[p2_idx] in inherited_from_A:
-                        p2_idx += 1
-                    child_route[k] = parent_B_route[p2_idx]
-                    p2_idx += 1
+                    while parent_B_route[parent_b_idx] in inherited_from_A:
+                        parent_b_idx += 1
+                    child_route[k] = parent_B_route[parent_b_idx]
+                    parent_b_idx += 1
 
             if local_rng.random() < mutation_rate:
                 if is_atsp:
                     child_route = random_atsp_neighbor(child_route, local_rng)
                 else:
                     if local_rng.random() < 0.78:
-                        a, b = sorted(local_rng.sample(range(1, n), 2))
-                        if b > a:
-                            child_route[a : b + 1] = reversed(child_route[a : b + 1])
+                        mutation_start, mutation_end = sorted(local_rng.sample(range(1, n), 2))
+                        child_route[mutation_start : mutation_end + 1] = reversed(
+                            child_route[mutation_start : mutation_end + 1]
+                        )
                     else:
-                        a, b = local_rng.sample(range(1, n), 2)
-                        child_route[a], child_route[b] = child_route[b], child_route[a]
+                        swap_idx_a, swap_idx_b = local_rng.sample(range(1, n), 2)
+                        child_route[swap_idx_a], child_route[swap_idx_b] = (
+                            child_route[swap_idx_b],
+                            child_route[swap_idx_a],
+                        )
 
             child_dist = tour_length(child_route, matrix)
 

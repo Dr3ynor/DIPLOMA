@@ -38,8 +38,6 @@ from PyQt6.QtWidgets import (
 
 from tsp_solver.state.app_settings import (
     load_distance_unit,
-    load_ors_api_key,
-    load_ors_base_url,
     load_use_local_osrm_fallback,
 )
 from tsp_solver.state.app_state import state

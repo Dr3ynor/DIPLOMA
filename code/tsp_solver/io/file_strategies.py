@@ -62,9 +62,9 @@ def _parse_tsp_file(filepath: str) -> tuple:
                 parts = line.split()
                 if len(parts) >= 3:
                     try:
-                        val1 = float(parts[1])
-                        val2 = float(parts[2])
-                        points.append((val1, val2))
+                        coord_x_or_lat = float(parts[1])
+                        coord_y_or_lon = float(parts[2])
+                        points.append((coord_x_or_lat, coord_y_or_lon))
                     except ValueError:
                         continue
                         

@@ -31,14 +31,14 @@ class DistanceMatrixBuilder:
             CHEBYSHEV: self._chebyshev,
         }
 
-    def _haversine(self, p1, p2):
-        lat1, lon1 = p1
-        lat2, lon2 = p2
+    def _haversine(self, start_point, end_point):
+        lat1, lon1 = start_point
+        lat2, lon2 = end_point
         phi1, phi2 = math.radians(lat1), math.radians(lat2)
         dphi = math.radians(lat2 - lat1)
         dlambda = math.radians(lon2 - lon1)
-        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-        return self.R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        haversine_term = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        return self.R * 2 * math.atan2(math.sqrt(haversine_term), math.sqrt(1 - haversine_term))
 
     @staticmethod
     def _euclidean_2d(p1, p2):
@@ -60,12 +60,12 @@ class DistanceMatrixBuilder:
         url = f"{base}{coords}?annotations={annotation}"
         try:
             response = requests.get(url, timeout=60)
-            data = response.json()
-            if data.get("code") == "Ok":
+            osrm_payload = response.json()
+            if osrm_payload.get("code") == "Ok":
                 if annotation == "distance":
-                    return [[d / 1000.0 for d in row] for row in data["distances"]]
+                    return [[d / 1000.0 for d in row] for row in osrm_payload["distances"]]
                 else:
-                    return [[d / 60.0 for d in row] for row in data["durations"]]
+                    return [[d / 60.0 for d in row] for row in osrm_payload["durations"]]
         except Exception as e:
             print(f"CHYBA: OSRM Table selhal: {e}")
         return None
@@ -96,23 +96,23 @@ class DistanceMatrixBuilder:
         cfg = ors if ors is not None else OrsRoutingConfig()
         resolved = self._resolve_ors(cfg)
         if resolved:
-            key, base, logical = resolved
-            slug = ors_profile_slug(logical)
+            api_key, base_url, logical_profile = resolved
+            slug = ors_profile_slug(logical_profile)
             print(
-                f"DEBUG: Geometrie trasy – zkouším ORS profile={slug} (logical={logical}), "
+                f"DEBUG: Geometrie trasy – zkouším ORS profile={slug} (logical={logical_profile}), "
                 f"bodů={len(ordered_points)}"
             )
-            geom = ors_route_geometry_latlon(
+            ors_geometry = ors_route_geometry_latlon(
                 [tuple(p) for p in ordered_points],
                 slug,
-                key,
-                base,
-                logical,
+                api_key,
+                base_url,
+                logical_profile,
                 avoid_features=cfg.avoid_features_list,
                 profile_params=cfg.profile_params,
             )
-            if geom is not None:
-                return geom
+            if ors_geometry is not None:
+                return ors_geometry
             print("DEBUG: ORS geometrie selhala → fallback OSRM")
 
         if not cfg.allow_local_osrm_fallback:
@@ -136,10 +136,10 @@ class DistanceMatrixBuilder:
 
             try:
                 response = requests.get(url, timeout=30)
-                data = response.json()
-                if data.get("code") == "Ok":
-                    geom = data["routes"][0]["geometry"]["coordinates"]
-                    chunk_geometry = [[p[1], p[0]] for p in geom]
+                osrm_payload = response.json()
+                if osrm_payload.get("code") == "Ok":
+                    lonlat_ring = osrm_payload["routes"][0]["geometry"]["coordinates"]
+                    chunk_geometry = [[p[1], p[0]] for p in lonlat_ring]
 
                     if full_geometry:
                         full_geometry.extend(chunk_geometry[1:])
@@ -178,19 +178,19 @@ class DistanceMatrixBuilder:
                         "haversine"
                     )
             if resolved:
-                key, base, logical = resolved
-                slug = ors_profile_slug(logical)
+                api_key, base_url, logical_profile = resolved
+                slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice vzdáleností – ORS profile={slug} (logical={logical}), "
+                    f"DEBUG: Matice vzdáleností – ORS profile={slug} (logical={logical_profile}), "
                     f"n={n} bodů"
                 )
                 matrix = ors_build_full_matrix(
                     points,
                     True,
                     slug,
-                    key,
-                    base,
-                    logical,
+                    api_key,
+                    base_url,
+                    logical_profile,
                     cfg.avoid_features_list,
                     cfg.profile_params,
                 )
@@ -225,19 +225,19 @@ class DistanceMatrixBuilder:
                         "haversine"
                     )
             if resolved:
-                key, base, logical = resolved
-                slug = ors_profile_slug(logical)
+                api_key, base_url, logical_profile = resolved
+                slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice času – ORS profile={slug} (logical={logical}), "
+                    f"DEBUG: Matice času – ORS profile={slug} (logical={logical_profile}), "
                     f"n={n} bodů"
                 )
                 matrix = ors_build_full_matrix(
                     points,
                     False,
                     slug,
-                    key,
-                    base,
-                    logical,
+                    api_key,
+                    base_url,
+                    logical_profile,
                     cfg.avoid_features_list,
                     cfg.profile_params,
                 )

@@ -74,9 +74,3 @@ class OptimizationEngine:
             print(f"DEBUG: Engine finished {solver_type} | {self.last_execution_time:.4f} s")
 
         return route
-
-    def get_stats(self):
-        """Vrátí statistiky posledního běhu."""
-        return {
-            "execution_time": self.last_execution_time
-        }

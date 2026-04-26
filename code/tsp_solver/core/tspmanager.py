@@ -43,8 +43,8 @@ class TSPManager:
         if not points or len(points) < 2:
             return [], [], 0.0
 
-        cfg = ors if ors is not None else OrsRoutingConfig()
-        ptype = str(problem_type or "TSP").upper()
+        routing_config = ors if ors is not None else OrsRoutingConfig()
+        problem_type_key = str(problem_type or "TSP").upper()
 
         # 1. Rozhodnutí o metrice
         is_geo = state.is_geo() if is_geographic is None else is_geographic
@@ -58,21 +58,21 @@ class TSPManager:
             matrix = self.matrix_builder.build(
                 points,
                 mode=actual_metric,
-                ors=cfg,
+                ors=routing_config,
             )
 
         # 3. Spuštění algoritmu (indexy měst)
         ors_hint = ""
         if actual_metric in ("routing_dist", "routing_time"):
-            slug = ors_profile_slug(cfg.profile_key)
-            logical = cfg.profile_key or "car"
+            slug = ors_profile_slug(routing_config.profile_key)
+            logical = routing_config.profile_key or "car"
             ors_hint = f", ORS profile={slug} (logical={logical})"
         print(
             f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}'"
-            f"{ors_hint}, problem_type='{ptype}' and kwargs: {solver_kwargs}"
+            f"{ors_hint}, problem_type='{problem_type_key}' and kwargs: {solver_kwargs}"
         )
         route_indices = self.engine.run(
-            solver_type, matrix, problem_type=ptype, **solver_kwargs
+            solver_type, matrix, problem_type=problem_type_key, **solver_kwargs
         )
 
         # 4. Výpočet celkové délky trasy
@@ -91,7 +91,7 @@ class TSPManager:
             visual_route = self.matrix_builder.get_route_geometry(
                 ordered_cities,
                 mode=actual_metric,
-                ors=cfg,
+                ors=routing_config,
             )
         
         return ordered_cities, visual_route, total_distance
@@ -99,12 +99,12 @@ class TSPManager:
     def _calculate_total_tour_distance(self, route, matrix):
         """Pomocná funkce pro sečtení délky trasy včetně návratu do startu."""
         if not route: return 0.0
-        d = 0.0
+        total_distance = 0.0
         for i in range(len(route) - 1):
-            d += matrix[route[i]][route[i+1]]
+            total_distance += matrix[route[i]][route[i+1]]
         # Připočtení cesty zpět do prvního bodu
-        d += matrix[route[-1]][route[0]]
-        return d
+        total_distance += matrix[route[-1]][route[0]]
+        return total_distance
 
     def get_export_formats(self):
         return self.io_handler.get_supported_formats()   

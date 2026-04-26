@@ -9,7 +9,6 @@ v properties jsou stejná pole jako u JSON route (segments / steps).
 
 from __future__ import annotations
 
-import json
 import math
 from dataclasses import dataclass, field
 from typing import Any
@@ -110,23 +109,6 @@ def _merge_route_extras(dst: dict[str, Any], src: Any) -> None:
             dst[k] = {**old, **v}
         else:
             dst[k] = v
-
-
-def _extract_coordinates_from_route(route: dict[str, Any]) -> list[list[float]]:
-    """Z legacy JSON route objektu (routes[0]) – geometrie bývá encoded polyline string."""
-    geom = route.get("geometry")
-    if isinstance(geom, str):
-        try:
-            geom = json.loads(geom)
-        except (json.JSONDecodeError, TypeError):
-            return []
-    if isinstance(geom, dict):
-        if geom.get("type") == "Feature":
-            geom = geom.get("geometry") or {}
-        coords = geom.get("coordinates")
-        if isinstance(coords, list):
-            return coords
-    return []
 
 
 def _ors_geojson_feature_props_and_coords(
@@ -304,20 +286,20 @@ def ors_post_directions_json_chunk(
         f"chunk={chunk_index + 1}/{num_chunks} coords={len(coordinates_lonlat)}"
     )
     try:
-        r = requests.post(
+        response = requests.post(
             url,
             json=body,
             headers=_ors_headers(api_key),
             timeout=_DIRECTIONS_TIMEOUT_S,
         )
-        data = r.json()
-        if r.status_code != 200:
-            err = data.get("error") if isinstance(data, dict) else None
-            print(f"ORS directions GeoJSON (detail) chyba: {err or data}")
+        response_payload = response.json()
+        if response.status_code != 200:
+            err = response_payload.get("error") if isinstance(response_payload, dict) else None
+            print(f"ORS directions GeoJSON (detail) chyba: {err or response_payload}")
             return None
-        if not isinstance(data, dict):
+        if not isinstance(response_payload, dict):
             return None
-        parsed = _ors_geojson_feature_props_and_coords(data)
+        parsed = _ors_geojson_feature_props_and_coords(response_payload)
         if not parsed:
             print("ORS directions GeoJSON (detail): chybí Feature / coordinates")
             return None
@@ -352,7 +334,7 @@ def ors_directions_full_detail(
 
     Uzavřený TSP (první bod == poslední): ORS při jednom požadavku [A,B,…,A] často ukončí
     slovní návod u posledního mezilehlého waypointu a nepopíše úsek návratu na start.
-    Proto routujeme **otevřený řetězec** ``pts[:-1]`` a na konec **samostatně**
+    Proto routujeme **otevřený řetězec** ``ordered_stops[:-1]`` a na konec **samostatně**
     úsek ``poslední_zastávka → start``.
     """
     if not (api_key and api_key.strip()):
@@ -361,36 +343,36 @@ def ors_directions_full_detail(
     slug = ors_profile_slug(logical_profile)
     effective_avoid = sanitize_avoid_features(logical_profile, avoid_features)
 
-    pts = [tuple(p) for p in ordered_points_latlon]
-    if len(pts) < 2:
+    ordered_stops = [tuple(p) for p in ordered_points_latlon]
+    if len(ordered_stops) < 2:
         return RouteDirectionsDetail()
 
-    closed = len(pts) >= 3 and _same_latlon(pts[0], pts[-1])
+    closed = len(ordered_stops) >= 3 and _same_latlon(ordered_stops[0], ordered_stops[-1])
     if closed:
-        core = pts[:-1]
-        return_start = pts[0]
+        route_core = ordered_stops[:-1]
+        return_start = ordered_stops[0]
     else:
-        core = pts
+        route_core = ordered_stops
         return_start = None
 
-    if len(core) < 2:
+    if len(route_core) < 2:
         return RouteDirectionsDetail()
 
     step = chunk_size - 1
-    n_chunks = max(1, (len(core) - 2) // step + 1)
+    n_chunks = max(1, (len(route_core) - 2) // step + 1)
 
     all_instructions: list[str] = []
     merged_profile: list[tuple[float, float]] = []
     has_any_elev = False
     merged_extras: dict[str, Any] = {}
 
-    for idx, i in enumerate(range(0, len(core) - 1, step)):
-        chunk = core[i : i + chunk_size]
+    for idx, i in enumerate(range(0, len(route_core) - 1, step)):
+        chunk = route_core[i : i + chunk_size]
         if len(chunk) < 2:
             break
-        coords_ll = [[p[1], p[0]] for p in chunk]
+        coordinates_lonlat = [[p[1], p[0]] for p in chunk]
         chunk_detail = ors_post_directions_json_chunk(
-            coords_ll,
+            coordinates_lonlat,
             slug,
             api_key.strip(),
             base,
@@ -424,16 +406,16 @@ def ors_directions_full_detail(
                     [(base_km + d, e) for d, e in prof[1:]]
                 )
 
-    if closed and return_start is not None and core:
-        last_u = core[-1]
-        if not _same_latlon(last_u, return_start):
+    if closed and return_start is not None and route_core:
+        last_stop = route_core[-1]
+        if not _same_latlon(last_stop, return_start):
             print(
                 "ORS directions: závěrečný úsek návratu na start "
-                f"({last_u[0]:.5f},{last_u[1]:.5f}) → ({return_start[0]:.5f},{return_start[1]:.5f})"
+                f"({last_stop[0]:.5f},{last_stop[1]:.5f}) → ({return_start[0]:.5f},{return_start[1]:.5f})"
             )
             closing = ors_post_directions_json_chunk(
                 [
-                    [last_u[1], last_u[0]],
+                    [last_stop[1], last_stop[0]],
                     [return_start[1], return_start[0]],
                 ],
                 slug,
@@ -452,15 +434,15 @@ def ors_directions_full_detail(
                     "návod může končit u poslední zastávky."
                 )
             else:
-                cprops, craw = closing
-                if extra_info and isinstance(cprops, dict):
-                    ex = cprops.get("extras")
+                closing_props, closing_coords = closing
+                if extra_info and isinstance(closing_props, dict):
+                    ex = closing_props.get("extras")
                     if ex:
                         _merge_route_extras(merged_extras, ex)
                 _extend_instructions_dedupe_consecutive(
-                    all_instructions, _parse_instructions_from_route(cprops)
+                    all_instructions, _parse_instructions_from_route(closing_props)
                 )
-                cprof, chunk_has_elev = _build_profile_from_coords_lonlat(craw)
+                cprof, chunk_has_elev = _build_profile_from_coords_lonlat(closing_coords)
                 if chunk_has_elev and cprof:
                     has_any_elev = True
                     base_km = merged_profile[-1][0] if merged_profile else 0.0
@@ -486,11 +468,11 @@ def _osrm_leg_instructions(url_base: str, chunk: list[tuple[float, float]]) -> l
     coords = ";".join(f"{p[1]},{p[0]}" for p in chunk)
     url = f"{url_base}{coords}?overview=false&steps=true&geometries=geojson"
     try:
-        r = requests.get(url, timeout=30)
-        data = r.json()
-        if data.get("code") != "Ok":
+        response = requests.get(url, timeout=30)
+        response_payload = response.json()
+        if response_payload.get("code") != "Ok":
             return None
-        routes = data.get("routes")
+        routes = response_payload.get("routes")
         if not routes:
             return None
         leg_out: list[str] = []
@@ -517,22 +499,22 @@ def osrm_fetch_instructions_only(
     """Lokální OSRM: textové instrukce bez výšky. Vrací None při chybě."""
     from tsp_solver.routing.openrouteservice_routing import osrm_local_route_url
 
-    pts = [tuple(p) for p in ordered_points_latlon]
-    if len(pts) < 2:
+    ordered_stops = [tuple(p) for p in ordered_points_latlon]
+    if len(ordered_stops) < 2:
         return []
 
-    closed = len(pts) >= 3 and _same_latlon(pts[0], pts[-1])
-    core = pts[:-1] if closed else pts
-    return_start = pts[0] if closed else None
+    closed = len(ordered_stops) >= 3 and _same_latlon(ordered_stops[0], ordered_stops[-1])
+    route_core = ordered_stops[:-1] if closed else ordered_stops
+    return_start = ordered_stops[0] if closed else None
 
-    if len(core) < 2:
+    if len(route_core) < 2:
         return []
 
     route_base = osrm_local_route_url(logical_profile)
     out: list[str] = []
     chunk_size = 50
-    for i in range(0, len(core) - 1, chunk_size - 1):
-        chunk = core[i : i + chunk_size]
+    for i in range(0, len(route_core) - 1, chunk_size - 1):
+        chunk = route_core[i : i + chunk_size]
         if len(chunk) < 2:
             break
         leg = _osrm_leg_instructions(route_base, chunk)
@@ -540,10 +522,10 @@ def osrm_fetch_instructions_only(
             return None
         _extend_instructions_dedupe_consecutive(out, leg)
 
-    if closed and return_start is not None and core:
-        last_u = core[-1]
-        if not _same_latlon(last_u, return_start):
-            leg = _osrm_leg_instructions(route_base, [last_u, return_start])
+    if closed and return_start is not None and route_core:
+        last_stop = route_core[-1]
+        if not _same_latlon(last_stop, return_start):
+            leg = _osrm_leg_instructions(route_base, [last_stop, return_start])
             if leg is None:
                 print("OSRM: závěrečný úsek návratu selhal")
             else:

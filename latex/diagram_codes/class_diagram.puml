@@ -63,7 +63,6 @@ class OptimizationEngine {
   -_solver_functions: dict
   +run(solver_type, matrix, **kwargs)
   +get_solver_options()
-  +get_stats()
 }
 
 class Subject {

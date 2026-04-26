@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
+    QComboBox, QListWidget, QListWidgetItem, QScrollArea, QFrame,
     QCheckBox,
-    QSizePolicy, QSpacerItem, QFormLayout, QSpinBox, QDoubleSpinBox,
+    QSizePolicy, QFormLayout, QSpinBox, QDoubleSpinBox,
     QProgressBar,
 )
 from PyQt6.QtCore import QSize, Qt, QTimer, QObject, QThread, pyqtSignal
