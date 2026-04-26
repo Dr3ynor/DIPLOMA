@@ -441,10 +441,10 @@ def plot_summary_table_optimum_vs_stats(
     manifest: dict[str, Any],
     df: pd.DataFrame,
     out_dir: Path,
-) -> tuple[Path, Path] | None:
+) -> tuple[Path, Path, Path] | None:
     """
     Závěrečná souhrnná tabulka — optimum vs. naměřené: medián, modus (discretizovaný), průměr, min, max
-    pro každý algoritmus; uloží CSV + obrázek s tabulkou a sloupcem mediánového gapu.
+    pro každý algoritmus; uloží CSV + samostatný sloupcový graf mediánového gapu + LaTeX tabulku.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     if df.empty or "tour_length" not in df.columns:
@@ -492,44 +492,40 @@ def plot_summary_table_optimum_vs_stats(
     summary = pd.DataFrame(rows).sort_values("algorithm")
     csv_path = out_dir / "summary_stats.csv"
     summary.to_csv(csv_path, index=False, encoding="utf-8")
+    tex_path = out_dir / "summary_stats.tex"
+    summary.to_latex(
+        tex_path,
+        index=False,
+        float_format=lambda x: f"{x:.3f}",
+        na_rep="",
+        caption=(
+            "Souhrnné statistiky algoritmů (n\\_runs, medián/průměr/modus/min/max "
+            "a gap vůči optimu v \\%)."
+        ),
+        label="tab:summary_stats",
+        escape=True,
+    )
 
-    # Tabulka + barplot mediánového gapu
-    fig = plt.figure(figsize=(12, 7))
-    gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1.0], hspace=0.35)
-    ax0 = fig.add_subplot(gs[0])
-    ax1 = fig.add_subplot(gs[1])
+    # Samostatný barplot mediánového gapu (bez renderu tabulky do obrázku).
+    fig, ax = plt.subplots(figsize=(10, 5))
 
     if summary["median_gap_pct"].notna().any():
-        ax0.bar(summary["algorithm"], summary["median_gap_pct"].fillna(0), color="steelblue", alpha=0.85)
-        ax0.axhline(0, color="tab:green", lw=1)
-        ax0.set_ylabel("Medián gap vs. optimum (%)")
-        ax0.set_title(f"Medián odchylky od optima ({manifest.get('instance', '')}, optimum={optimum})")
-        ax0.grid(axis="y", alpha=0.3)
+        ax.bar(
+            summary["algorithm"],
+            summary["median_gap_pct"].fillna(0),
+            color="steelblue",
+            alpha=0.85,
+        )
+    ax.axhline(0, color="tab:green", lw=1)
+    ax.set_ylabel("Medián gap vs. optimum (%)")
+    ax.set_title(f"Medián odchylky od optima ({manifest.get('instance', '')}, optimum={optimum})")
+    ax.grid(axis="y", alpha=0.3)
 
-    ax1.axis("off")
-    disp = summary.drop(columns=["algorithm"]).copy()
-    for c in disp.columns:
-        if disp[c].dtype in (np.float64, np.float32):
-            disp[c] = disp[c].map(lambda x: f"{x:.4g}" if pd.notna(x) else "")
-        else:
-            disp[c] = disp[c].astype(str)
-    tbl = ax1.table(
-        cellText=disp.values,
-        colLabels=list(disp.columns),
-        rowLabels=[str(x) for x in summary["algorithm"].values],
-        loc="center",
-        cellLoc="center",
-    )
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(7)
-    tbl.scale(1.0, 1.4)
-    ax1.set_title("Souhrnné statistiky (CSV též summary_stats.csv)", fontsize=10, pad=12)
-
-    fig.suptitle("Optimum vs. naměřené — medián / modus / průměr", fontsize=12, y=0.98)
-    png_path = out_dir / "summary_table_optimum_vs_stats.png"
+    fig.tight_layout()
+    png_path = out_dir / "summary_median_gap_bar.png"
     fig.savefig(png_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    return csv_path, png_path
+    return csv_path, png_path, tex_path
 
 
 def _dispatch(only: list[str]) -> dict[str, Callable[..., Any]]:

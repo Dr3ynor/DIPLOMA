@@ -1,0 +1,71 @@
+@startuml
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam ArrowColor black
+skinparam sequence {
+  LifeLineBorderColor black
+  LifeLineBackgroundColor white
+  ParticipantBorderColor black
+  ParticipantBackgroundColor white
+  ParticipantFontColor black
+  GroupBorderColor black
+  GroupBackgroundColor white
+  GroupFontColor black
+}
+
+title Sekvenční diagram: Výpočet trasy v aktuální implementaci
+
+actor "Uživatel" as User
+participant "Frontend / UI\n(Sidebar, MapViewer)" as UI
+participant "TSPManager" as Mgr
+participant "DistanceMatrixBuilder" as DMB
+participant "OptimizationEngine" as Engine
+participant "ORS API\n(externí)" as ORS
+participant "OSRM Local\n(fallback)" as OSRM
+participant "AppState" as State
+
+== Fáze 1: Vstup a konfigurace ==
+User -> UI: Zadá body a parametry řešení
+UI -> Mgr: solve(points, solver, metric, orsConfig, problemType)
+Mgr -> State: is_geo() / čtení režimu
+State --> Mgr: geo režim + stav
+
+== Fáze 2: Sestavení matice ==
+Mgr -> DMB: build(points, mode, ors)
+alt routing_dist nebo routing_time
+  alt ORS API key je dostupný
+    DMB -> ORS: POST /v2/matrix/{profile}
+    ORS --> DMB: distances/durations matrix
+  else ORS selže nebo chybí API key
+    DMB -> OSRM: GET /table/v1/{profile}/...
+    OSRM --> DMB: fallback matrix
+  end
+else bodové metriky (haversine/euc_2d/manhattan/chebyshev)
+  DMB -> DMB: výpočet matice lokálně
+end
+DMB --> Mgr: distance matrix
+
+== Fáze 3: Optimalizace ==
+Mgr -> Engine: run(solver_type, matrix, problem_type, kwargs)
+Engine --> Mgr: route_indices
+Mgr -> Mgr: _calculate_total_tour_distance(...)
+
+== Fáze 4: Geometrie a návrat do UI ==
+Mgr -> DMB: get_route_geometry(ordered_points, mode, ors)
+alt routing režim
+  DMB -> ORS: POST /v2/directions/{profile}/geojson
+  ORS --> DMB: route geometry
+  alt ORS directions selže
+    DMB -> OSRM: GET /route/v1/{profile}/...
+    OSRM --> DMB: fallback geometry
+  end
+else bodové metriky
+  DMB -> DMB: přímé spojnice mezi body
+end
+DMB --> Mgr: visual_route
+Mgr --> UI: ordered_stops, visual_route, total_value
+UI -> State: set_route_result(...)
+State --> UI: notify(ROUTE_UPDATE)
+UI --> User: Zobrazení trasy a výsledku
+
+@enduml

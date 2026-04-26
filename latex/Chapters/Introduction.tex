@@ -1,0 +1,39 @@
+\chapter{Úvod}
+\label{sec:Introduction}
+Problém obchodního cestujícího (\textit{Traveling Salesman Problem}, dále jen TSP) představuje jeden z nejvíce studovaných a zároveň nejnáročnějších úkolů v oblasti kombinatorické optimalizace a operačního výzkumu. Přestože byla jeho matematická podstata definována již v první polovině 20. století, jeho význam v kontextu moderní digitální společnosti neustále narůstá. Tato práce se zaměřuje na překlenutí mezery mezi teoretickými modely a jejich aplikací v reálném geografickém prostředí prostřednictvím návrhu a realizace specializovaného generátoru instancí.
+
+\section{Motivace a kontext}
+V současné éře globální logistiky a narůstajících požadavků na efektivitu dopravy hraje optimalizace tras klíčovou roli v ekonomické stabilitě podniků i v ochraně životního prostředí. Každé procento úspory v ujeté vzdálenosti se přímo promítá do snížení provozních nákladů a emisí skleníkových plynů. V kontextu dalších odvětví, jako je například moderní mikroelektronika, přestává být TSP pouze teoretickou abstrakcí a stává se integrální součástí optimalizačních procesů při návrhu VLSI systémů. Klíčovou roli hraje zejména ve fázi fyzického návrhu, konkrétně při řešení problému trasování a testovatelnost čipů. V těchto scénářích je cílem minimalizace celkové délky propojů mezi miliony hradel na čipu, což přímo koreluje s parazitními kapacitami, výsledným zpožděním signálu (propagation delay) a celkovou energetickou bilancí systému. Vzhledem k NP-těžké povaze TSP a současné integraci tranzistorů v řádech miliard na jediném substrátu jsou v praxi nasazovány pokročilé heuristické algoritmy a metaheuristiky, které umožňují nalézt suboptimální, avšak technicky přípustná řešení v akceptovatelném čase. TSP se tak stává determinujícím faktorem pro dosažení požadované pracovní frekvence a minimalizaci celkové plochy obvodu.
+
+\section{Definice problému}
+Tradiční přístup k TSP často předpokládá symetrii a platnost trojúhelníkové nerovnosti v euklidovském prostoru, kde nejkratší cesta mezi dvěma body je vždy reprezentována úsečkou. Reálný svět však tyto předpoklady systematicky narušuje. Existence jednosměrných ulic, hierarchie silniční sítě (dálnice versus rezidenční zóny), dopravní omezení a proměnlivá propustnost komunikací transformují symetrické TSP na obecnější a náročnější asymetrický problém (\textit{Asymmetric TSP}).
+
+Současným výzkumníkům v oblasti optimalizačních algoritmů chybí unifikovaný a snadno použitelný nástroj, který by umožnil rychlou transformaci vybraných geografických lokalit do formální podoby nákladové matice. Absence takového generátoru ztěžuje testování algoritmů v podmínkách, které simulují reálný provoz, a omezuje schopnost objektivně porovnat efektivitu nových výpočetních metod na datech s vysokou informační hodnotou.
+
+\section{Cíle práce}
+Hlavním cílem této diplomové práce je návrh a implementace softwarového systému pro generování instancí problému obchodního cestujícího z reálných geografických dat. K dosažení tohoto cíle byly stanoveny následující dílčí úkoly:
+
+\begin{itemize}
+    \item Provedení rešerše stávajících benchmarků a analýza dostupných mapových služeb a jejich aplikačních rozhraní.
+    \item Návrh a realizace modulárního generátoru instancí schopného transformovat seznam lokalit na matici vzdáleností.
+    \item Integrace systému s vybranými směrovacími službami, konkrétně s veřejným API open route service a lokální instancí \textit{Open Source Routing Machine}.
+    \item Vývoj vizualizačního modulu pro přehledné zobrazení vstupních lokalit a výsledných nalezených tras nad mapovým podkladem.
+    \item Experimentální ověření funkčnosti generátoru pomocí vybraných optimalizačních algoritmů a zhodnocení vlastností vygenerovaných instancí.
+\end{itemize}
+
+\section{Metodika a přístup k řešení}
+
+K řešení práce bude přistupováno s důrazem na modularitu a udržitelnost výsledného softwaru. Proces započne teoretickou analýzou grafových reprezentací TSP a vyhodnocením limitů současných směrovacích algoritmů. Návrh systému bude vycházet z principů objektově orientovaného návrhu s využitím standardizovaného modelovacího jazyka UML pro definici struktury a dynamického chování aplikace.
+
+Klíčovým architektonickým prvkem bude oddělení prezentační vrstvy, výpočetního jádra, routovací logiky, správy stavu a vstupně-výstupních operací. Implementační fáze se zaměří na efektivní paralelní zpracování datových požadavků, aby bylo možné generovat rozsáhlé instance v akceptovatelném čase.
+
+\section{Struktura práce}
+
+Text práce je členěn do sedmi logicky navazujících kapitol.
+První kapitola uvádí motivaci, vymezení problému v kontextu reálných geografických dat, cíle práce a obecný metodický rámec řešení.
+Druhá kapitola přináší teoretické vymezení problému obchodního cestujícího, jeho matematickou formulaci a přehled metod řešení od exaktních přístupů po metaheuristiky.
+Třetí kapitola shrnuje analýzu požadavků, dostupná mapová rozhraní a návrh architektury generátoru včetně modelování struktury a chování v jazyce UML.
+Čtvrtá kapitola popisuje implementaci aplikace, modulární členění vrstev, asynchronní komunikaci a integraci s trasovacími službami.
+Pátá kapitola je věnována experimentálnímu vyhodnocení implementovaných algoritmů na dvojici referenčních instancí knihovny TSPLIB v symetrickém i asymetrickém režimu úlohy.
+Šestá kapitola tvoří diskuzi o smyslu řešení v praxi a o limitech závislosti na externích službách a dále se věnuje interpretaci výsledků měření a možnostem rozšíření systému.
+Závěrečná sedmá kapitola stručně rekapituluje dosažený stav a naplnění cílů práce.

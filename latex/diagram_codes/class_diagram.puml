@@ -1,0 +1,117 @@
+@startuml
+skinparam linetype ortho
+
+title Diagram tříd - architektura TSP generátoru a solveru
+
+skinparam titleFontColor black
+skinparam backgroundColor white
+skinparam defaultFontColor black
+skinparam ArrowColor black
+skinparam ArrowThickness 1
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam class {
+  BackgroundColor white
+  BorderColor black
+  HeaderBackgroundColor white
+  StereotypeFontColor black
+  FontColor black
+}
+
+skinparam note {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+
+class TSPManager {
+  -io_handler: IOHandler
+  -matrix_builder: DistanceMatrixBuilder
+  -engine: OptimizationEngine
+  +load_instance(filepath)
+  +export_instance(filepath, points, strategy_name, route_points)
+  +solve(points, solver_type, distance_metric, ...)
+  +get_export_formats()
+  +get_supported_solvers()
+}
+
+class IOHandler {
+  -_strategies: dict
+  +load(filepath)
+  +export(filepath, points, format_name, route_points)
+  +get_supported_formats()
+}
+
+abstract class TspFileStrategy {
+  +export(filepath, points, route_points)
+  +load(filepath)
+}
+
+class TspGeoStrategy
+class TspEuc2DStrategy
+class TspExplicitMatrixStrategy
+class GpxStrategy
+
+class DistanceMatrixBuilder {
+  -_point_metric_dispatch: dict
+  +build(points, mode, ors)
+  +get_route_geometry(ordered_points, mode, ors)
+}
+
+class OptimizationEngine {
+  -_solver_names: dict
+  -_solver_functions: dict
+  +run(solver_type, matrix, **kwargs)
+  +get_solver_options()
+  +get_stats()
+}
+
+class Subject {
+  -_observers: list
+  +attach(observer_callback)
+  +detach(observer_callback)
+  +notify(data)
+}
+
+class AppState {
+  -_points: list
+  -_route: list
+  -_problem_type: str
+  -_distance_matrix: list
+  +set_points(points, is_geographic)
+  +apply_imported_instance(...)
+  +set_route_result(polyline, ordered_stops, total_value, metric_key)
+  +get_problem_type()
+  +get_distance_matrix()
+}
+
+class OrsRoutingConfig {
+  +api_key: str
+  +base_url: str
+  +profile_key: str
+  +allow_local_osrm_fallback: bool
+  +avoid_features_list: list
+}
+
+TSPManager o-- IOHandler
+TSPManager o-- DistanceMatrixBuilder
+TSPManager o-- OptimizationEngine
+TSPManager ..> AppState : čte stav aplikace
+TSPManager ..> OrsRoutingConfig
+
+IOHandler o-- TspFileStrategy : slovník strategií I/O
+TspFileStrategy <|-- TspGeoStrategy
+TspFileStrategy <|-- TspEuc2DStrategy
+TspFileStrategy <|-- TspExplicitMatrixStrategy
+TspFileStrategy <|-- GpxStrategy
+
+DistanceMatrixBuilder ..> OrsRoutingConfig : parametry směrování
+AppState --|> Subject
+
+note right of OptimizationEngine
+  Algoritmy jsou v kódu jako samostatné
+  funkce  (NN, ACO, GA,
+  SA, LK, 2OPT, 3OPT, RSO, LKH).
+end note
+
+@enduml

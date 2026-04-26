@@ -1,0 +1,18 @@
+\begin{landscape}
+\begin{table}[p]
+\centering
+\caption{Souhrnné statistiky algoritmů pro instanci \texttt{kro124p} (počet běhů, medián/průměr/modus/min/max délky trasy a odchylka vůči optimu v \%).}
+\label{tab:summary_stats_kro124p}
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+algoritmus & \shortstack{počet\\běhů} & \shortstack{medián\\trasy} & \shortstack{průměr\\trasy} & \shortstack{modus\\trasy} & \shortstack{četnost\\modu} & \shortstack{minimum\\trasy} & \shortstack{maximum\\trasy} & \shortstack{medián\\odchylky [\%]} & \shortstack{průměr\\odchylky [\%]} & \shortstack{modus\\odchylky [\%]} \\
+\midrule
+ACO & 30 & 37503.000 & 37515.333 & 36526.000 & 1 & 36526.000 & 38729.000 & 3.514 & 3.548 & 0.817 \\
+GA & 30 & 41490.000 & 41526.500 & 40867.000 & 1 & 40867.000 & 42405.000 & 14.518 & 14.619 & 12.799 \\
+LKH & 30 & 36230.000 & 36230.000 & 36230.000 & 30 & 36230.000 & 36230.000 & 0.000 & 0.000 & 0.000 \\
+RSO & 30 & 41568.000 & 41407.300 & 39990.000 & 1 & 39990.000 & 41935.000 & 14.734 & 14.290 & 10.378 \\
+SA & 30 & 43775.000 & 43880.133 & 41519.000 & 1 & 41519.000 & 47597.000 & 20.825 & 21.115 & 14.598 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{landscape}

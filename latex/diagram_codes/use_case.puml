@@ -1,0 +1,61 @@
+@startuml
+left to right direction
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam ArrowColor black
+skinparam usecase {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+skinparam actor {
+  BorderColor black
+  FontColor black
+}
+
+title Use case diagram
+
+actor Uživatel as User
+
+rectangle "Aplikace TSP Solver" {
+  usecase "Import instance\n(TSP / ATSP / GPX)" as UC_IMPORT
+  usecase "Export instance\n(TSP / GPX)" as UC_EXPORT
+  usecase "Konfigurace parametrů" as UC_CONFIG
+  usecase "Volba metriky\n(vzdálenost / čas)" as UC_METRIC
+  usecase "Volba routing profilu\n(car/foot/bike/hgv/...)" as UC_PROFILE
+  usecase "Nastavení avoid features\n+ HGV omezení" as UC_AVOID
+  usecase "Výpočet trasy\n(spuštění solveru)" as UC_SOLVE
+  usecase "Sestavení matice vzdáleností" as UC_MATRIX
+  usecase "Volání ORS API" as UC_ORS
+  usecase "OSRM fallback" as UC_OSRM
+  usecase "Vizualizace trasy na mapě" as UC_VIS
+}
+
+UC_IMPORT -[hidden]right-> UC_EXPORT
+UC_EXPORT -[hidden]right-> UC_CONFIG
+UC_IMPORT -[hidden]down-> UC_SOLVE
+UC_METRIC -[hidden]right-> UC_PROFILE
+UC_PROFILE -[hidden]right-> UC_AVOID
+UC_SOLVE -[hidden]down-> UC_METRIC
+UC_SOLVE -[hidden]right-> UC_MATRIX
+UC_MATRIX -[hidden]right-> UC_VIS
+UC_MATRIX -[hidden]down-> UC_ORS
+UC_ORS -[hidden]down-> UC_OSRM
+
+User --> UC_IMPORT
+User --> UC_EXPORT
+User --> UC_CONFIG
+User --> UC_SOLVE
+User --> UC_VIS
+
+UC_CONFIG .down.> UC_METRIC : <<include>>
+UC_CONFIG .down.> UC_PROFILE : <<include>>
+UC_CONFIG .down.> UC_AVOID : <<include>>
+
+UC_SOLVE .right.> UC_MATRIX : <<include>>
+UC_SOLVE .right.> UC_VIS : <<include>>
+
+UC_ORS .up.> UC_MATRIX : <<extend>>
+UC_OSRM .up.> UC_MATRIX : <<extend>>
+
+@enduml

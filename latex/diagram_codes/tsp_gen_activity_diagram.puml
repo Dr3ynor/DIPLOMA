@@ -1,0 +1,31 @@
+@startuml
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam ArrowColor black
+skinparam activity {
+  BackgroundColor white
+  BorderColor black
+  DiamondBackgroundColor white
+  DiamondBorderColor black
+  FontColor black
+  BarColor black
+}
+
+title Proces řešení TSP instance
+
+start
+:Načtení bodů a nastavení metriky;
+:Sestavení matice vzdáleností;
+if (Routing metrika?) then (ano)
+  :ORS API;
+  :Fallback na OSRM / přímé spojnice při chybě;
+else (ne)
+  :Lokální výpočet matice;
+endif
+:Spuštění solveru;
+:Výpočet výsledné trasy a souhrnu;
+:Uložení výsledku do AppState;
+:Notify UI (ROUTE_UPDATE);
+stop
+
+@enduml
