@@ -1,18 +1,17 @@
 {
   "algorithm": "SA",
-  "best_value": 15.641488679490912,
+  "best_value": 11.15856208076721,
   "params": {
-    "initial_temp": 900.0,
-    "cooling_rate": 0.9968,
-    "min_temp": 0.0033948182560532675,
-    "max_steps": 12000,
-    "auto_temp": true,
-    "p_nn_start": 0.0
+    "initial_temp": 6243.807031849253,
+    "cooling_rate": 0.9102518586246776,
+    "min_temp": 2.9413829239569294e-06,
+    "max_steps": 4381,
+    "p_nn_start": 1.00
   },
   "study_name": "tsp_sa_seed42_kro124p",
-  "n_trials": 50,
+  "n_trials": 1000,
   "master_seed": 42,
-  "seeds_per_instance": 50,
+  "seeds_per_instance": 3,
   "time_penalty": 0.05,
   "instances": [
     "kro124p"

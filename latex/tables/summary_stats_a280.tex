@@ -1,11 +1,12 @@
-\begin{landscape}
 \begin{table}[p]
 \centering
-\caption{Souhrnné statistiky algoritmů pro instanci \texttt{a280} (počet běhů, medián/průměr/modus/min/max délky trasy a odchylka vůči optimu v \%).}
+\caption{Souhrnné statistiky algoritmů pro instanci \texttt{a280} (n\_runs, medián/průměr/modus/min/max a gap vůči optimu v \%).}
 \label{tab:summary_stats_a280}
-\begin{tabular}{lrrrrrrrrrr}
+\setlength{\tabcolsep}{4.5pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lrrrrrrrrrr@{}}
 \toprule
-algoritmus & \shortstack{počet\\běhů} & \shortstack{medián\\trasy} & \shortstack{průměr\\trasy} & \shortstack{modus\\trasy} & \shortstack{četnost\\modu} & \shortstack{minimum\\trasy} & \shortstack{maximum\\trasy} & \shortstack{medián\\odchylky [\%]} & \shortstack{průměr\\odchylky [\%]} & \shortstack{modus\\odchylky [\%]} \\
+algorithm & n\_runs & median\_tour & mean\_tour & mode\_tour & mode\_count & min\_tour & max\_tour & median\_gap\_pct & mean\_gap\_pct & mode\_gap\_pct \\
 \midrule
 2OPT & 1 & 2835.000 & 2835.000 & 2835.000 & 1 & 2835.000 & 2835.000 & 9.926 & 9.926 & 9.926 \\
 3OPT & 1 & 2990.000 & 2990.000 & 2990.000 & 1 & 2990.000 & 2990.000 & 15.936 & 15.936 & 15.936 \\
@@ -14,8 +15,8 @@ GA & 30 & 2800.500 & 2799.367 & 2798.000 & 2 & 2741.000 & 2852.000 & 8.589 & 8.5
 LK & 30 & 2812.000 & 2812.000 & 2812.000 & 30 & 2812.000 & 2812.000 & 9.035 & 9.035 & 9.035 \\
 LKH & 30 & 2579.000 & 2579.000 & 2579.000 & 30 & 2579.000 & 2579.000 & 0.000 & 0.000 & 0.000 \\
 RSO & 30 & 2816.000 & 2816.000 & 2803.000 & 2 & 2756.000 & 2870.000 & 9.190 & 9.190 & 8.686 \\
-SA & 30 & 3474.500 & 3471.467 & 3376.000 & 2 & 3376.000 & 3589.000 & 34.723 & 34.605 & 30.903 \\
+SA & 30 & 2863.500 & 2861.333 & 2824.000 & 2 & 2813.000 & 2899.000 & 11.031 & 10.947 & 9.500 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
-\end{landscape}

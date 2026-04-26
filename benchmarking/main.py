@@ -314,12 +314,6 @@ def _build_jobs(
         if algo in STOCHASTIC_ALGOS:
             cfg = resolve_algo_tuned_config(algo, n, tuned_index)
             params = dict(cfg["params"])
-            if algo == "SA":
-                # Konzistentní SA průběh v benchmarku:
-                # - start vždy z náhodné trasy (bez NN bias),
-                # - auto-teplota podle škály instance.
-                params["p_nn_start"] = 0.0
-                params["auto_temp"] = True
             params["problem_type"] = ptype
             algo_manifest[algo] = {
                 "tuned_target_profile": cfg["target_profile"],

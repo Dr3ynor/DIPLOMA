@@ -8,6 +8,12 @@ Spust z adresare benchmarking/:
 
 Vsechny metaheuristiky na a280 (TSPLIB z code/tsplib, vystup tuned_params/mid/<ALGO>/):
   python tune.py --meta-all --only-instances a280 --trials 50
+
+SA jen na a280 (50 trialu; --tsplib-dir podle umisteni dat v repo):
+  python tune.py --algo SA --trials 50 --only-instances a280 --tsplib-dir ../code/resources/tsplib --max-instances 1
+
+SA jen na kro124p (50 trialu; ATSP + solutions v atsplib):
+  python tune.py --algo SA --trials 50 --only-instances kro124p --tsplib-dir ../code/resources/atsplib --solutions ../code/resources/atsplib/solutions --max-instances 1
 """
 from __future__ import annotations
 
@@ -131,6 +137,7 @@ def suggest_params(trial, algo: str, n: int) -> dict:
             "cooling_rate": trial.suggest_float("cooling_rate", 0.9, 0.9995),
             "min_temp": trial.suggest_float("min_temp", 1e-6, 0.5, log=True),
             "max_steps": trial.suggest_int("max_steps", 2000, min(80000, max(5000, n * n // 2))),
+            "p_nn_start": trial.suggest_float("p_nn_start", 0.0, 1.0),
         }
     if algo == "RSO":
         return {

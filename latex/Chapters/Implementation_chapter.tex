@@ -63,7 +63,7 @@ Matice je uložena jako dvourozměrné pole \texttt{list[list[float]]}. Hodnoty 
 Matice se aktuálně počítá při každém běhu výpočtu a explicitně se neukládá do samostatného perzistentního souboru. Perzistují se vstupní body (a případně route body v GPX), což je zvoleno záměrně: odstraňuje to riziko nekonzistence mezi geometrií bodů, profilem routingu a uloženou maticí.
 
 \section{Generování reálných a syntetických instancí}
-Systém podporuje dva režimy vytvářeníinstancí: geografický (reálné lokality) a negeografický (syntetické rovinné body).
+Systém podporuje dva režimy vytváření instancí: geografický (reálné lokality) a negeografický (syntetické rovinné body).
 
 \subsection{Generování podle reálných měst}
 Reálné instance jsou typicky tvořeny:
@@ -72,6 +72,8 @@ Reálné instance jsou typicky tvořeny:
     \item importem existujících TSPLIB GEO instancí,
     \item importem GPX bodů.
 \end{itemize}
+
+V rámci práce byly ručně připraveny také vlastní geografické instance (krajská města České republiky, případně hlavní města evropských států), které slouží k ověření chování algoritmů na datech blízkých reálné silniční logistice.
 
 Každý vybraný výsledek u mapového vyhledávání obsahuje souřadnice i textový label, který je při vložení bodu uložen do stavu a zároveň do perzistentní geocode cache.
 
@@ -130,6 +132,7 @@ Samostatnou změnou byla formalizace benchmarkovacího workflow. Měření byla 
 Kromě výběru více solverů jsou přímo v kódu implementovány mikrooptimalizace:
 \begin{itemize}
     \item optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH nad jednotným datovým rozhraním matice
+    \item u genetického algoritmu je první jedinec populace vždy trasou z greedy heuristiky \emph{Nearest Neighbour} (NN) nad stejnou maticí. Ostatní jedinci vznikají náhodnou permutací vnitřních měst. Po skončení evoluce se na nejlepší trasu aplikuje krátké lokální vylepšení (náhodný budgetovaný 2-opt u STSP, u ATSP operátory \emph{swap}, \emph{relocate} a \emph{or-opt} v modulu \texttt{route\_ops}). Obdobné závěrečné vylepšení se uplatňuje i u ACO, SA a RSO v příslušných souborech v \texttt{tsp\_solver/algorithms/}
     \item u ACO je předpočtena matice viditelnosti \(\eta^\beta\)
     \item počet mravenců je výchozí hodnotou omezen horní hranicí \texttt{min(n, 20)} pro stabilnější dobu běhu, popřípadě lze načíst předem připravené laděné parametry pro určité velikosti instancí
     \item katalog metrik centralizuje validní metriky dle typu instance a omezuje nevhodné kombinace
@@ -215,7 +218,7 @@ Výškový profil je kreslen  widgetem (\texttt{QPainter}), kde osa X reprezentu
 % Ukázka uživatelského rozhraní a vykreslené trasy
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figures/ukazka_aplikace.png}
+    \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{Figures/ukazka_aplikace.png}
     \caption{Ukázka vizualizační vrstvy aplikace při zobrazení vypočtené trasy}
     \label{fig:ukazka_aplikace}
 \end{figure}

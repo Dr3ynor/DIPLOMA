@@ -173,23 +173,21 @@ Lokální optimalizace (označované také jako metody lokálního prohledáván
     \textit{Geometrický význam:} Pokud se původní dvě hrany křížily, tato operace křížení odstraní. V eukleidovských instancích vede odstranění křížení typicky ke zkrácení trasy; nejde však o univerzální tvrzení pro libovolnou matici nákladů.
         \item \textbf{3-opt:} Tento přístup odstraňuje tři hrany současně, což umožňuje provádět mnohem komplexnější úpravy cesty (včetně přehození celých úseků trasy). Zatímco 2-opt dokáže najít pouze lokální optimum v rámci jednoduchých prohozů, 3-opt prohledává širší okolí řešení, což zvyšuje šanci na nalezení kvalitnější trasy, ovšem za cenu vyšší výpočetní náročnosti ($O(n^3)$ oproti $O(n^2)$ u 2-opt).
 \end{itemize}
-    \item \textbf{Lin-Kernighan (LK):} Algoritmus Lin-Kernighan je v podstatě zobecněním $k$-opt přístupu, kde hodnota $k$ není předem fixně stanovena. Algoritmus v každém kroku adaptivně rozhoduje, kolik hran je vhodné zaměnit, a to na základě potenciálního zlepšení nákladové funkce. Díky této flexibilitě dokáže LK efektivně opustit lokální minima, ve kterých by se standardní 2-opt nebo 3-opt algoritmy zastavily. V praxi se často používá k dosažení řešení, která jsou velmi blízko optimu i pro instance s tisíci uzly.
+    \item \textbf{Lin-Kernighan (LK):} Algoritmus Lin-Kernighan je v podstatě zobecněním $k$-opt přístupu, kde hodnota $k$ není předem fixně stanovena. Algoritmus v každém kroku adaptivně rozhoduje, kolik hran je vhodné zaměnit, a to na základě potenciálního zlepšení nákladové funkce. Díky této flexibilitě dokáže LK efektivně opustit lokální minima, ve kterých by se standardní 2-opt nebo 3-opt algoritmy zastavily. V praxi se často používá k dosažení řešení, která jsou velmi blízko optimu i pro instance s tisíci uzly \cite{lin1973tsp,helsgaun2000lk,helsgaun2009lkh}.
 \end{itemize}
 
 \subsection{Metaheuristiky a biologicky inspirované algoritmy}
 \label{subsection:BIA}
-Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance moderní logistiky využívají metaheuristiky. Tyto algoritmy nehledají globální optimum s absolutní jistotou, ale zaměřují se na nalezení dostatečně kvalitního řešení v akceptovatelném čase. Klíčovou vlastností těchto metod je schopnost unikat z lokálních optim pomocí mechanismů inspirovaných přírodou.
+Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance moderní logistiky využívají metaheuristiky \cite{engelbrecht2007ci}. Tyto algoritmy nehledají globální optimum s absolutní jistotou, ale zaměřují se na nalezení dostatečně kvalitního řešení v akceptovatelném čase. Klíčovou vlastností těchto metod je schopnost unikat z lokálních optim pomocí mechanismů inspirovaných přírodou.
 
 \begin{itemize}
     \item \textbf{Genetické algoritmy (GA):} Tato technika simuluje proces přírodního výběru a evoluce. Místo jednoho řešení pracuje s celou populací (množinou tras). Jednotlivci jsou podrobováni operacím selekce (výběr nejlepších), křížení (výměna úseků tras mezi „rodiči“) a mutace (náhodná změna trasy). Pro TSP je nutné využívat specifické operátory jako \textit{Order Crossover} (OX) nebo \textit{Edge Recombination Crossover} (ERX), které zaručují, že vzniklí potomci budou stále platnými permutacemi bez chybějících či duplicitních měst.
     
-    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} Algoritmus je inspirován chováním mravenců při hledání nejkratší cesty k potravě. Umělí agenti (mravenci) konstruují řešení tak, že se pohybují po hranách grafu, přičemž jejich volba je ovlivněna množstvím feromonu na hraně a její délkou. Hrany, které jsou součástí kratších cest, získávají v iteracích více feromonu. Důležitým mechanismem je vypařování feromonu v čase, což zabraňuje příliš rychlé konvergenci do lokálního optima a umožňuje prohledávat nové oblasti stavového prostoru.
+    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} Algoritmus je inspirován chováním mravenců při hledání nejkratší cesty k potravě \cite{dorigo1997acs}. Umělí agenti (mravenci) konstruují řešení tak, že se pohybují po hranách grafu, přičemž jejich volba je ovlivněna množstvím feromonu na hraně a její délkou. Hrany, které jsou součástí kratších cest, získávají v iteracích více feromonu. Důležitým mechanismem je vypařování feromonu v čase, což zabraňuje příliš rychlé konvergenci do lokálního optima a umožňuje prohledávat nové oblasti stavového prostoru.
     
     \item \textbf{Simulované žíhání (Simulated Annealing - SA):} Metoda vychází z analogie k ochlazování kovů v metalurgii. Algoritmus začíná při vysoké „teplotě“, kdy s vysokou pravděpodobností přijímá i horší řešení než to stávající, což mu umožňuje uniknout z mělkých lokálních minim. S postupným ochlazováním tato pravděpodobnost klesá a algoritmus se začíná chovat spíše jako lokální optimalizace, která konverguje k finálnímu řešení.
-    
-    \item \textbf{Particle Swarm Optimization - PSO:} Původně spojitý algoritmus simulující pohyb hejna ptáků či ryb. V diskrétní verzi pro TSP (DPSO) každá částice představuje konkrétní trasu a její „pohyb“ je definován jako aplikace posloupnosti swap operací, které ji přibližují k jejímu dosavadnímu nejlepšímu řešení a zároveň k nejlepšímu řešení celého hejna.
-    
-\item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
+
+    \item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
 \begin{itemize}
     \item \textbf{Fáze pronásledování (Chasing):} V této fázi se potkani pohybují směrem k lídrovi (nejlepšímu dosud nalezenému řešení). Matematicky je tento pohyb definován tak, aby agenti efektivně prohledávali okolí a balancovali mezi náhodným pohybem a následováním nejúspěšnějšího jedince. To umožňuje algoritmu pokrýt širokou oblast stavového prostoru a vyhnout se uvíznutí v lokálním optimu.
     \item \textbf{Fáze boje (Fighting):} V kontextu TSP to znamená jemné ladění trasy v blízkosti nejlepšího nalezeného řešení. Tato fáze je zodpovědná za rychlou konvergenci algoritmu k finálnímu výsledku.
@@ -214,11 +212,11 @@ Tyto algoritmy jsou klíčové pro pochopení mezí výpočetní složitosti u m
     \textit{Princip:} Nejdříve se sestrojí MST daného grafu. Následně se všechny hrany této kostry zdvojí, čímž vznikne multigraf, ve kterém lze nalézt Eulerovský tah. Tento tah se následně transformuje na Hamiltonovskou kružnici pomocí zkratek, kdy vynecháváme již navštívené uzly a propojujeme přímo uzel předchozí s následujícím nenavštíveným. Tím využijeme vlastnost trojúhelníkové nerovnosti a získané řešení má délku nejvýše dvojnásobku optima.
 
     \item \textbf{Christofidesův algoritmus:} 
-    Aktuálně jeden z nejlepších známých aproximačních algoritmů pro metrické TSP, který vylepšuje metodu založenou na MST \cite{ti_sawa}.
+    Aktuálně jeden z nejlepších známých aproximačních algoritmů pro metrické TSP, který vylepšuje metodu založenou na MST \cite{christofides1976tsp}.
     
     \textit{Princip:} Místo zdvojení všech hran kostry algoritmus identifikuje vrcholy s lichým stupněm v MST a nad nimi sestrojí minimální perfektní párování (Minimum Weight Perfect Matching). Výsledný graf je eulerovský a po aplikaci zkratek získáme Hamiltonovskou kružnici.
     
-    \textit{Garance:} Tento přístup poskytuje teoretickou garanci $1,5$-aproximace ($L \leq 1,5 \cdot L^*$). \cite{ti_jancar, ti_sawa}.
+    \textit{Garance:} Tento přístup poskytuje teoretickou garanci $1,5$-aproximace ($L \leq 1,5 \cdot L^*$) \cite{christofides1976tsp}.
 \end{itemize}
 
 
@@ -244,7 +242,7 @@ Tyto algoritmy jsou klíčové pro pochopení mezí výpočetní složitosti u m
 Pro objektivní testování a porovnávání výkonnosti algoritmů jsou nezbytné standardizované datové sady, benchmarky. V kontextu této práce je však nutné rozlišovat mezi historickými syntetickými daty a moderními instancemi založenými na reálné dopravní infrastruktuře.
 
 \subsection{Knihovny TSPLIB a TSPLIB95}
-Knihovna TSPLIB, představuje standard pro testování algoritmů řešících TSP. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
+Knihovna TSPLIB představuje standard pro testování algoritmů řešících TSP. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
 \begin{itemize}
     \item \textbf{Formát .tsp:} Strukturovaný textový soubor obsahující metadata (název, typ metriky, dimenze) a samotná data, která jsou definována buď souřadnicemi uzlů (pro výpočet euklidovské vzdálenosti), nebo explicitní maticí vzdáleností cesta.
     \item \textbf{Formát .opt.tour:} Referenční soubor obsahující sekvenci indexů vrcholů, která tvoří prokazatelně optimální řešení dané instance.

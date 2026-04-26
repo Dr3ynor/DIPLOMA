@@ -5,7 +5,9 @@
     "initial_temp": 317.52617529091617,
     "cooling_rate": 0.9535192617338865,
     "min_temp": 0.0024396934625893897,
-    "max_steps": 16480
+    "max_steps": 16480,
+    "auto_temp": true,
+    "p_nn_start": 1.00
   },
   "study_name": "tsp_sa_seed42_a280",
   "n_trials": 50,

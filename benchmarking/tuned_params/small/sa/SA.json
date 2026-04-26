@@ -5,7 +5,9 @@
     "initial_temp": 144.2910373821466,
     "cooling_rate": 0.9976409412939268,
     "min_temp": 1.4029306124502378e-06,
-    "max_steps": 4850
+    "max_steps": 4850,
+    "auto_temp": true,
+    "p_nn_start": 1.00
   },
   "study_name": "tsp_sa_seed42",
   "n_trials": 280,
