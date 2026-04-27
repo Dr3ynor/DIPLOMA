@@ -27,7 +27,7 @@ Kde jednotlivé členy výrazu reprezentují:
     \item Člen $c_{\pi(n), \pi(1)}$ zajišťuje uzavření cyklu, tedy započtení cesty z posledního navštíveného vrcholu zpět do vrcholu výchozího.
 \end{itemize}
 
-Tato uzavřená cesta, která navštíví každý vrchol grafu právě jednou, se v teorii grafů nazývá \textbf{Hamiltonovský cyklus}. V informatice lze vrcholy a hrany reprezentovat maticí sousednosti (vzdáleností) $\mathbf{C} = [c_{ij}]_{n \times n}$, kde jednotlivé prvky představují váhy hran mezi dvojicemi vrcholů $v_i$ a $v_j$. Tato reprezentace umožňuje efektivní algoritmické zpracování stavového prostoru problému a je základem pro většinu implementací heuristických i exaktních algoritmů.
+Tato uzavřená cesta, která navštíví každý vrchol grafu právě jednou, se v teorii grafů nazývá \textbf{Hamiltonovský cyklus}. V informatice lze vrcholy a hrany reprezentovat maticí sousednosti (vzdáleností) $\mathbf{C} = [c_{ij}]_{n \times n}$, kde jednotlivé prvky představují váhy hran mezi dvojicemi vrcholů $v_i$ a $v_j$. Tato reprezentace umožňuje efektivní algoritmické zpracování stavového prostoru a je základem pro většinu implementací heuristických i exaktních algoritmů.
 
 \begin{equation}
 \label{eq:general_cost_matrix}
@@ -64,59 +64,58 @@ Pro lepší pochopení podstaty TSP je vhodné interpretovat instanci graficky. 
   \end{minipage}
 \end{figure}
 
-% TODO reference na TSPLIB dokumentaci
 \subsection{Typy TSP}
 Jak bylo definováno v předchozí části, základním datovým vstupem pro řešení problému je matice vzdáleností $\mathbf{C}$, kde prvek $c_{ij}$ reprezentuje ohodnocení hrany mezi uzly $v_i$ a $v_j$. V závislosti na vnitřních vlastnostech této matice a charakteru reálného prostředí, které má generátor simulovat, rozlišujeme následující varianty:
 
 \begin{itemize}
-    \item \textbf{Symetrický TSP (STSP):} Tato varianta předpokládá, že matice $\mathbf{C}$ je symetrická podle hlavní diagonály, tedy platí $c_{ij} = c_{ji}$ pro všechna $i, j \in V$. V praxi to znamená, že náklady na cestu z bodu $A$ do bodu $B$ jsou identické jako v opačném směru. Tento model je typický pro euklidovské instance (např. typ \texttt{EUC\_2D} v TSPLIB), kde je vzdálenost počítána jako norma v rovině.
+    \item \textbf{Symetrický TSP (STSP):} Tato varianta předpokládá, že matice $\mathbf{C}$ je symetrická podle hlavní diagonály, tedy platí $c_{ij} = c_{ji}$ pro všechna $i, j \in V$. V praxi to znamená, že náklady na cestu z bodu $A$ do bodu $B$ jsou identické jako v opačném směru. Tento model je typický pro euklidovské instance (např. typ \texttt{EUC\_2D} v TSPLIB \cite{reinelt1994tsplib,tsplib95}), kde se vzdálenosti mezi uzly obvykle odvozují z jejich souřadnic v rovině jako eukleidovské vzdálenosti (délka přímky spojující daný pár bodů).
     
-    \item \textbf{Asymetrický TSP (ATSP):} Zde podmínka symetrie neplatí a v matici existuje alespoň jeden pár indexů, pro který $c_{ij} \neq c_{ji}$. Pro náš generátor využívající mapová API je tato varianta klíčová, neboť v reálné silniční síti jsou náklady na přesun ovlivněny jednosměrnými ulicemi, dálničními nájezdy nebo výškovým profilem trasy.
+    \item \textbf{Asymetrický TSP (ATSP):} Zde podmínka symetrie neplatí a v matici existuje alespoň jeden pár indexů, pro který $c_{ij} \neq c_{ji}$. Pro generátor využívající mapová API je tato varianta klíčová, neboť v reálné silniční síti jsou náklady na přesun ovlivněny jednosměrnými ulicemi, dálničními nájezdy nebo výškovým profilem trasy.
     
-    \item \textbf{Metrický TSP (trojúhelníková nerovnost):} Jedná se o typ, kde prvky matice splňují trojúhelníkovou nerovnost: $c_{ij} \leq c_{ik} + c_{kj}$ pro libovolnou trojici vrcholů. U reálných silničních dat tato vlastnost závisí na volbě nákladové funkce a konkrétních omezeních dopravy; nelze ji proto obecně předpokládat pro všechny typy výstupů mapových služeb.
+    \item \textbf{Metrický TSP (trojúhelníková nerovnost):} Jedná se o typ, kde prvky matice splňují trojúhelníkovou nerovnost: $c_{ij} \leq c_{ik} + c_{kj}$ pro libovolnou trojici vrcholů. U reálných silničních dat tato vlastnost závisí na volbě nákladové funkce a konkrétních omezeních dopravy. Nelze ji proto obecně předpokládat pro všechny typy výstupů mapových služeb.
     
-    \item \textbf{Dynamický TSP:} Na rozdíl od statických matic v TSPLIB, v této variantě je $c_{ij}$ funkcí času $c_{ij}(t)$. To umožňuje reflektovat proměnlivou dopravní situaci (např. dopravní špičky zjištěné přes API).
+    \item \textbf{Dynamický TSP:} Na rozdíl od statických matic v TSPLIB \cite{reinelt1994tsplib,tsplib95}, v této variantě je $c_{ij}$ funkcí času $c_{ij}(t)$. To umožňuje reflektovat proměnlivou dopravní situaci (např. dopravní špičky zjištěné přes API).
 \end{itemize}
 
 
-% TODO citace jančara a sawy
 \subsection{NP-úplnost a výpočetní složitost}
-Z hlediska teorie složitosti je nezbytné u TSP rozlišovat mezi jeho optimalizační a rozhodovací variantou. Optimalizační úloha, tedy hledání Hamiltonovské kružnice s minimálním součtem vah hran, spadá do třídy \textbf{NP-těžkých} (NP-hard) problémů. To znamená, že pro ni neexistuje známý algoritmus s polynomem omezenou časovou složitostí, pokud neplatí $P = NP$.%\cite{sawa}.
+Z hlediska teorie složitosti je nezbytné u TSP rozlišovat mezi jeho optimalizační a rozhodovací variantou. Optimalizační úloha, tedy hledání Hamiltonovské kružnice s minimálním součtem vah hran, spadá do třídy \textbf{NP-těžkých} (NP-hard) problémů. To znamená, že pro ni neexistuje známý algoritmus s polynomem omezenou časovou složitostí, pokud neplatí $P = NP$ \cite{reinelt1994tsplib}.
 
-Rozhodovací verze TSP (označovaná jako \textit{TSP decision problem}) se ptá, zda v daném grafu $G$ existuje Hamiltonovská kružnice s celkovou vahou $c \leq k$ pro zadanou konstantu $k$. Tato varianta patří mezi \textbf{NP-úplné} problémy. Její náročnost lze dokázat polynomiální redukcí z problému Hamiltonovské kružnice (HC), který je jedním z klasických NP-úplných problémů %\cite{jancar, sawa}.
+Rozhodovací verze TSP (označovaná jako \textit{TSP decision problem}) se ptá, zda v daném grafu $G$ existuje Hamiltonovská kružnice s celkovou váhou $c \leq k$ pro zadanou konstantu $k$. Konstanta $k$ je součástí vstupu úlohy. Představuje pevně zvolenou horní mez na součet vah hran kružnice. Odpověď je ano, pokud existuje Hamiltonovská kružnice, jejíž celková cena nepřekročí $k$, jinak ne. Tato varianta patří mezi \textbf{NP-úplné} problémy. Její náročnost lze dokázat polynomiální redukcí z problému Hamiltonovské kružnice (HC), který je jedním z klasických NP-úplných problémů \cite{jancar_vsb_ti_skript,reinelt1994tsplib}.
 Výpočetní náročnost je dána explozivním růstem stavového prostoru. 
 
-Pro symetrický problém s $n$ vrcholy existuje celkem
+Počet přípustných řešení roste faktoriálně. U asymetrického TSP zafixujeme počáteční vrchol a zbylých $n-1$ vrcholů můžeme uspořádat libovolně, proto je počet různých cest $(n-1)!$. U symetrického TSP každá taková cesta odpovídá stejné kružnici i při opačném směru průchodu, takže počet různých kružnic je poloviční:
 \begin{equation}
     \frac{(n-1)!}{2}
 \end{equation}
-možných přípustných řešení (Hamiltonovských kružnic). V případě asymetrického problému, který je klíčový pro náš generátor, je počet možných cest $(n-1)!$. %\cite{sawa}
+\cite{reinelt1994tsplib}.
 Tento faktoriální růst způsobuje, že i pro relativně malé instance (např. $n=20$) je nalezení globálního optima metodou hrubé síly v reálném čase neproveditelné. Zatímco ověření kandidátního řešení (zda je cesta Hamiltonovská a zda její váha nepřekračuje $k$) je řešitelné v polynomiálním čase, samotné nalezení optima vyžaduje nasazení pokročilých heuristik nebo aproximačních algoritmů, kterým se věnuje kapitola \ref{subsection:BIA}.
 
 
 \section{Stanovení vah hran v reálných sítích}
-V klasických formulacích TSP se předpokládá, že váhy hran jsou již definovány. V rámci této práce, která se zaměřuje na generování instancí z reálných geografických dat, je však klíčovým krokem výpočet nejkratších cest mezi každou dvojicí lokalit v grafu silniční sítě. Tento proces předchází samotnému řešení TSP a využívá algoritmy pro hledání nejkratší cesty mezi dvěma body (\textit{Point-to-Point Shortest Path}).
+V klasických formulacích TSP se předpokládá, že váhy hran jsou již definovány. V rámci této práce, která se zaměřuje na generování instancí z reálných geografických dat, je však klíčovým krokem výpočet nejkratších cest mezi každou dvojicí lokalit v grafu silniční sítě. Tento proces předchází samotnému řešení TSP a využívá algoritmy pro hledání nejkratší cesty mezi dvěma body.
 
 \subsection{Dijkstrův algoritmus}
-Dijkstrův algoritmus je deterministický algoritmus pro hledání nejkratších cest z jednoho zdrojového uzlu do všech ostatních v grafu s nezápornými vahami hran. Algoritmus udržuje množinu navštívených uzlů a pro každý uzel si pamatuje aktuální nejkratší nalezenou cestu. V každém kroku expanduje uzel s minimální dosaženou vzdáleností. Mapové služby využívají Dijkstru (často v kombinaci s technikou \textit{Contraction Hierarchies}) k výpočtu jednotlivých prvků $c_{ij}$ matice vzdáleností.
+Dijkstrův algoritmus je deterministický algoritmus pro hledání nejkratších cest z jednoho zdrojového uzlu do všech ostatních v grafu s nezápornými vahami hran. Algoritmus udržuje množinu navštívených uzlů a pro každý uzel si pamatuje aktuální nejkratší nalezenou cestu. V každém kroku expanduje uzel s minimální dosaženou vzdáleností \cite{dijkstra1959note}. V praxi routovacích enginů se pro zrychlení dotazů často používá kombinace s technikou \textit{Contraction Hierarchies}, která staví na modifikovaném obousměrném vyhledávání nejkratší cesty \cite{geisberger2008ch}. Konkrétně například OSRM nabízí předzpracování pomocí CH a službu \texttt{Table} pro výpočet matic vzdáleností či časů mezi zadanými body \cite{osrm_backend_readme}.
 
 
 \subsection{Algoritmus A*}
-A* je rozšíření Dijkstrova algoritmu, které využívá heuristickou funkci k urychlení výpočtu.
+A* je heuristicky řízené rozšíření vyhledávání nejkratší cesty, které používá hodnoticí funkci složenou z již známé ceny cesty a odhadu zbývající ceny do cíle \cite{hart1968astar}.
 \begin{itemize}
-    \item \textbf{Heuristika:} Zatímco Dijkstra prohledává graf všemi směry, A* upřednostňuje uzly, které leží směrem k cíli (např. na základě euklidovské vzdálenosti).
+    \item \textbf{Heuristika:} Na rozdíl od čistě nákladového prohledávání bez odhadu cíle využívá A* heuristickou složku, takže preferuje uzly, které podle odhadu vedou k cíli výhodněji \cite{hart1968astar}. V mapových úlohách se jako heuristika často používá vzdušná vzdálenost mezi uzlem a cílem.
 
 \begin{equation}
 \label{eq:a_star}
 f(n) = g(n) + h(n)
 \end{equation}
+Tento tvar hodnoticí funkce je přímo uveden v původní práci o A* \cite{hart1968astar}.
 Kde:
 \begin{itemize}
-    \item $g(n)$ představuje skutečnou cenu z počátečního uzlu do uzlu $n$.
-    \item $h(n)$ je odhad ceny cesty z uzlu $n$ do cílového uzlu (můžeme si to představit jako vzdušnou vzdálenost).
-\item $f(n)$ je celková ohodnocovací funkce určující prioritu uzlu v rámci prohledávání. Algoritmus pracuje na principu minimalizace této funkce, kdy v každém kroku expanduje uzel $n$ s nejnižší vypočtenou hodnotou $f(n)$, což zajišťuje efektivní směrování výpočtu k cílovému bodu.
+    \item $g(n)$ představuje cenu nejlevnější dosud nalezené cesty ze startu do uzlu $n$ \cite{hart1968astar}.
+    \item $h(n)$ je heuristický odhad zbývající ceny z uzlu $n$ do cíle \cite{hart1968astar}.
+\item $f(n)$ je výsledná priorita uzlu. V každém kroku se rozšiřuje otevřený uzel s nejmenší hodnotou $f(n)$ \cite{hart1968astar}.
 \end{itemize}
-    \item \textbf{Význam:} V kontextu této práce je A* klíčový pro pochopení, jak routovací enginy dosahují uspokojivých výsledků i nad rozsáhlými mapovými podklady.
+    \item \textbf{Význam:} V kontextu této práce je A* důležitý jako základní princip informovaného vyhledávání. V praktických routovacích enginech se nad velkými silničními grafy často používají i specializovaná zrychlení, například Contraction Hierarchies, případně alternativní pipeline typu MLD \cite{geisberger2008ch,osrm_backend_readme}.
 \end{itemize}
 
 
@@ -124,35 +123,35 @@ Kde:
 
 
 \section{Metody řešení TSP} %\cite{ti_jancar}
-Vzhledem k prokázané NP-těžkosti problému je volba metody řešení vždy kompromisem mezi výpočetním časem a kvalitou nalezeného řešení. Metody lze kategorizovat do čtyř hlavních skupin.
+Vzhledem k prokázané složitosti problému je volba metody řešení vždy kompromisem mezi výpočetním časem a kvalitou nalezeného řešení. Metody lze kategorizovat do čtyř hlavních skupin.
 
 \subsection{Přesné metody}
-Tyto algoritmy garantují nalezení globálního optima, avšak jejich časová složitost je v nejhorším případě exponenciální.
+Tyto algoritmy garantují nalezení teoretického globálního optima, avšak jejich časová složitost je v nejhorším případě exponenciální \cite{johnson1997tsp_local_search}.
 \begin{itemize}
 \item \textbf{Brute Force:} 
-    Tento naivní přístup spočívá v systematickém generování všech přípustných řešení, tedy všech možných Hamiltonovských kružnic v grafu. Algoritmus vypočítá délku každé takové trasy a vybere tu s minimální hodnotou.
+    Tento přístup spočívá v systematickém generování všech přípustných řešení, tedy všech možných Hamiltonovských kružnic v grafu. Algoritmus vypočítá délku každé takové trasy a vybere tu s minimální hodnotou.
     
-    \textit{Složitost a limity:} Časová složitost $O(n!)$ představuje jeden z nejrychleji rostoucích typů složitosti. Zatímco pro $n=10$ je počet kombinací řádově v milionech, což moderní procesory zvládnou v přijatelném čase, pro $n=20$ již počet kombinací přesahuje snesitelný počet kombinací, což by vyžadovalo roky výpočetního času. Metoda je tedy využitelná pouze pro verifikaci optimálních řešení u triviálních instancí nebo jako základ pro testování heuristik %\cite{sawa2025}.
+    \textit{Složitost a limity:} Naivní úplné prohledání všech permutací měst má časovou složitost $O(n!)$ \cite{cmu_15451_dp2_2023}. Metoda je proto prakticky použitelná jen pro malé instance nebo pro validační účely.
 
     \item \textbf{Branch and Bound:} 
-    Jedná se o metodu prohledávání stavového prostoru, která na rozdíl od hrubé síly neprochází všechny kombinace, ale ořezává ty části stromu řešení, které prokazatelně nemohou vést k optimu. Algoritmus využívá dvě základní operace:
+    Jedná se o metodu prohledávání stavového prostoru, která na rozdíl od hrubé síly neprochází všechny kombinace, ale ořezává ty části stromu řešení, které prokazatelně nemohou vést k optimu. V klasické formulaci pro TSP se množina všech tras postupně dělí na menší podmnožiny (branching) a pro každou se počítá dolní mez (bounding) \cite{little1963bnb}. Algoritmus využívá dvě základní operace:
     \begin{enumerate}
         \item \textbf{Větvení (Branching):} Rozdělení aktuálního problému na menší podproblémy (např. zahrnutí nebo vyloučení konkrétní hrany $e_{ij}$ z trasy).
         \item \textbf{Určování mezí (Bounding):} Pro každý uzel ve stromu výpočtu se určí dolní mez (lower bound) ceny řešení. Tato mez se často získává pomocí relaxace problému (např. řešením přiřazovacího problému nebo výpočtem minimální kostry grafu).
     \end{enumerate}
     
-    Pokud je vypočtená dolní mez určité větve vyšší než cena doposud nejlepšího nalezeného řešení (\textit{upper bound}), je celá tato větev z dalšího prohledávání vyřazena. 
+    Pokud je vypočtená dolní mez určité větve vyšší než cena doposud nejlepšího nalezeného řešení (\textit{upper bound}), je celá tato větev z dalšího prohledávání vyřazena \cite{little1963bnb}. 
     
-    \textit{Výhody:} Garantuje nalezení globálního optima a u mnoha reálných instancí je řádově rychlejší než Held-Karpův algoritmus, protože nemusí prohledávat celý stavový prostor.
+    \textit{Výhody:} Při účinném prořezávání může výrazně snížit počet prozkoumaných stavů oproti úplnému výčtu.
     
-    \textit{Nevýhody:} V nejhorším případě (např. u špatně zvolené relaxace pro výpočet mezí) může složitost stále degradovat na exponenciální, což limituje jeho použití pro rozsáhlé logistické sítě %\cite{reinelt1994}.
+    \textit{Nevýhody:} V nejhorším případě může být běh stále výpočetně prohibitivní \cite{lin1973tsp}.
     
 \item \textbf{Dynamické programování (Bellman-Held-Karpův algoritmus):} 
 Tento přístup využívá principu optimality, kdy optimální řešení celého problému lze sestavit z optimálních řešení jeho podproblémů. Na rozdíl od metod typu Branch and Bound, které prohledávají větve stromu a ořezávají je na základě mezí, Held-Karpův algoritmus systematicky buduje tabulku výsledků pro všechny možné podmnožiny měst.
 
 \textit{Princip:} Nechť $S \subseteq V \setminus \{v_1\}$ je podmnožina měst a $g(v_i, S)$ je délka nejkratší cesty začínající v počátečním městě $v_1$, procházející všemi městy v $S$ právě jednou a končící v městě $v_i$. Algoritmus rekurzivně vypočítává hodnoty $g$ pro rostoucí velikost množiny $S$, přičemž využívá již vypočtené hodnoty uložené v paměti.
 
-\textit{Složitost a limity:} Časová složitost je pevně dána vztahem $O(n^2 2^n)$, což je výrazně lepší než faktoriální složitost hrubé síly $O(n!)$, ale stále exponenciální. Hlavním kritickým bodem pro implementaci v rámci našeho generátoru je však \textbf{prostorová (paměťová) náročnost} $O(n 2^n)$, která je způsobena nutností uchovávat tabulku mezivýsledků. V praxi to znamená, že zatímco Branch and Bound může u "šťastných" instancí vyřešit i 40-100 měst, Held-Karp naráží na limity RAM už u instancí kolem $n \approx 25$ až $30$ %\cite{reinelt1994}.
+\textit{Složitost a limity:} Standardní DP formulace redukuje naivní $O(n!)$ na $O(n^2 2^n)$ \cite{cmu_15451_dp2_2023}. Počet stavů DP je řádově $n 2^n$, což vede i na vysokou paměťovou náročnost při praktické implementaci.
 
 \textit{Výhody:} Garantuje nalezení optima a jeho časový průběh je deterministický (není závislý na kvalitě prořezávání jako u Branch and Bound).
 
@@ -160,32 +159,32 @@ Tento přístup využívá principu optimality, kdy optimální řešení celéh
 \end{itemize}
 
 \subsection{Heuristiky a lokální optimalizace}
-Lokální optimalizace (označované také jako metody lokálního prohledávání) pracují na principu iterativního vylepšování již existujícího přípustného řešení. Cílem je najít v definovaném okolí aktuální trasy takovou změnu, která sníží celkovou cenu .
+Lokální optimalizace (označované také jako metody lokálního prohledávání) pracují na principu iterativního vylepšování již existujícího přípustného řešení. Cílem je najít v definovaném okolí aktuální trasy takovou změnu, která sníží celkovou cenu \cite{johnson1997tsp_local_search}.
 
 \begin{itemize}
-    \item \textbf{Algoritmy $k$-opt (2-opt a 3-opt):} Číslo $k$ definuje počet hran aktuálního cyklu, které jsou v jednom kroku odstraněny a následně nahrazeny jinou kombinací hran tak, aby byla zachována integrita Hamiltonovské kružnice.
+    \item \textbf{Algoritmy $k$-opt (2-opt a 3-opt)} \cite{johnson1997tsp_local_search}\textbf{:} Číslo $k$ definuje počet hran aktuálního cyklu, které jsou v jednom kroku odstraněny a následně nahrazeny jinou kombinací hran tak, aby byla zachována integrita Hamiltonovské kružnice.
     \begin{itemize}
     \item \textbf{Princip 2-opt (záměna dvou hran):} 
     Představme si aktuální trasu jako uzavřený řetězec. Algoritmus vybere dvě hrany, které nesousedí (tedy nemají společný uzel). Tyto dvě hrany odstraní, čímž se trasa rozpadne na dvě samostatné cesty. Aby vznikla nová souvislá Hamiltonovská kružnice, musí algoritmus tyto dva úseky znovu propojit, ale v jiném pořadí.
     Pokud byla původní cesta $[A \to B \to \dots \to C \to D]$, po odstranění hran $(A,B)$ a $(C,D)$ a následném křížovém propojení vznikne trasa $[A \to C \to \dots \to B \to D]$. 
     
     
-    \textit{Geometrický význam:} Pokud se původní dvě hrany křížily, tato operace křížení odstraní. V eukleidovských instancích vede odstranění křížení typicky ke zkrácení trasy; nejde však o univerzální tvrzení pro libovolnou matici nákladů.
-        \item \textbf{3-opt:} Tento přístup odstraňuje tři hrany současně, což umožňuje provádět mnohem komplexnější úpravy cesty (včetně přehození celých úseků trasy). Zatímco 2-opt dokáže najít pouze lokální optimum v rámci jednoduchých prohozů, 3-opt prohledává širší okolí řešení, což zvyšuje šanci na nalezení kvalitnější trasy, ovšem za cenu vyšší výpočetní náročnosti ($O(n^3)$ oproti $O(n^2)$ u 2-opt).
+    \textit{Geometrický význam:} Pokud se původní dvě hrany křížily, tato operace křížení odstraní. V eukleidovských instancích vede odstranění křížení typicky ke zkrácení trasy. Nejde však o univerzální tvrzení pro libovolnou matici nákladů.
+        \item \textbf{3-opt:} Tento přístup odstraňuje tři hrany současně, což umožňuje provádět mnohem komplexnější úpravy cesty (včetně přehození celých úseků trasy). Zatímco 2-opt dokáže najít pouze lokální optimum v rámci jednoduchých prohozů, 3-opt prohledává širší okolí řešení, což zvyšuje šanci na nalezení kvalitnější trasy, ovšem za cenu vyšší výpočetní náročnosti. Při úplném prohledání sousedství je ověření lokální optimality v nejhorším případě řádu $\Omega(n^2)$ pro 2-opt a $\Omega(n^3)$ pro 3-opt \cite{johnson1997tsp_local_search}.
 \end{itemize}
     \item \textbf{Lin-Kernighan (LK):} Algoritmus Lin-Kernighan je v podstatě zobecněním $k$-opt přístupu, kde hodnota $k$ není předem fixně stanovena. Algoritmus v každém kroku adaptivně rozhoduje, kolik hran je vhodné zaměnit, a to na základě potenciálního zlepšení nákladové funkce. Díky této flexibilitě dokáže LK efektivně opustit lokální minima, ve kterých by se standardní 2-opt nebo 3-opt algoritmy zastavily. V praxi se často používá k dosažení řešení, která jsou velmi blízko optimu i pro instance s tisíci uzly \cite{lin1973tsp,helsgaun2000lk,helsgaun2009lkh}.
 \end{itemize}
 
 \subsection{Metaheuristiky a biologicky inspirované algoritmy}
 \label{subsection:BIA}
-Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance moderní logistiky využívají metaheuristiky \cite{engelbrecht2007ci}. Tyto algoritmy nehledají globální optimum s absolutní jistotou, ale zaměřují se na nalezení dostatečně kvalitního řešení v akceptovatelném čase. Klíčovou vlastností těchto metod je schopnost unikat z lokálních optim pomocí mechanismů inspirovaných přírodou.
+Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance moderní logistiky využívají metaheuristiky \cite{engelbrecht2002ci}. Tyto algoritmy nehledají globální optimum s absolutní jistotou, ale zaměřují se na nalezení dostatečně kvalitního řešení v akceptovatelném čase. Klíčovou vlastností těchto metod je schopnost unikat z lokálních optim pomocí mechanismů inspirovaných přírodou.
 
 \begin{itemize}
-    \item \textbf{Genetické algoritmy (GA):} Tato technika simuluje proces přírodního výběru a evoluce. Místo jednoho řešení pracuje s celou populací (množinou tras). Jednotlivci jsou podrobováni operacím selekce (výběr nejlepších), křížení (výměna úseků tras mezi „rodiči“) a mutace (náhodná změna trasy). Pro TSP je nutné využívat specifické operátory jako \textit{Order Crossover} (OX) nebo \textit{Edge Recombination Crossover} (ERX), které zaručují, že vzniklí potomci budou stále platnými permutacemi bez chybějících či duplicitních měst.
+    \item \textbf{Genetické algoritmy (GA):} Tato technika simuluje evoluční proces nad populací kandidátních řešení, kde noví potomci vznikají operacemi křížení a mutace \cite{skanderova2020bia_ex4_ga_tsp}. Pro TSP je zároveň nutné zachovat platnou permutaci měst, tedy bez opakované návštěvy stejného města \cite{skanderova2020bia_ex4_ga_tsp}.
     
-    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} Algoritmus je inspirován chováním mravenců při hledání nejkratší cesty k potravě \cite{dorigo1997acs}. Umělí agenti (mravenci) konstruují řešení tak, že se pohybují po hranách grafu, přičemž jejich volba je ovlivněna množstvím feromonu na hraně a její délkou. Hrany, které jsou součástí kratších cest, získávají v iteracích více feromonu. Důležitým mechanismem je vypařování feromonu v čase, což zabraňuje příliš rychlé konvergenci do lokálního optima a umožňuje prohledávat nové oblasti stavového prostoru.
+    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} ACO je inspirováno chováním reálných mravenců a pro TSP používá pravděpodobnostní volbu dalšího města podle feromonu a viditelnosti (inverzní vzdálenosti) \cite{skanderova2020bia_ex8_aco_tsp}. Klíčovým mechanismem je vypařování feromonu a jeho následná aktualizace podle kvality nalezených tras, což umožňuje postupně zvýhodňovat lepší cesty \cite{skanderova2020bia_ex8_aco_tsp}.
     
-    \item \textbf{Simulované žíhání (Simulated Annealing - SA):} Metoda vychází z analogie k ochlazování kovů v metalurgii. Algoritmus začíná při vysoké „teplotě“, kdy s vysokou pravděpodobností přijímá i horší řešení než to stávající, což mu umožňuje uniknout z mělkých lokálních minim. S postupným ochlazováním tato pravděpodobnost klesá a algoritmus se začíná chovat spíše jako lokální optimalizace, která konverguje k finálnímu řešení.
+    \item \textbf{Simulované žíhání (Simulated Annealing - SA):} SA je definováno pomocí řídicích parametrů počáteční teploty, minimální teploty a chladicí konstanty \cite{skanderova2020bia_ex3_sa}. Přijímací pravidlo dovoluje s určitou pravděpodobností přijmout i horší řešení podle členu $e^{-(f(x_1)-f(x))/T}$, takže algoritmus na začátku více prozkoumává prostor řešení a s klesající teplotou se chová více lokálně \cite{skanderova2020bia_ex3_sa}.
 
     \item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
 \begin{itemize}
@@ -197,7 +196,7 @@ Díky této kombinaci globálního prohledávání a lokálního zpřesňování
 
 
 \subsection{Aproximační a konstruktivní algoritmy}
-Na rozdíl od běžných heuristik poskytují aproximační algoritmy pevnou matematickou garanci, která definuje maximální možnou odchylku nalezeného řešení od globálního optima. %\cite{ti_sawa}.
+Na rozdíl od běžných heuristik poskytují aproximační algoritmy pevnou matematickou garanci, která definuje maximální možnou odchylku nalezeného řešení od globálního optima \cite{reinelt1994tsplib}.
 Tyto algoritmy jsou klíčové pro pochopení mezí výpočetní složitosti u metrických variant TSP.
 
 \begin{itemize}
@@ -242,7 +241,7 @@ Tyto algoritmy jsou klíčové pro pochopení mezí výpočetní složitosti u m
 Pro objektivní testování a porovnávání výkonnosti algoritmů jsou nezbytné standardizované datové sady, benchmarky. V kontextu této práce je však nutné rozlišovat mezi historickými syntetickými daty a moderními instancemi založenými na reálné dopravní infrastruktuře.
 
 \subsection{Knihovny TSPLIB a TSPLIB95}
-Knihovna TSPLIB představuje standard pro testování algoritmů řešících TSP. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
+Knihovna TSPLIB představuje standard pro testování algoritmů řešících TSP \cite{reinelt1994tsplib,tsplib95}. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
 \begin{itemize}
     \item \textbf{Formát .tsp:} Strukturovaný textový soubor obsahující metadata (název, typ metriky, dimenze) a samotná data, která jsou definována buď souřadnicemi uzlů (pro výpočet euklidovské vzdálenosti), nebo explicitní maticí vzdáleností cesta.
     \item \textbf{Formát .opt.tour:} Referenční soubor obsahující sekvenci indexů vrcholů, která tvoří prokazatelně optimální řešení dané instance.

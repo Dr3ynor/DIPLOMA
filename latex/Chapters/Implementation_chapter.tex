@@ -122,7 +122,7 @@ V průběhu implementace bylo nutné upravit několik původních návrhových r
 
 Druhým významným krokem byla velká restrukturalizace projektu do modulárního balíku \texttt{tsp\_solver}, kde jsou odděleny vrstvy \texttt{ui}, \texttt{core}, \texttt{routing}, \texttt{io} a \texttt{state}. Tento krok byl náročný na migraci kódu, ale zjednodušil další rozvoj solverů i testovací infrastruktury a snížil počet míst, kde se mísila odpovědnost GUI a výpočetního jádra.
 
-U genetického algoritmu byl výběr rodičů sjednocen na tournament selection. Parametr \texttt{tournament\_k} určuje velikost turnaje, tedy kolik kandidátů vstupuje do lokálního výběru nejlepšího jedince před křížením. Kvalitativní zlepšení výsledků bylo spíše malé, ale tato varianta je lépe řiditelná při ladění parametrů a implementačně čitelnější.
+U genetického algoritmu byl výběr rodičů sjednocen na tournament selection. Parametr \texttt{tournament\_k} určuje velikost turnaje, tedy kolik kandidátů vstupuje do lokálního výběru nejlepšího jedince před křížením. Kvalitativní zlepšení výsledků bylo spíše malé, ale tato varianta je lépe řiditelná při ladění parametrů a implementačně čitelnější. Pro křížení je v implementaci použit order-based postup odpovídající OX stylu (kopie souvislého úseku z prvního rodiče a doplnění z druhého rodiče bez duplicit).
 
 U simulovaného žíhání byla v rámci vývoje ověřena i agresivnější strategie práce se stagnací a periodickým návratem teploty inspirovaná externím zdrojem \cite{aaronyw_atsp_py}. V testovaném nastavení této práce však nepřinesla stabilnější ani kvalitnější výsledky než jednodušší varianta s řízeným ochlazováním a fixním výpočetním rozpočtem. Z toho důvodu zůstala v hlavní větvi konzervativnější implementace.
 
@@ -131,7 +131,7 @@ Samostatnou změnou byla formalizace benchmarkovacího workflow. Měření byla 
 \subsection{Algoritmické optimalizace}
 Kromě výběru více solverů jsou přímo v kódu implementovány mikrooptimalizace:
 \begin{itemize}
-    \item optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH nad jednotným datovým rozhraním matice
+    \item optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH \cite{lkh_pypi} nad jednotným datovým rozhraním matice
     \item u genetického algoritmu je první jedinec populace vždy trasou z greedy heuristiky \emph{Nearest Neighbour} (NN) nad stejnou maticí. Ostatní jedinci vznikají náhodnou permutací vnitřních měst. Po skončení evoluce se na nejlepší trasu aplikuje krátké lokální vylepšení (náhodný budgetovaný 2-opt u STSP, u ATSP operátory \emph{swap}, \emph{relocate} a \emph{or-opt} v modulu \texttt{route\_ops}). Obdobné závěrečné vylepšení se uplatňuje i u ACO, SA a RSO v příslušných souborech v \texttt{tsp\_solver/algorithms/}
     \item u ACO je předpočtena matice viditelnosti \(\eta^\beta\)
     \item počet mravenců je výchozí hodnotou omezen horní hranicí \texttt{min(n, 20)} pro stabilnější dobu běhu, popřípadě lze načíst předem připravené laděné parametry pro určité velikosti instancí
