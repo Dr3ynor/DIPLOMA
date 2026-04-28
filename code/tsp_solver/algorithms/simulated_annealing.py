@@ -15,7 +15,6 @@ from tsp_solver.algorithms.route_ops import (
 
 
 def _sample_two_opt_ij(n: int, local_rng: random.Random, max_attempts: int = 128):
-    """Valid 2-opt segment indices with 0 fixed; j - i > 1."""
     for _ in range(max_attempts):
         i, j = sorted(local_rng.sample(range(1, n), 2))
         if j - i > 1:
@@ -32,10 +31,7 @@ def _temperature_at_step(
     t_low: float,
     cooling_rate: float,
 ) -> float:
-    """
-    Scheduled temperature: uses the full max_steps budget (no early freeze on min_temp).
-    cooling_rate near 1 => slower decay along the step axis; lower => closer to linear-in-log.
-    """
+
     ms = max(1, int(max_steps))
     u = (step + 1) / ms
     u = min(1.0, max(1.0 / ms, u))

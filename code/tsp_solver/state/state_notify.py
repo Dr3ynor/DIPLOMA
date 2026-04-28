@@ -1,4 +1,4 @@
-"""Společné tagy pro notify((tag, ...)) z AppState — jeden zdroj pro map_viewer, sidebar, …"""
+"""Společné tagy pro notify((tag, ...)) z AppState - jeden zdroj pro map_viewer, sidebar..."""
 
 POINT_LABEL = "point_label"
 PAN_MAP = "pan_map"

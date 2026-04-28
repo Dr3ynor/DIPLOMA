@@ -3,8 +3,7 @@ Wrapper pro solver LKH-3 (Keld Helsgaun) přes PyPI balíček ``lkh`` (PyLKH).
 
 Binárka LKH-3
     Spustitelný soubor patří do stejné složky jako tento modul
-    ``tsp_solver/algorithms/`` (např. soubor pojmenovaný ``LKH``). Není v nastavení
-    aplikace — očekává se, že je součástí repozitáře / build artefaktu.
+    ``tsp_solver/algorithms/`` (např. soubor pojmenovaný ``LKH``).
 
 Co je ``pip install lkh``
     Balíček **není** samotný algoritmus — volá externí binárku LKH-3 přes subprocess
@@ -17,7 +16,7 @@ Jak ``lkh`` volá LKH
     - ``kwargs``: parametry do ``.par`` (např. ``runs``, ``max_trials``).
 
 Co vrací
-    Seznam tras; uzly **1..n**. Tento modul převede na permutaci ``0..n-1`` od uzlu 0.
+    Seznam tras; uzly **1..n**.
 """
 
 from __future__ import annotations
@@ -127,11 +126,7 @@ def _lkh(
     problem_type: str = "TSP",
 ):
     """
-    Spustí LKH-3 přes balíček ``lkh``.
-
-    Parametry ``runs`` a ``max_trials`` odpovídají běžným parametrům LKH (zápis do .par).
-    Volitelný ``seed`` se předá jako ``seed=`` (v .par jako ``SEED``), pokud ho LKH
-    v dané verzi podporuje.
+    Volitelný ``seed`` se předá jako ``seed=``, pokud ho LKH podporuje.
     """
     n = len(matrix)
     if n < 2:

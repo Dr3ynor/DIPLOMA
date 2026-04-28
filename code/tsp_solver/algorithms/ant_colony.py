@@ -38,7 +38,6 @@ def _ant_colony(
     elitist_weight=None,
     problem_type="TSP",
 ):
-    """Ant System style ACO with matrix precomputation and elite pheromone updates."""
     n = len(matrix)
     local_rng = rng if rng is not None else random.Random(seed)
     normalized_problem_type = str(problem_type).upper()

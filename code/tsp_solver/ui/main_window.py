@@ -21,7 +21,7 @@ from tsp_solver.ui.theme import PALETTES, central_widget_bg_style
 
 class _MapWithRightOverlay(QWidget):
     """
-    Mapa vyplní celý widget; pravý panel je child nad mapou (neposouvá WebEngine).
+    Mapa vyplní celý widget; pravý panel je child nad mapou
     """
 
     _OVERLAY_RIGHT_GAP = 12
@@ -51,14 +51,14 @@ class _MapWithRightOverlay(QWidget):
         w = self.width()
         pw = self._panel.overlay_desired_width()
         expanded = pw >= RightRoutePanel.EXPANDED_W
-        # Roztažený panel až k pravému (a svisle k) okraji okna; sbalená šipka nechá mezeru.
+
         g = 0 if expanded else self._OVERLAY_VERT_GAP
         r = 0 if expanded else self._OVERLAY_RIGHT_GAP
         if expanded:
             inner_h = max(80, h - 2 * g)
             y = g
         else:
-            # Úzký pruh na celou výšku by jako sibling nad MapViewerem blokoval kliky (např. nastavení).
+            # Úzký pruh na celou výšku by jako sibling nad MapViewerem blokoval kliky
             inner_h = min(self._panel.collapsed_overlay_height(), max(40, h - 2 * g))
             y = g + max(0, (h - 2 * g - inner_h) // 2)
         x = max(0, w - pw - r)
@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
         dlg.map_tile_changed.connect(self._apply_map_tile_url)
         dlg.distance_unit_changed.connect(self._apply_distance_unit)
         dlg.exec()
-        # Settings dialog can be closed by button or Esc; refresh sidebar labels immediately.
+        # refresh sidebar labels immediately
         self.sidebar.refresh_runtime_settings_indicators()
 
     def _commit_waypoint_indices(self, show: bool):

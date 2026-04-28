@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-"""Shared TSP route utilities: length and budgeted random 2-opt polishing."""
-
-
 def tour_length(route, matrix):
     n = len(route)
     if n < 2:
@@ -15,7 +12,6 @@ def tour_length(route, matrix):
 
 
 def two_opt_delta(route, matrix, i, j):
-    """Signed cost change if segment route[i : j+1] is reversed (classic 2-opt)."""
     n = len(route)
     if j - i <= 1:
         return 0.0
@@ -30,10 +26,6 @@ def default_polish_budget(n: int) -> int:
 
 
 def polish_route_random_two_opt(route, matrix, rng, max_checks: int | None = None):
-    """
-    In-place random 2-opt search capped by max_checks proposals.
-    Returns the same route list (for chaining).
-    """
     n = len(route)
     if n < 4:
         return route
@@ -49,7 +41,6 @@ def polish_route_random_two_opt(route, matrix, rng, max_checks: int | None = Non
 
 
 def random_tour_zero_fixed(n, rng):
-    """Hamiltonian cycle as permutation with city 0 fixed at index 0."""
     inner = list(range(1, n))
     rng.shuffle(inner)
     return [0] + inner
@@ -67,10 +58,6 @@ def _apply_or_opt(route, start: int, length: int, dst: int):
 
 
 def random_atsp_neighbor(route, rng):
-    """
-    Build an ATSP-safe neighbor with operators that preserve orientation:
-    swap / relocate / or-opt(2/3).
-    """
     n = len(route)
     if n < 4:
         return list(route)
@@ -102,7 +89,6 @@ def random_atsp_neighbor(route, rng):
 
 
 def polish_route_random_atsp(route, matrix, rng, max_checks: int | None = None):
-    """Budgeted local search for ATSP using swap/relocate/or-opt neighbors."""
     n = len(route)
     if n < 4:
         return route

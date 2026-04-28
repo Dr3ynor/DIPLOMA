@@ -40,8 +40,8 @@ class ApiStatusTarget:
     """Jak často znovu dotázat tento cíl (ms)."""
 
 
-# Minimální platná table požadavka: 2× stejný bod (lon,lat), stejný formát jako v builderu.
-# OSRM_LOCAL_TABLE_URL: openrouteservice_routing (sdíleno s DistanceMatrixBuilder).
+# Minimální platná table požadavku: 2× stejný bod (lon,lat), stejný formát jako v builderu
+# OSRM_LOCAL_TABLE_URL: openrouteservice_routing (sdíleno s DistanceMatrixBuilder)
 OSRM_HEALTHCHECK_URL = (
     f"{OSRM_LOCAL_TABLE_URL}18.26,49.82;18.26,49.82?annotations=distance"
 )

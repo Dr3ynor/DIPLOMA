@@ -253,15 +253,15 @@ ORS_COUNTRY_EN: dict[int, str] = dict(
 
 _STEEPNESS_CS: dict[int, str] = {
     -5: "≥ 16 % klesání",
-    -4: "10–16 % klesání",
-    -3: "7–10 % klesání",
-    -2: "4–7 % klesání",
-    -1: "1–4 % klesání",
-    0: "téměř vodorovně (0–1 % stoupání)",
-    1: "1–4 % stoupání",
-    2: "4–7 % stoupání",
-    3: "7–10 % stoupání",
-    4: "10–16 % stoupání",
+    -4: "10-16 % klesání",
+    -3: "7-10 % klesání",
+    -2: "4-7 % klesání",
+    -1: "1-4 % klesání",
+    0: "téměř vodorovně (0-1 % stoupání)",
+    1: "1-4 % stoupání",
+    2: "4-7 % stoupání",
+    3: "7-10 % stoupání",
+    4: "10-16 % stoupání",
     5: "≥ 16 % stoupání",
 }
 

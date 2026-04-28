@@ -52,7 +52,7 @@ _ANIM_MS = 190
 
 
 class RoutingProfileBar(QFrame):
-    """Exkluzivní přepínač profilu — jeden aktivní najednou (QButtonGroup)."""
+    """jeden button aktivní najednou (QButtonGroup)."""
 
     profile_changed = pyqtSignal(str)
 
@@ -191,5 +191,5 @@ class RoutingProfileBar(QFrame):
             self.profile_changed.emit(key)
 
     def set_geo_enabled(self, enabled: bool) -> None:
-        """U negeografické instance trasové režimy neplatí — stejně jako vyhledávání."""
+        """U negeografické instance trasové režimy neplatí, stejně jako vyhledávání."""
         self.setEnabled(enabled)

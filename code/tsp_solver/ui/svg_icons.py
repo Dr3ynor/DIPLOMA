@@ -1,4 +1,4 @@
-"""Načtení Lucide SVG z icons/ s nahrazením currentColor (barva dle tématu)."""
+"""Načtení Lucide SVG z icons/ s nahrazením currentColor"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def tinted_svg_icon(
     size: int = 22,
     device_pixel_ratio: float = 1.0,
 ) -> QIcon:
-    """Vykreslí SVG do QIcon; barva místo currentColor."""
+    """Vykreslí SVG do QIcon"""
     path = _ICONS_DIR / svg_filename
     if not path.is_file():
         return QIcon()

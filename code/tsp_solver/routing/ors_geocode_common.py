@@ -1,4 +1,4 @@
-"""Společné parsování odpovědí ORS Geocode (GeoJSON)."""
+"""Společné parsování odpovědí GeoJSON"""
 
 from __future__ import annotations
 

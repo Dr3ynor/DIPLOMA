@@ -1,5 +1,3 @@
-"""Qt vzor QThread + QObject worker se signály finished / failed."""
-
 from PyQt6.QtCore import QObject, QThread
 
 

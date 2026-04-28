@@ -27,7 +27,6 @@ class OptimizationEngine:
             "LKH": "LKH-3 (Helsgaun, PyLKH)",
         }
 
-        # MAPOVÁNÍ FUNKCÍ: Interní slovník, který propojuje klíče s metodami.
         self._solver_functions = {
             "NN": _nearest_neighbor,
             "ACO": _ant_colony,
@@ -46,8 +45,7 @@ class OptimizationEngine:
 
     def run(self, solver_type, matrix, quiet=False, **kwargs):
         """
-        Spustí vybraný algoritmus na základě textového klíče (solver_type).
-        ``quiet=True`` potlačí ladící výpis na stdout (batch benchmark).
+        Spustí vybraný algoritmus na základě textového klíče (solver_type)
         """
         if not matrix or len(matrix) < 2:
             return []

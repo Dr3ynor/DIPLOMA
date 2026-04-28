@@ -1,5 +1,3 @@
-"""Central catalog of supported distance metrics used by GUI and backend."""
-
 from __future__ import annotations
 
 from typing import Final
@@ -34,12 +32,6 @@ METRIC_UI_OPTIONS: Final[tuple[tuple[str, str], ...]] = (
 
 
 def resolve_effective_metric(selected_metric: str, is_geographic: bool) -> str:
-    """
-    Returns a sensible metric key for the current instance type.
-
-    - GEO instances allow haversine + routing metrics.
-    - Non-GEO instances allow planar point metrics.
-    """
     if is_geographic:
         if selected_metric in GEO_ALLOWED_METRICS:
             return selected_metric

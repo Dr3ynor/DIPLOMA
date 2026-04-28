@@ -1,5 +1,5 @@
 """
-OpenRouteService v2 Directions – instrukce a výškový profil (chunkovaně).
+OpenRouteService v2 Directions - instrukce a výškový profil (chunked)
 
 Používáme endpoint **geojson** (ne „json“): u formátu json ORS vrací geometrii jako
 zakódovaný polyline bez souřadnic v odpovědi, takže výšku nelze načíst. GeoJSON Feature
@@ -259,8 +259,8 @@ def ors_post_directions_json_chunk(
     extra_info: list[str] | None = None,
 ) -> tuple[dict[str, Any], list[list[float]]] | None:
     """
-    POST na geojson (ne json) – geometrie jako souřadnice + volitelně Z při elevation.
-    Vrací (properties, coordinates) pro parsování segments/steps a výškového profilu.
+    POST na geojson, geometrie jako souřadnice (bez z)
+    Vrací (properties, coordinates) pro parsování segments/steps a výškového profilu
     """
     base = _normalize_base_url(base_url)
     url = f"{base}/v2/directions/{profile_slug}/geojson"
@@ -311,7 +311,7 @@ def ors_post_directions_json_chunk(
         else:
             print(
                 f"ORS directions GeoJSON: chunk {chunk_index + 1} bodů={len(coords)} "
-                "(2D – výška v odpovědi chybí, zkontrolujte elevation=true a backend)"
+                "(2D výška v odpovědi chybí, zkontrolujte elevation=true a backend)"
             )
         return props, coords
     except Exception as e:
@@ -330,12 +330,9 @@ def ors_directions_full_detail(
     extra_info: list[str] | None = None,
 ) -> RouteDirectionsDetail | None:
     """
-    Chunkované directions + výška.
-
-    Uzavřený TSP (první bod == poslední): ORS při jednom požadavku [A,B,…,A] často ukončí
-    slovní návod u posledního mezilehlého waypointu a nepopíše úsek návratu na start.
-    Proto routujeme **otevřený řetězec** ``ordered_stops[:-1]`` a na konec **samostatně**
-    úsek ``poslední_zastávka → start``.
+    Chunkované directions + výška
+    Routujeme **otevřený řetězec** ``ordered_stops[:-1]`` a na konec **samostatně**
+    úsek ``poslední_zastávka -> start``
     """
     if not (api_key and api_key.strip()):
         return None
@@ -410,7 +407,7 @@ def ors_directions_full_detail(
         last_stop = route_core[-1]
         if not _same_latlon(last_stop, return_start):
             print(
-                "ORS directions: závěrečný úsek návratu na start "
+                "ORS directions: závěrečný úsek návratu na start"
                 f"({last_stop[0]:.5f},{last_stop[1]:.5f}) → ({return_start[0]:.5f},{return_start[1]:.5f})"
             )
             closing = ors_post_directions_json_chunk(

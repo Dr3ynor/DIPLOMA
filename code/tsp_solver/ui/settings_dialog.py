@@ -35,7 +35,7 @@ from tsp_solver.ui.theme import PALETTES, build_settings_dialog_stylesheet
 
 
 class SettingsDialog(QDialog):
-    """Dialog aplikačního nastavení (rozšiřitelné o další položky)."""
+    """Dialog aplikačního nastavení"""
 
     theme_changed = pyqtSignal(str)
     waypoint_indices_changed = pyqtSignal(bool)

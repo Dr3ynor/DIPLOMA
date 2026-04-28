@@ -16,7 +16,7 @@ class IOHandler:
         }
 
     def get_supported_formats(self):
-        # EXPLICIT/FULL_MATRIX je podporovaný jen pro import, ne pro tvorbu/export z GUI.
+        # EXPLICIT/FULL_MATRIX je podporovaný jen pro import, ne pro tvorbu/export z GUI, z logických důvodů
         return [k for k in self._strategies.keys() if k != "TSP_EXPLICIT_FULL_MATRIX"]
     
     def _to_payload(self, loaded, fallback_is_geo=True):

@@ -1,5 +1,3 @@
-"""Reverzní geokódování přes ORS (stejný klíč a base URL jako vyhledávání)."""
-
 from __future__ import annotations
 
 import json
@@ -13,7 +11,7 @@ from tsp_solver.routing.ors_geocode_common import first_label_from_ors_geocode_g
 
 
 class OrsReverseGeocodeClient(QObject):
-    """Fronta požadavků s omezenou paralelou; po dokončení volá state.set_point_label."""
+    """Fronta požadavků s omezenou paralelou, po dokončení volá state.set_point_label"""
 
     def __init__(self, state, parent=None):
         super().__init__(parent)

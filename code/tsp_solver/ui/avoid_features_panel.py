@@ -1,4 +1,4 @@
-"""ORS options.avoid_features — ikonová volba vedle profilu trasování (jako RoutingProfileBar)."""
+"""ORS options.avoid_features - ikonová volba vedle profilu trasování."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QToolButton, QWidg
 from tsp_solver.routing.openrouteservice_routing import ORS_AVOID_FEATURES_BY_PROFILE
 from tsp_solver.ui.svg_icons import tinted_svg_icon
 
-# (api_key, svg, tooltip, accessible_name) — viditelnost podle profilu zůstává dynamická.
+# (api_key, svg, tooltip, accessible_name)
 AVOID_FEATURES_UI: tuple[tuple[str, str, str, str], ...] = (
     (
         "highways",
@@ -156,3 +156,6 @@ class AvoidFeaturesPanel(QFrame):
 
         self.setVisible(geo_enabled and bool(allowed))
         self._refresh_all_icons()
+        self._track.adjustSize()
+        self.adjustSize()
+        self.updateGeometry()

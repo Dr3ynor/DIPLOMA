@@ -1,4 +1,4 @@
-"""Dialog: zobrazení ORS extra_info (atributy trasy) po načtení z directions API."""
+"""Dialog: zobrazení ORS extra_info (atributy trasy) po načtení z directions API"""
 
 from __future__ import annotations
 

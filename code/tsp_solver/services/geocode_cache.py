@@ -13,8 +13,6 @@ _COORD_DECIMALS = 2
 
 
 class GeocodeCache:
-    # Soubor s řádky: lat\\tlon\\tlabel
-
     def __init__(self) -> None:
         self._path: Path | None = None
 
@@ -128,6 +126,5 @@ class GeocodeCache:
             path.write_text("", encoding="utf-8")
         except OSError:
             pass
-
 
 geocode_cache = GeocodeCache()

@@ -41,7 +41,7 @@ MAP_HTML = _MAP_HTML_PATH.read_text(encoding="utf-8")
 def visual_coords_for_point(pt, points: list, is_geo: bool) -> tuple[float, float]:
     """
     Pro geo: reálné GPS.
-    Pro EUC_2D: normalizované souřadnice kolem středu rozsahu bodů.
+    Pro EUC_2D: normalizované souřadnice
     """
     if is_geo:
         return pt[0], pt[1]
@@ -60,11 +60,9 @@ def visual_coords_for_point(pt, points: list, is_geo: bool) -> tuple[float, floa
     return viz_lat, viz_lon
 
 
-# ---------------------------------------------------------------------------
-# Python ↔ JavaScript most (přes QWebChannel)
-# ---------------------------------------------------------------------------
+# Python - JavaScript most (přes QWebChannel)
 class _MapBridge(QObject):
-    """Objekt registrovaný jako 'bridge' v JS – přijímá signály z Leaflet mapy."""
+    """Objekt registrovaný jako 'bridge' v JS - přijímá signály z Leaflet mapy."""
 
     def __init__(self, on_click, on_remove):
         super().__init__()
@@ -80,9 +78,7 @@ class _MapBridge(QObject):
         self._on_remove(index)
 
 
-# ---------------------------------------------------------------------------
 # Hlavní widget MapViewer
-# ---------------------------------------------------------------------------
 class MapViewer(QWidget):
     settings_requested = pyqtSignal()
 
@@ -308,7 +304,7 @@ class MapViewer(QWidget):
     def _js_call(self, func: str, data):
         """
         Předá Python data do JS funkce.
-        Data se vloží jako JS literál (JSON) – bezpečné pro čísla a seznamy.
+        Data se vloží jako JS literál (JSON) - bezpečné pro čísla a seznamy.
         """
         json_literal = json.dumps(data)
         self._js(f"var _d = {json_literal}; {func}(_d);")
@@ -317,13 +313,13 @@ class MapViewer(QWidget):
         return visual_coords_for_point(pt, state.get_points(), state.is_geo())
 
     def _handle_click(self, lat: float, lon: float):
-        """Uživatel klikl na mapu → přidej bod do state."""
+        """Uživatel klikl na mapu - přidej bod do state."""
         if state.is_point_edit_locked():
             return
         state.add_point(lat, lon)
 
     def _handle_remove(self, index: int):
-        """Uživatel pravým klikl na marker → odstraň bod."""
+        """Uživatel pravým klikl na marker - odstraň bod."""
         if state.is_point_edit_locked():
             return
         state.remove_point_at(index)          # informuje sidebar přes notify
@@ -337,7 +333,7 @@ class MapViewer(QWidget):
             return
         name = display_name.strip() if display_name else None
         state.add_point(lat, lon, display_name=name)
-        # Přiblížení na místo (Leaflet zoom ↑ = detailněji; 8 je málo pro POI)
+        # Přiblížení na místo POI
         state.notify((N.CENTER_MAP, (lat, lon, 16)))
 
     def _on_profile_changed(self, key: str) -> None:
@@ -350,6 +346,7 @@ class MapViewer(QWidget):
             state.get_ors_avoid_features(),
             state.is_geo(),
         )
+        self._layout_chrome_overlays()
 
     def _on_avoid_panel_selection_changed(self, keys: list) -> None:
         state.set_ors_avoid_features(keys)

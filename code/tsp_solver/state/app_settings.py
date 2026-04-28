@@ -1,4 +1,4 @@
-"""Trvalé preference aplikace (Qt QSettings)."""
+"""Trvalé nastavení aplikace"""
 
 import json
 import os
@@ -27,7 +27,6 @@ _KEY_DISTANCE_UNIT = "ui/distance_unit"
 _KEY_SOLVER_SEED_ENABLED = "solver/seed_enabled"
 _KEY_SOLVER_SEED_VALUE = "solver/seed_value"
 
-# Výchozí HGV omezení pro ORS profile_params.restrictions (m, t).
 DEFAULT_ORS_HGV_RESTRICTIONS: dict[str, Any] = {
     "height": 4.0,
     "width": 2.5,
@@ -37,7 +36,6 @@ DEFAULT_ORS_HGV_RESTRICTIONS: dict[str, Any] = {
     "hazmat": False,
 }
 
-# Předvolené mapové podklady (Leaflet tile URL šablony)
 MAP_TILE_SOURCES: dict[str, str] = {
     "OpenStreetMap (DE)": "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
     "Esri World Street Map": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
@@ -86,13 +84,11 @@ def save_show_waypoint_indices(show: bool) -> None:
 
 
 def load_stored_ors_api_key() -> str:
-    """Hodnota uložená v QSettings (pro zobrazení v dialogu)."""
     raw = _store().value(_KEY_ORS_API, "")
     return raw.strip() if isinstance(raw, str) else ""
 
 
 def load_ors_api_key() -> str:
-    """Pro volání API: proměnná ORS_API_KEY má přednost před QSettings."""
     env = os.environ.get("ORS_API_KEY", "").strip()
     if env:
         return env
@@ -123,7 +119,6 @@ def save_ors_base_url(url: str) -> None:
 
 
 def load_use_local_osrm_fallback(default: bool = True) -> bool:
-    """Po neúspěchu ORS zkusit http://localhost:5000 (OSRM). Vypněte, pokud běží jen cloudové ORS."""
     return _coerce_bool(_store().value(_KEY_USE_LOCAL_OSRM), default)
 
 
@@ -132,7 +127,6 @@ def save_use_local_osrm_fallback(use: bool) -> None:
 
 
 def load_auto_recompute_on_add_point(default: bool = False) -> bool:
-    """Po přidání nebo odebrání bodu spustit celý výpočet trasy (jako tlačítko Spočítat)."""
     return _coerce_bool(_store().value(_KEY_AUTO_RECOMPUTE_ON_ADD_POINT), default)
 
 
@@ -223,7 +217,7 @@ def normalize_solver_seed(value: int | str | None) -> int:
         seed = int(value)
     except (TypeError, ValueError):
         return DEFAULT_SOLVER_SEED
-    # Keep seed in 32-bit signed range for compatibility.
+    # 32bit seed
     if seed < 0:
         return 0
     if seed > 2_147_483_647:

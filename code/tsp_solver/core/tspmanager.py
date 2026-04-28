@@ -1,5 +1,4 @@
 from tsp_solver.io.iohandler import IOHandler
-# from instancegenerator import InstanceGenerator
 from tsp_solver.routing.distance_matrix_builder import DistanceMatrixBuilder
 from tsp_solver.core.metric_catalog import resolve_effective_metric
 from tsp_solver.core.optimazation_engine import OptimizationEngine
@@ -9,7 +8,6 @@ from tsp_solver.state.app_state import state
 
 class TSPManager:
     def __init__(self):
-        # self.generator = InstanceGenerator()
         self.io_handler = IOHandler()
         self.matrix_builder = DistanceMatrixBuilder()
         self.engine = OptimizationEngine()

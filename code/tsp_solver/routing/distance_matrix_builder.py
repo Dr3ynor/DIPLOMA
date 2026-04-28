@@ -98,10 +98,7 @@ class DistanceMatrixBuilder:
         if resolved:
             api_key, base_url, logical_profile = resolved
             slug = ors_profile_slug(logical_profile)
-            print(
-                f"DEBUG: Geometrie trasy – zkouším ORS profile={slug} (logical={logical_profile}), "
-                f"bodů={len(ordered_points)}"
-            )
+
             ors_geometry = ors_route_geometry_latlon(
                 [tuple(p) for p in ordered_points],
                 slug,
@@ -113,11 +110,11 @@ class DistanceMatrixBuilder:
             )
             if ors_geometry is not None:
                 return ors_geometry
-            print("DEBUG: ORS geometrie selhala → fallback OSRM")
+            print("DEBUG: ORS geometrie selhala - fallback OSRM")
 
         if not cfg.allow_local_osrm_fallback:
             print(
-                "DEBUG: Lokální OSRM vypnut v nastavení → geometrie jako přímky mezi body"
+                "DEBUG: Lokální OSRM vypnut v nastavení - geometrie jako přímky mezi body"
             )
             return [tuple(p) for p in ordered_points]
 
@@ -181,7 +178,7 @@ class DistanceMatrixBuilder:
                 api_key, base_url, logical_profile = resolved
                 slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice vzdáleností – ORS profile={slug} (logical={logical_profile}), "
+                    f"DEBUG: Matice vzdáleností - ORS profile={slug} (logical={logical_profile}), "
                     f"n={n} bodů"
                 )
                 matrix = ors_build_full_matrix(
@@ -197,10 +194,10 @@ class DistanceMatrixBuilder:
                 if matrix:
                     return matrix
                 if cfg.allow_local_osrm_fallback:
-                    print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
+                    print("DEBUG: ORS matice selhala - fallback na lokální OSRM")
                 else:
                     print(
-                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
+                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý - haversine"
                     )
             if cfg.allow_local_osrm_fallback:
                 matrix = self._get_osrm_matrix(
@@ -211,7 +208,7 @@ class DistanceMatrixBuilder:
             mode = "haversine"
 
         elif mode == ROUTING_TIME:
-            print(f"DEBUG: Požaduji ČAS JÍZDY / CHŮZE (min) pro {n} bodů…")
+            print(f"DEBUG: ČAS JÍZDY / CHŮZE (min) pro {n} bodů…")
             resolved = self._resolve_ors(cfg)
             if not resolved:
                 if cfg.allow_local_osrm_fallback:
@@ -228,7 +225,7 @@ class DistanceMatrixBuilder:
                 api_key, base_url, logical_profile = resolved
                 slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice času – ORS profile={slug} (logical={logical_profile}), "
+                    f"DEBUG: Matice času - ORS profile={slug} (logical={logical_profile}), "
                     f"n={n} bodů"
                 )
                 matrix = ors_build_full_matrix(
@@ -244,10 +241,10 @@ class DistanceMatrixBuilder:
                 if matrix:
                     return matrix
                 if cfg.allow_local_osrm_fallback:
-                    print("DEBUG: ORS matice selhala → zkouším lokální OSRM")
+                    print("DEBUG: ORS matice selhala - fallback na lokální OSRM")
                 else:
                     print(
-                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý → haversine"
+                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý - haversine"
                     )
             if cfg.allow_local_osrm_fallback:
                 matrix = self._get_osrm_matrix(

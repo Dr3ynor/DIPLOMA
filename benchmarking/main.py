@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TSPLIB benchmark (coordinates or EXPLICIT FULL_MATRIX), structured outputs under benchmark_results/."""
+"""TSPLIB benchmark: výstupy pod benchmark_results/."""
 
 from __future__ import annotations
 
@@ -35,9 +35,7 @@ from bench_io import (
 from bench_worker import init_worker, run_job
 
 STOCHASTIC_ALGOS = ("GA", "ACO", "SA", "RSO")
-# Jednou na instanci (deterministický průchod okolím bez smyslu opakovat).
 SINGLE_RUN_LOCAL_ALGOS = ("2OPT", "3OPT")
-# Pořadí opakovaných běhů (--repeats): náhodné / seedované meta + LKH + LK.
 MULTI_SEED_BENCH_ORDER = ("RSO", "ACO", "GA", "SA", "LKH", "LK")
 LKH_ALGO = "LKH"
 
@@ -49,7 +47,6 @@ BENCHMARK_ALGO_CHOICES = tuple(
 
 
 def _job_progress_note(algo: str, params: dict[str, Any]) -> str:
-    """Krátký text pro log (ne skutečný % průběhu uvnitř solveru)."""
     if algo == "GA":
         g = params.get("generations")
         return f"až {int(g)} generací" if g is not None else ""
@@ -79,7 +76,6 @@ def _job_progress_note(algo: str, params: dict[str, Any]) -> str:
 
 
 def _attach_progress_meta(jobs: list[dict[str, Any]]) -> None:
-    """Nastaví jen metadata pro log (fronta jde přes init_worker, ne přes pickle jobu)."""
     for j in jobs:
         algo = str(j["algorithm"])
         run_index = int(j.get("run_index", 0))
@@ -89,7 +85,6 @@ def _attach_progress_meta(jobs: list[dict[str, Any]]) -> None:
 
 
 def _try_fork_progress_queue() -> tuple[Any, Any] | tuple[None, None]:
-    """Na Linuxu fork + Queue z jednoho kontextu — bez pickle Queue uvnitř job dict."""
     try:
         ctx = multiprocessing.get_context("fork")
     except ValueError:
@@ -98,7 +93,6 @@ def _try_fork_progress_queue() -> tuple[Any, Any] | tuple[None, None]:
 
 
 def _print_tuned_params_for_algorithm(algo: str, section: dict[str, Any]) -> None:
-    """Vypíše parametry načtené z tuned JSONu (jednou při startu daného algoritmu)."""
     params = dict(section.get("params_used") or {})
     path = section.get("tuned_path")
     note = section.get("note")
@@ -124,6 +118,8 @@ def _print_tuned_banners_in_job_order(jobs: list[dict[str, Any]], algo_manifest:
 
 
 def _start_progress_reporter(progress_q: Any, total_jobs: int, max_workers: int) -> threading.Thread:
+    """Vlákno: čte progress frontu workerů a tiskne stav běhu."""
+
     def body() -> None:
         active: dict[str, str] = {}
         last_elapsed: dict[str, float] = {}
@@ -207,12 +203,7 @@ def _build_jobs(
     allow_local_2opt_3opt: bool = True,
     selected_algos: frozenset[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """
-    Returns (jobs, manifest_algo_section).
-
-    2OPT a 3OPT: jeden běh. RSO, ACO, GA, SA, LKH, LK: ``stochastic_repeats`` běhů se seedem.
-    U LKH má každý job navíc interní budget ``runs`` a ``max_trials``.
-    """
+    """Sestaví frontu jobů pro ProcessPool a manifest parametrů podle algoritmu a tuned JSON."""
     ptype = "ATSP" if str(problem_type).upper() == "ATSP" else "TSP"
     all_alg = frozenset(SINGLE_RUN_LOCAL_ALGOS + ("LK", LKH_ALGO) + STOCHASTIC_ALGOS)
     want = all_alg if selected_algos is None else frozenset(selected_algos)
@@ -364,6 +355,7 @@ def _write_convergence(
 
 
 def _summarize(results: list[dict[str, Any]], optimum: float | None) -> dict[str, Any]:
+    """Shrnutí délek a časů podle algoritmu (mean/min/max/stdev, gap k optimu)."""
     by_algo: dict[str, list[dict[str, Any]]] = {}
     for row in results:
         if row.get("status") != "ok":
@@ -400,6 +392,7 @@ def _summarize(results: list[dict[str, Any]], optimum: float | None) -> dict[str
 
 
 def main() -> None:
+    """Načte TSPLIB, spustí vybrané algoritmy v procesech, zapíše runs/manifest/summaries."""
     parser = argparse.ArgumentParser(
         description="TSPLIB benchmark (.tsp / .atsp) with structured outputs under benchmark_results/.",
     )

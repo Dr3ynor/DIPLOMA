@@ -217,10 +217,7 @@ def _write_instructions_pdf(
     title: str,
     subtitle: str,
 ) -> None:
-    """
-    PDF přes QTextDocument (správné zalamování, stránkování, UTF-8).
-    Ruční QPainter.drawText míchal baseline a rohy obdélníku → nepřehledný výstup.
-    """
+    """PDF přes QTextDocument (správné zalamování, stránkování, UTF-8)"""
     clean = [str(s).strip() for s in instructions if s and str(s).strip()]
     esc = html.escape
     chunks = [
@@ -251,7 +248,6 @@ def _write_instructions_pdf(
     writer.setResolution(120)
     writer.setTitle(title[:120])
     # PyQt6: QPageLayout.setMargins bere jen QMarginsF + OutOfBoundsPolicy, ne Unit.
-    # Milimetry přes QPdfWriter (QPagedPaintDevice):
     writer.setPageMargins(
         QMarginsF(12, 12, 12, 12),
         QPageLayout.Unit.Millimeter,
@@ -272,7 +268,7 @@ def _write_instructions_pdf(
 
 
 class RightRoutePanel(QWidget):
-    """Šířka při overlay: sbaleno jen šipka; rozbaleno plný panel (neposouvá mapu)."""
+    """Šířka při overlay: sbaleno | rozbaleno plný panel"""
     COLLAPSED_OVERLAY_W = 44
     EXPANDED_W = 300
     _ICON_IO_PX = 20
@@ -512,7 +508,7 @@ class RightRoutePanel(QWidget):
             )
 
     def _refresh_action_icons(self) -> None:
-        """fuel.svg u Paliva; export/import u akcí trasy (jako ve sidebaru)."""
+        """fuel.svg u Paliva; export/import u akcí trasy"""
         p = self._palette
         dpr = float(self.devicePixelRatioF())
         io = QSize(self._ICON_IO_PX, self._ICON_IO_PX)
@@ -544,7 +540,7 @@ class RightRoutePanel(QWidget):
         return self.EXPANDED_W if self._expanded else self.COLLAPSED_OVERLAY_W
 
     def collapsed_overlay_height(self) -> int:
-        """Výška sbaleného panelu jen kolem šipky — nepřekrývat spodní mapové tlačítko nastavení."""
+        """Výška sbaleného panelu jen kolem šipky tak, aby nepřekrýval spodní mapové tlačítko nastavení."""
         self._toggle.ensurePolished()
         th = max(self._toggle.sizeHint().height(), self._toggle.minimumSizeHint().height())
         if th < 12:
@@ -618,7 +614,7 @@ class RightRoutePanel(QWidget):
         return ors_config_from_state(state)
 
     def _prefetch_route_details_after_solve(self) -> None:
-        """Po nové trase na pozadí načíst ORS/OSRM detail (výška) → palivo bez kliknutí na graf."""
+        """Po nové trase na pozadí načíst ORS/OSRM detail (výška) palivo bez kliknutí na graf."""
         if not self._needs_road_directions_api() or not self._has_meaningful_route():
             return
         key = self._stops_key()

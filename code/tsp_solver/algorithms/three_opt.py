@@ -1,19 +1,13 @@
-# ==========================================
-#             3-OPT (TĚŽKÉ LOKÁLNÍ HLEDÁNÍ)
-# ==========================================
-
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 
 def _three_opt(matrix, route=None, problem_type="TSP"):
     """
-    Předchůdce a jádro Lin-Kernighan algoritmu.
-    Využívá Search Window (okno), aby nezavařil procesor u velkých instancí.
+    Využívá Search Window (okno), aby fungoval i u velkých instancí
     """
     if str(problem_type).upper() == "ATSP":
         raise ValueError("3-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
     n = len(matrix)
     
-    # 1. Odrazový můstek: Nejprve to proženeme rychlým 2-Optem
     if route is None:
         best_route = _nearest_neighbor(matrix)
     else:
@@ -21,8 +15,7 @@ def _three_opt(matrix, route=None, problem_type="TSP"):
 
     improvement = True
     
-    # OCHRANA VÝKONU: Zkoumáme jen města, která jsou na trase blízko sebe.
-    # Max 40 uzlů dopředu. Pro malé instance (do 40 měst) se prohledá všechno.
+    # Max 40 uzlů dopředu, pro malé instance (do 40 měst) se prohledá všechno.
     window = min(n, 40) 
     
     while improvement:

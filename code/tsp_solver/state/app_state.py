@@ -205,13 +205,12 @@ class AppState(Subject):
 
     def is_point_edit_locked(self) -> bool:
         """
-        Matrix-only imported instances (EXPLICIT/FULL_MATRIX) have no real coordinates.
-        Locking point edits prevents accidental desync between points and fixed matrix.
+        Zamykání editací bodů zabraňuje náhodnému nesouladu mezi body a pevnou maticí.
         """
         return self._distance_matrix is not None
 
     def set_route(self, route_points):
-        """Uloží trasu pro mapu. Bez metadat řešiče (import) vymaže ordered_stops / souhrn."""
+        """Uloží trasu pro mapu. Bez metadat, vymaže ordered_stops"""
         self._route = list(route_points) if route_points else []
         self._route_ordered_stops.clear()
         self._route_total_value = None

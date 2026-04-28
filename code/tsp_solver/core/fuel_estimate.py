@@ -7,11 +7,11 @@ S výškovým profilem: segmentové úpravy podle Δh a délky úseku.
 
 from __future__ import annotations
 
-# Litry navíc na 100 m převýšení při „normálním“ úseku (~1 km referenční škála)
+# Litry navíc na 100 m převýšení při úseku (~1 km referenční škála)
 _EXTRA_L_PER_100M_CLIMB = 0.12
-# Útlum spotřeby při klesání (násobek základní segmentové spotřeby odebíraný úměrně klesání)
+# Útlum spotřeby při klesání
 _DOWNHILL_RECOVERY = 0.35
-# Minimální segmentová spotřeba jako zlomek základní (motor v chodu)
+# Minimální segmentová spotřeba jako zlomek základní
 _MIN_SEGMENT_FACTOR = 0.08
 
 
@@ -48,7 +48,7 @@ def estimate_liters_with_elevation(
 ) -> float:
     """
     profile: (km_along_route, elevation_m)
-    Segmentový model: základ l/100 na úsek, + stoupání, − klesání (omezeně).
+    Segmentový model: základ l/100 na úsek, + stoupání / klesání.
     """
     if distance_km <= 0 or l_per_100km < 0:
         return 0.0

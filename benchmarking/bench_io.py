@@ -1,4 +1,4 @@
-"""Shared TSPLIB I/O, tuned-params index, and seed helpers for benchmarking and tune.py."""
+"""TSPLIB načítání, index tuned parametrů a seedy pro benchmark / tune."""
 
 from __future__ import annotations
 
@@ -143,10 +143,7 @@ def build_tsplib_matrix(points: list[tuple[float, float]], edge_weight_type: str
 def parse_tsplib_explicit_full_matrix(
     tsp_file: Path,
 ) -> tuple[str | None, list[list[float]] | None]:
-    """
-    Parse TYPE TSP/ATSP with EXPLICIT FULL_MATRIX weights.
-    Returns (problem_type, matrix) or (None, None) if unsupported/invalid.
-    """
+    """TYPE TSP/ATSP + EXPLICIT FULL_MATRIX → (problem_type, matice) nebo (None, None)."""
     problem_type: str | None = None
     edge_weight_type: str | None = None
     edge_weight_format: str | None = None
@@ -203,13 +200,7 @@ def parse_tsplib_explicit_full_matrix(
 def load_tsplib_distance_matrix(
     tsp_file: Path,
 ) -> tuple[list[list[float]], int, str, str] | None:
-    """
-    Load a dense distance matrix for benchmarking.
-
-    Returns (matrix, n, tuned_params_subdir, edge_summary) where tuned_params_subdir is
-    ``symetric_params`` (coordinate / symmetric explicit) or ``asymmetric_params`` (ATSP),
-    matching the layout under ``benchmarking/tuned_params/``.
-    """
+    """Hustá matice, n, podsložka tuned_params (symetric/asymmetric), popisek typu hran."""
     if tsp_file.suffix.lower() == ".atsp":
         prob, matrix = parse_tsplib_explicit_full_matrix(tsp_file)
         if matrix is None or len(matrix) < 2:
@@ -264,7 +255,6 @@ def get_filtered_instances(tsplib_dir: Path, max_n: int | None) -> list[tuple[Pa
 
 
 def derive_algo_seed(master_seed: int, instance_name: str, algo: str, run_index: int = 0) -> int:
-    """Deterministic per-(instance, algorithm, repeat) seed for reproducible runs."""
     payload = f"{master_seed}:{instance_name}:{algo}:r{run_index}".encode("utf-8")
     digest = hashlib.sha256(payload).hexdigest()
     return int(digest[:8], 16)
@@ -287,6 +277,7 @@ def _normalize_profile(parts: tuple[str, ...]) -> str | None:
 
 
 def load_tuned_params_index(tuned_root: Path) -> dict[str, dict[str, dict[str, object]]]:
+    """Projde tuned_root a sestaví mapu profil → algoritmus → params + cesta k JSON."""
     result: dict[str, dict[str, dict[str, object]]] = {profile: {} for profile in SIZE_PROFILES}
     if not tuned_root.exists():
         return result
@@ -315,7 +306,6 @@ def load_tuned_params_index(tuned_root: Path) -> dict[str, dict[str, dict[str, o
 
 
 def pick_best_profile(target_profile: str, available_profiles: list[str]) -> str | None:
-    """Pick tuned profile closest to instance size (e.g. large instance may use small/mid if no large tune)."""
     if not available_profiles:
         return None
     target_idx = SIZE_PROFILES.index(target_profile)
@@ -330,6 +320,7 @@ def resolve_algo_tuned_config(
     n: int,
     tuned_index: dict[str, dict[str, dict[str, object]]],
 ) -> dict[str, object]:
+    """Vybere tuned profil podle n a vrátí parametry + metadata (fallback na jiný profil)."""
     target_profile = infer_profile_by_n(n)
     available_for_algo = [profile for profile in SIZE_PROFILES if algo in tuned_index.get(profile, {})]
     chosen_profile = pick_best_profile(target_profile, available_for_algo)

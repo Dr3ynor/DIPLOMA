@@ -1,12 +1,12 @@
 """
-OpenRouteService v2 – matice vzdáleností / času a geometrie trasy (GeoJSON).
+OpenRouteService - matice vzdáleností / času a geometrie trasy (GeoJSON).
 
 Profily: logický klíč → segment URL (/v2/matrix/{slug}, /v2/directions/{slug}/geojson).
 Hlavičky ORS: neposílat Accept: application/json u directions/geojson (406 / error 2007).
 
-Konstanty OSRM_LOCAL_* sdílí DistanceMatrixBuilder a api_status (healthcheck).
+Konstanty OSRM_LOCAL_* sdílí DistanceMatrixBuilder a api_status
 
-OrsRoutingConfig: jeden objekt s parametry pro ORS + OSRM fallback (propojení GUI → TSPManager → matice/geometrie).
+OrsRoutingConfig: jeden objekt s parametry pro ORS + OSRM fallback (propojení GUI - TSPManager - matice/geometrie).
 """
 
 from __future__ import annotations
@@ -38,11 +38,10 @@ class OrsRoutingConfig:
 
 DEFAULT_ORS_BASE_URL = "https://api.openrouteservice.org"
 
-# Lokální OSRM (DistanceMatrixBuilder, ApiStatusPanel healthcheck) – výchozí = driving.
 OSRM_LOCAL_HOST = "http://localhost:5000"
 OSRM_LOCAL_TABLE_URL = f"{OSRM_LOCAL_HOST}/table/v1/driving/"
 
-# Logický klíč aplikace → segment URL u ORS v2 (viz https://openrouteservice.org/dev/#/api-docs/v2/matrix/{profile}/post )
+# Logický klíč aplikace - segment URL u ORS v2 (viz https://openrouteservice.org/dev/#/api-docs/v2/matrix/{profile}/post )
 ORS_PROFILE_SLUGS: dict[str, str] = {
     "car": "driving-car",
     "bike": "cycling-regular",
@@ -51,7 +50,6 @@ ORS_PROFILE_SLUGS: dict[str, str] = {
     "hgv": "driving-hgv",
 }
 
-# Pořadí a popisky v UI (xor – vždy právě jeden profil).
 ORS_ROUTING_PROFILE_UI: tuple[tuple[str, str], ...] = (
     ("Auto", "car"),
     ("Pěší", "foot"),
@@ -60,8 +58,6 @@ ORS_ROUTING_PROFILE_UI: tuple[tuple[str, str], ...] = (
     ("Nákladní", "hgv"),
 )
 
-# Lokální OSRM používá jiné názvy profilů v cestě (/table/v1/{segment}/).
-# hgv: OSRM nemá HGV omezení v tabulce — použijeme stejný segment jako auto.
 OSRM_LOCAL_PROFILE_SEGMENT: dict[str, str] = {
     "car": "driving",
     "bike": "cycling",
@@ -91,8 +87,7 @@ def ors_profile_slug(logical_key: str | None) -> str:
     slug = ORS_PROFILE_SLUGS.get(key)
     if not slug:
         print(
-            f"ORS: neznámý profil logical={key!r}, používám "
-            f"{DEFAULT_ORS_PROFILE_KEY} → {ORS_PROFILE_SLUGS[DEFAULT_ORS_PROFILE_KEY]}"
+            f"ORS: neznámý profil logical={key!r}, fallback na {DEFAULT_ORS_PROFILE_KEY}"
         )
         return ORS_PROFILE_SLUGS[DEFAULT_ORS_PROFILE_KEY]
     return slug
@@ -138,7 +133,6 @@ def build_ors_request_options(
     """
     Sloučí avoid_features a profile_params do jednoho objektu options pro ORS POST.
     profile_params: buď celé {"restrictions": {...}}, nebo jen vnitřní restrictions dict
-    (pro hgv se zabalí).
     """
     opt: dict[str, Any] = {}
     if avoid_features:
@@ -154,7 +148,7 @@ def build_ors_request_options(
 
 
 def ors_config_from_state(state) -> OrsRoutingConfig:
-    """Jednotný OrsRoutingConfig z AppState (sidebar, pravý panel, mapa)."""
+    """Jednotný OrsRoutingConfig z AppState"""
     from tsp_solver.state.app_settings import (
         load_ors_api_key,
         load_ors_base_url,

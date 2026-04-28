@@ -876,7 +876,6 @@ class Sidebar(QWidget):
                 hours = total_dist / 60
                 return f"Celkem: {total_dist:.1f} min ({hours:.1f} hod)"
             return f"Celkem: {total_dist:.1f} minut"
-        # U syntetických instancí (EUC_2D / EXPLICIT MATRIX) nechceme uvádět km/mi.
         if not state.is_geo():
             return f"Celkem: {total_dist:.2f}"
         if self._distance_unit == "mi":

@@ -63,7 +63,7 @@ def _parse_ors_geocode_geojson(data: dict[str, Any]) -> list[_GeocodeHit]:
 
 
 class MapSearchBar(QFrame):
-    """Search box nad mapou; návrhy v Qt.Popup (WebEngine jinak překrývá sourozence)."""
+    """Search box nad mapou"""
 
     location_picked = pyqtSignal(float, float, str)
 
@@ -82,7 +82,6 @@ class MapSearchBar(QFrame):
         self._reply: QNetworkReply | None = None
         self._nam = QNetworkAccessManager(self)
 
-        # Jedna výška = žádné „plavání“ výšky kvůli sizeHint / QSS (plovoucí widget nad mapou).
         self.setFixedSize(
             self._BAR_WIDTH,
             self._FRAME_PAD * 2 + self._EDIT_FIXED_H,
@@ -296,7 +295,7 @@ class MapSearchBar(QFrame):
         if not data or not isinstance(data, (list, tuple)) or len(data) < 2:
             return
         lat, lon = float(data[0]), float(data[1])
-        # Před _hide_suggestions() — clear() smaže QListWidgetItem a item.text() by spadlo.
+
         label = item.text()
         self._hide_suggestions()
         self._edit.clear()

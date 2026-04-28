@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
-"""
-Hyperparameter tuning for TSP solvers via Optuna.
+"""Tuning hyperparametrů (Optuna) nad TSPLIB; výstup JSON do tuned_params/."""
 
-Spust z adresare benchmarking/:
-  pip install -r requirements-tune.txt
-  python tune.py --algo GA --trials 100
-
-Vsechny metaheuristiky na a280 (TSPLIB z code/tsplib, vystup tuned_params/mid/<ALGO>/):
-  python tune.py --meta-all --only-instances a280 --trials 50
-
-SA jen na a280 (50 trialu; --tsplib-dir podle umisteni dat v repo):
-  python tune.py --algo SA --trials 50 --only-instances a280 --tsplib-dir ../code/resources/tsplib --max-instances 1
-
-SA jen na kro124p (50 trialu; ATSP + solutions v atsplib):
-  python tune.py --algo SA --trials 50 --only-instances kro124p --tsplib-dir ../code/resources/atsplib --solutions ../code/resources/atsplib/solutions --max-instances 1
-"""
 from __future__ import annotations
 
 import argparse
@@ -164,6 +150,7 @@ def evaluate_trial(
     n_seeds: int,
     time_penalty: float,
 ) -> float:
+    """Jeden Optuna trial: průměr gapů (a penalizace času) přes instance a replikace."""
     engine = OptimizationEngine()
     gaps: list[float] = []
     times: list[float] = []
@@ -190,7 +177,6 @@ def evaluate_trial(
             if optimal is not None and optimal > 0:
                 score = (dist - optimal) / optimal * 100.0
             else:
-                # Fallback objective for instances without known optimum (e.g. many ATSP files).
                 score = dist
             gaps.append(score)
             times.append(elapsed)
@@ -210,6 +196,7 @@ def build_study_name(algo: str, master_seed: int, instance_files: list[Path]) ->
 
 
 def main() -> None:
+    """CLI: instance, Optuna study, uložení nejlepších parametrů do JSON."""
     base_dir = _BASE_DIR
 
     parser = argparse.ArgumentParser(description="Optuna tuning TSP algoritmu (TSPLIB)")

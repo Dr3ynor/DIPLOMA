@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""
-Grafy a statistika nad výstupy benchmarku (runs.jsonl, convergence/, manifest.json).
-
-Spuštění z adresáře benchmarking/:
-  pip install -r requirements-graphs.txt
-  python graphs.py
-  python graphs.py --run-dir benchmark_results/20260419T163642Z_a280
-  python graphs.py --only spaghetti box summary
-"""
+"""Grafy a statistiky nad výstupy benchmarku (runs.jsonl, convergence/, manifest)."""
 
 from __future__ import annotations
 
@@ -73,13 +65,7 @@ def _attach_gap_reference_column(
     baseline_algo: str | None,
     baseline_stat: str,
 ) -> tuple[pd.DataFrame, str, str]:
-    """
-    Add unified plotting column ``gap_plot_pct``.
-    Priority:
-      1) true optimum (gap_vs_opt_pct),
-      2) user-requested baseline algorithm (gap_vs_<algo>_pct).
-    Returns: (df_with_column, gap_label, gap_source).
-    """
+    """Sloupec ``gap_plot_pct``: optimum, případně baseline algoritmus z manifestu."""
     work = df.copy()
     optimum = _coerce_float(manifest.get("optimum"))
     gap_source = "optimum"
@@ -109,7 +95,6 @@ def _attach_gap_reference_column(
 
 
 def discover_latest_run_dir(benchmark_results_root: Path) -> Path:
-    """Vrátí nejnovější podadresář v benchmark_results (podle názvu, typicky UTC timestamp)."""
     if not benchmark_results_root.is_dir():
         raise FileNotFoundError(f"Adresář neexistuje: {benchmark_results_root}")
     candidates = [p for p in benchmark_results_root.iterdir() if p.is_dir()]
@@ -119,7 +104,6 @@ def discover_latest_run_dir(benchmark_results_root: Path) -> Path:
 
 
 def load_benchmark_run(run_dir: Path) -> tuple[dict[str, Any], pd.DataFrame]:
-    """Načte manifest.json a runs.jsonl; přidá absolutní cestu ke konvergenčnímu souboru."""
     run_dir = run_dir.resolve()
     manifest_path = run_dir / "manifest.json"
     runs_path = run_dir / "runs.jsonl"
@@ -155,10 +139,7 @@ def plot_convergence_gap_spaghetti(
     out_dir: Path,
     gap_label: str,
 ) -> list[Path]:
-    """
-    Diplomová práce — „hadicový“ (spaghetti) přehled: jak se jednotlivé běhy metaheuristiky
-    přibližují k optimu podél iterace/kroku (osa X normalizovaná 0–1 kvůli různým délkám trace).
-    """
+    """Konvergence metaheuristik: normalizovaný krok vs. gap, průběhy + medián napříč běhy."""
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     instance = str(manifest.get("instance", ""))
@@ -175,7 +156,6 @@ def plot_convergence_gap_spaghetti(
         fig, ax = plt.subplots(figsize=(10, 6))
         cmap = plt.get_cmap("viridis")
         n_runs = len(sub)
-        # Společná normalizovaná osa pro robustní medián napříč běhy různých délek trace.
         median_grid = np.linspace(0.0, 1.0, 201)
         median_samples: list[np.ndarray] = []
         for i, (_, row) in enumerate(sub.iterrows()):
@@ -218,15 +198,12 @@ def plot_convergence_gap_spaghetti(
             color = cmap(i / max(n_runs - 1, 1))
             ax.plot(x, y, alpha=0.35, color=color, lw=1.0)
 
-            # Interpolace každého běhu na jednotnou osu pro výpočet mediánu.
             x_np = x.to_numpy(dtype=float)
             y_np = y.to_numpy(dtype=float)
             if len(x_np) >= 2:
                 order_idx = np.argsort(x_np, kind="mergesort")
                 x_sorted = x_np[order_idx]
                 y_sorted = y_np[order_idx]
-                # U některých algoritmů (např. SA po finálním polish) může být stejný
-                # krok zapsán vícekrát; chceme zachovat poslední (nejaktuálnější) hodnotu.
                 dedup = pd.DataFrame({"x": x_sorted, "y": y_sorted}).groupby(
                     "x", as_index=False
                 ).last()
@@ -236,7 +213,6 @@ def plot_convergence_gap_spaghetti(
                     y_interp = np.interp(median_grid, x_unique, y_unique, left=np.nan, right=np.nan)
                     median_samples.append(y_interp)
 
-        # Medián napříč běhy v jednotlivých normalizovaných "generacích/iteracích".
         if median_samples:
             stack = np.vstack(median_samples)
             median_curve = np.nanmedian(stack, axis=0)
@@ -272,10 +248,7 @@ def plot_metaheuristic_boxplots_tour_length(
     df: pd.DataFrame,
     out_dir: Path,
 ) -> Path | None:
-    """
-    Diplomová práce — porovnání rozptylu výsledků napříč opakovanými běhy na jedné instanci:
-    čtyři metaheuristiky vedle sebe (boxplot délky trasy).
-    """
+    """Boxplot délky trasy pro GA, ACO, SA, RSO na jedné instanci."""
     out_dir.mkdir(parents=True, exist_ok=True)
     optimum = manifest.get("optimum")
     meta_df = df[df["algorithm"].isin(META_ALGOS)].copy()
@@ -313,11 +286,7 @@ def run_autorank_tour_length(
     out_dir: Path,
     bayesian: bool = False,
 ) -> list[Path]:
-    """
-    Statistické porovnání dle Demšar (AutoRank): které metaheuristiky se chovají podobně / odlišně,
-    včetně CD diagramu a souhrnné tabulky. Řádky = run_index (synchronní opakování napříč algoritmy),
-    sloupce = GA, ACO, SA, RSO — tour_length (nižší = lepší; AutoRank pracuje s hodnotami jak jsou).
-    """
+    """AutoRank (Demšar): pivot podle run_index, textové reporty a CD diagram."""
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
@@ -414,10 +383,7 @@ def plot_ecdf_tour_lengths_by_algorithm(
     df: pd.DataFrame,
     out_dir: Path,
 ) -> Path | None:
-    """
-    Diplomová práce (inženýrská úroveň) — ECDF délek tras: srovnání celých rozdělení včetně
-    jednorázových heuristik (2OPT, 3OPT, LK, LKH) a metaheuristik.
-    """
+    """ECDF délek tras podle algoritmu (všechny algoritmy v běhu)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     if df.empty or "tour_length" not in df.columns:
         return None
@@ -448,9 +414,7 @@ def plot_violin_tour_length_meta(
     df: pd.DataFrame,
     out_dir: Path,
 ) -> Path | None:
-    """
-    Diplomová práce — violin + jitter (strip): alternativa k boxplotu pro metaheuristiky na jednom obrázku.
-    """
+    """Violin + strip pro čtyři metaheuristiky."""
     out_dir.mkdir(parents=True, exist_ok=True)
     meta_df = df[df["algorithm"].isin(META_ALGOS)].copy()
     if meta_df.empty:
@@ -493,9 +457,7 @@ def plot_scatter_time_vs_gap(
     out_dir: Path,
     gap_label: str,
 ) -> Path | None:
-    """
-    Diplomová práce — trade-off čas vs. kvalita: wall_time_s vs. gap (%) pro každý běh, barva = algoritmus.
-    """
+    """Scatter wall_time vs. gap podle algoritmu."""
     out_dir.mkdir(parents=True, exist_ok=True)
     need = {"wall_time_s", "gap_plot_pct", "algorithm"}
     if not need.issubset(df.columns):
@@ -536,10 +498,7 @@ def plot_summary_table_optimum_vs_stats(
     out_dir: Path,
     gap_label: str,
 ) -> tuple[Path, Path, Path] | None:
-    """
-    Závěrečná souhrnná tabulka — optimum vs. naměřené: medián, modus (discretizovaný), průměr, min, max
-    pro každý algoritmus; uloží CSV + samostatný sloupcový graf mediánového gapu + LaTeX tabulku.
-    """
+    """Souhrnné statistiky podle algoritmu: CSV, LaTeX, barplot mediánového gapu."""
     out_dir.mkdir(parents=True, exist_ok=True)
     if df.empty or "tour_length" not in df.columns:
         return None
@@ -602,7 +561,6 @@ def plot_summary_table_optimum_vs_stats(
         escape=True,
     )
 
-    # Samostatný barplot mediánového gapu (bez renderu tabulky do obrázku).
     fig, ax = plt.subplots(figsize=(10, 5))
 
     if summary["median_gap_pct"].notna().any():
@@ -630,7 +588,6 @@ def plot_summary_table_optimum_vs_stats(
 
 
 def _dispatch(only: list[str]) -> dict[str, Callable[..., Any]]:
-    """Mapuje klíče z --only na funkce (manifest, df, out_dir)."""
 
     def _wrap_spaghetti(m: dict, d: pd.DataFrame, o: Path, *, gap_label: str = "Gap (%)") -> None:
         plot_convergence_gap_spaghetti(m, d, o, gap_label)
@@ -668,6 +625,7 @@ def _dispatch(only: list[str]) -> dict[str, Callable[..., Any]]:
 
 
 def main() -> None:
+    """Načte jeden benchmark run a podle --only vygeneruje obrázky / tabulky."""
     parser = argparse.ArgumentParser(description="Grafy a AutoRank nad benchmark_results/.")
     parser.add_argument(
         "--run-dir",

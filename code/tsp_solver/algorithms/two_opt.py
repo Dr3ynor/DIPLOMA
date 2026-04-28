@@ -1,19 +1,15 @@
-# ==========================================
-#             2-OPT (LOKÁLNÍ HLEDÁNÍ)
-# ==========================================
 from tsp_solver.algorithms.nearest_neighbor import _nearest_neighbor
 from tsp_solver.algorithms.route_ops import two_opt_delta
 
 
 def _two_opt(matrix, route=None, problem_type="TSP"):
     """
-    Vezme počáteční trasu (pokud není, vytvoří ji přes NN) a 'rozplete' 
+    Vezme počáteční trasu (pokud není, vytvoří ji přes NN) a vyřeší
     překřížené cesty zrcadlovým otočením segmentů.
     """
     if str(problem_type).upper() == "ATSP":
         raise ValueError("2-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
     n = len(matrix)
-    # Odrazový můstek
     if route is None:
         best_route = _nearest_neighbor(matrix)
     else:
@@ -21,7 +17,6 @@ def _two_opt(matrix, route=None, problem_type="TSP"):
 
     improvement = True
     
-    # Cyklus běží, dokud dokážeme trasu zlepšovat
     while improvement:
         improvement = False
         for i in range(1, n - 2):

@@ -66,7 +66,7 @@ def export_instance_interactive(
                     (
                         "GPX může obsahovat waypointy i trasu.\n\n"
                         "Pro tuto instanci není vygenerovaná trasa.\n"
-                        "Chceš exportovat waypoint-only GPX?\n\n"
+                        "Chcete exportovat waypoint-only GPX?\n\n"
                         "Ano = uložit .gpx s waypointy\n"
                         "Ne = fallback do .tsp (MODERN_GPS_DIPLOMA)\n"
                         "Zrušit / zavřít = nic neukládat"

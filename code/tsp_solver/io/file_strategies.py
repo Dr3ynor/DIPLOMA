@@ -31,8 +31,7 @@ def tsplib_geo_to_decimal(coord):
 
 def _parse_tsp_file(filepath: str) -> tuple:
     """
-    Univerzální logika pro čtení TSP souborů.
-    Vrací tuple: (seznam_bodu, je_to_vlastni_export)
+    Vrací tuple: (seznam_bodu, jestli se jedná o vlastní export nebo ne)
     """
     print(f"DEBUG: Parsing file: {filepath}...")
     points = []
@@ -93,7 +92,7 @@ class TspGeoStrategy(TspFileStrategy):
             "TYPE: TSP",
             f"DIMENSION: {len(points)}",
             "EDGE_WEIGHT_TYPE: GEO",
-            "COMMENT: MODERN_GPS_DIPLOMA", # TÍMTO SI OZNAČÍME TVŮJ EXPORT
+            "COMMENT: MODERN_GPS_DIPLOMA",
             "NODE_COORD_SECTION"
         ]
         for i, (lat, lon) in enumerate(points):
@@ -106,7 +105,6 @@ class TspGeoStrategy(TspFileStrategy):
     def load(self, filepath: str):
         raw_points, is_custom = _parse_tsp_file(filepath)
         
-        # Pokud je to historický TSPLIB (nemá náš comment), musíme to přepočítat
         if not is_custom:
             print("DEBUG:  TSPLIB format detected (DDD.MM), recalculating for GPS...")
             converted_points = []
@@ -162,7 +160,7 @@ class TspEuc2DStrategy(TspFileStrategy):
 
 
 class TspExplicitMatrixStrategy(TspFileStrategy):
-    """TSPLIB explicit matrix loader (supports ATSP/TSP FULL_MATRIX)."""
+    """loader matic ATSP/TSP FULL_MATRIX)."""
 
     def export(self, filepath: str, points: list, route_points: list | None = None):
         raise ValueError("Export EXPLICIT/FULL_MATRIX není podporován v GUI exportu.")
@@ -247,7 +245,7 @@ def _as_float(value):
 
 
 class GpxStrategy(TspFileStrategy):
-    """Minimal GPX 1.1 import/export (waypointy + volitelný track)."""
+    """GPX 1.1 import/export (waypointy + volitelná trasa)"""
 
     GPX_NS = "http://www.topografix.com/GPX/1/1"
 

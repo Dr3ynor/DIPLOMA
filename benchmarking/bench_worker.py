@@ -1,4 +1,4 @@
-"""Top-level worker for ProcessPoolExecutor (must stay importable on spawn)."""
+"""Worker procesu pro ProcessPoolExecutor (importovatelný i při spawn)."""
 
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ def _progress_put(payload: dict[str, Any]) -> None:
 
 
 def run_job(job: dict[str, Any]) -> dict[str, Any]:
+    """Jeden benchmark job: solver, volitelně konvergence a hlášení do progress fronty."""
     global _W_MATRIX, _PROGRESS_Q
     if _W_MATRIX is None:
         return {

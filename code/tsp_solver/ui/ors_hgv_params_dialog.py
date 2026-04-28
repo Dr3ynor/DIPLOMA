@@ -1,4 +1,4 @@
-"""Dialog: ORS driving-hgv — profile_params.restrictions (rozměry, hmotnost, hazmat)."""
+"""ORS driving-hgv - profile_params.restrictions (rozměry, hmotnost, hazmat)"""
 
 from __future__ import annotations
 
