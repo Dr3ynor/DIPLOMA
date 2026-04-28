@@ -38,6 +38,76 @@ ONLY_CHOICES = (
 )
 
 
+def _coerce_float(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        if isinstance(value, float) and np.isnan(value):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _compute_baseline_reference(
+    df: pd.DataFrame,
+    baseline_algo: str,
+    baseline_stat: str,
+) -> float | None:
+    if "algorithm" not in df.columns or "tour_length" not in df.columns:
+        return None
+    base = df[df["algorithm"].astype(str) == baseline_algo]
+    vals = base["tour_length"].dropna().astype(float).values
+    if len(vals) == 0:
+        return None
+    if baseline_stat == "best":
+        return float(np.min(vals))
+    if baseline_stat == "mean":
+        return float(np.mean(vals))
+    return float(np.median(vals))
+
+
+def _attach_gap_reference_column(
+    manifest: dict[str, Any],
+    df: pd.DataFrame,
+    baseline_algo: str | None,
+    baseline_stat: str,
+) -> tuple[pd.DataFrame, str, str]:
+    """
+    Add unified plotting column ``gap_plot_pct``.
+    Priority:
+      1) true optimum (gap_vs_opt_pct),
+      2) user-requested baseline algorithm (gap_vs_<algo>_pct).
+    Returns: (df_with_column, gap_label, gap_source).
+    """
+    work = df.copy()
+    optimum = _coerce_float(manifest.get("optimum"))
+    gap_source = "optimum"
+    gap_label = "Gap vs. optimum (%)"
+
+    if optimum is not None and optimum > 0 and "tour_length" in work.columns:
+        work["gap_plot_pct"] = (
+            (work["tour_length"].astype(float) - optimum) / optimum * 100.0
+        )
+        return work, gap_label, gap_source
+
+    if baseline_algo is not None:
+        ref = _compute_baseline_reference(work, baseline_algo, baseline_stat)
+        if ref is not None and ref > 0:
+            col = f"gap_vs_{baseline_algo.lower()}_pct"
+            work[col] = (work["tour_length"].astype(float) - ref) / ref * 100.0
+            work["gap_plot_pct"] = work[col]
+            manifest["baseline_algo"] = baseline_algo
+            manifest["baseline_stat"] = baseline_stat
+            manifest["baseline_reference_tour_length"] = ref
+            gap_source = f"baseline:{baseline_algo}"
+            gap_label = f"Gap vs. {baseline_algo} ({baseline_stat}) [%]"
+            return work, gap_label, gap_source
+
+    work["gap_plot_pct"] = np.nan
+    return work, "Gap (%)", "none"
+
+
 def discover_latest_run_dir(benchmark_results_root: Path) -> Path:
     """Vrátí nejnovější podadresář v benchmark_results (podle názvu, typicky UTC timestamp)."""
     if not benchmark_results_root.is_dir():
@@ -83,6 +153,7 @@ def plot_convergence_gap_spaghetti(
     manifest: dict[str, Any],
     df: pd.DataFrame,
     out_dir: Path,
+    gap_label: str,
 ) -> list[Path]:
     """
     Diplomová práce — „hadicový“ (spaghetti) přehled: jak se jednotlivé běhy metaheuristiky
@@ -121,7 +192,26 @@ def plot_convergence_gap_spaghetti(
                 else "gap_vs_opt_pct"
             )
             if y_col not in conv.columns:
-                continue
+                baseline_ref = _coerce_float(manifest.get("baseline_reference_tour_length"))
+                if baseline_ref is not None and baseline_ref > 0:
+                    if "current_length" in conv.columns and conv["current_length"].notna().any():
+                        conv["current_gap_vs_baseline_pct"] = (
+                            (conv["current_length"].astype(float) - baseline_ref)
+                            / baseline_ref
+                            * 100.0
+                        )
+                        y_col = "current_gap_vs_baseline_pct"
+                    elif "best_length" in conv.columns and conv["best_length"].notna().any():
+                        conv["gap_vs_baseline_pct"] = (
+                            (conv["best_length"].astype(float) - baseline_ref)
+                            / baseline_ref
+                            * 100.0
+                        )
+                        y_col = "gap_vs_baseline_pct"
+                    else:
+                        continue
+                else:
+                    continue
             smax = float(conv["step"].max()) if len(conv) else 1.0
             x = conv["step"].astype(float) / max(smax, 1.0)
             y = conv[y_col].astype(float)
@@ -161,9 +251,11 @@ def plot_convergence_gap_spaghetti(
                     label="medián průběhu",
                 )
 
-        ax.axhline(0.0, color="tab:green", ls="--", lw=1.2, label="optimum (gap 0 %)")
+        baseline_algo = manifest.get("baseline_algo")
+        zero_label = "optimum (gap 0 %)" if not baseline_algo else f"{baseline_algo} baseline (0 %)"
+        ax.axhline(0.0, color="tab:green", ls="--", lw=1.2, label=zero_label)
         ax.set_xlabel("Normalizovaný krok (0 = start, 1 = konec trace)")
-        ax.set_ylabel("Odchylka od optima (%)")
+        ax.set_ylabel(gap_label)
         ax.set_title(f"Konvergence — {algo} ({instance}, n={manifest.get('n', '')})")
         ax.grid(alpha=0.25)
         ax.legend(loc="upper right")
@@ -399,15 +491,16 @@ def plot_scatter_time_vs_gap(
     manifest: dict[str, Any],
     df: pd.DataFrame,
     out_dir: Path,
+    gap_label: str,
 ) -> Path | None:
     """
     Diplomová práce — trade-off čas vs. kvalita: wall_time_s vs. gap (%) pro každý běh, barva = algoritmus.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    need = {"wall_time_s", "gap_vs_opt_pct", "algorithm"}
+    need = {"wall_time_s", "gap_plot_pct", "algorithm"}
     if not need.issubset(df.columns):
         return None
-    sub = df.dropna(subset=["wall_time_s", "gap_vs_opt_pct", "algorithm"])
+    sub = df.dropna(subset=["wall_time_s", "gap_plot_pct", "algorithm"])
     if sub.empty:
         return None
 
@@ -417,7 +510,7 @@ def plot_scatter_time_vs_gap(
         m = sub[sub["algorithm"].astype(str) == algo]
         ax.scatter(
             m["wall_time_s"].astype(float),
-            m["gap_vs_opt_pct"].astype(float),
+            m["gap_plot_pct"].astype(float),
             label=f"{algo} (n={len(m)})",
             alpha=0.72,
             s=38,
@@ -427,7 +520,7 @@ def plot_scatter_time_vs_gap(
         )
     ax.legend(loc="upper right", fontsize=8, ncol=2)
     ax.set_xlabel("Čas běhu (s)")
-    ax.set_ylabel("Gap vs. optimum (%)")
+    ax.set_ylabel(gap_label)
     ax.set_title(f"Čas vs. kvalita — {manifest.get('instance', '')}")
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -441,6 +534,7 @@ def plot_summary_table_optimum_vs_stats(
     manifest: dict[str, Any],
     df: pd.DataFrame,
     out_dir: Path,
+    gap_label: str,
 ) -> tuple[Path, Path, Path] | None:
     """
     Závěrečná souhrnná tabulka — optimum vs. naměřené: medián, modus (discretizovaný), průměr, min, max
@@ -450,7 +544,10 @@ def plot_summary_table_optimum_vs_stats(
     if df.empty or "tour_length" not in df.columns:
         return None
 
-    optimum = manifest.get("optimum")
+    optimum = _coerce_float(manifest.get("optimum"))
+    baseline_ref = _coerce_float(manifest.get("baseline_reference_tour_length"))
+    baseline_algo = manifest.get("baseline_algo")
+    ref_value = optimum if optimum is not None and optimum > 0 else baseline_ref
     rows: list[dict[str, Any]] = []
 
     for algo, g in df.groupby(df["algorithm"].astype(str)):
@@ -467,11 +564,10 @@ def plot_summary_table_optimum_vs_stats(
         mode_count = int(mode_res.count.ravel()[0])
 
         gap_med = gap_mean = gap_mode = None
-        if optimum is not None and float(optimum) > 0:
-            o = float(optimum)
-            gap_med = (med - o) / o * 100.0
-            gap_mean = (mean - o) / o * 100.0
-            gap_mode = (mode_val - o) / o * 100.0
+        if ref_value is not None and ref_value > 0:
+            gap_med = (med - ref_value) / ref_value * 100.0
+            gap_mean = (mean - ref_value) / ref_value * 100.0
+            gap_mode = (mode_val - ref_value) / ref_value * 100.0
 
         rows.append(
             {
@@ -500,7 +596,7 @@ def plot_summary_table_optimum_vs_stats(
         na_rep="",
         caption=(
             "Souhrnné statistiky algoritmů (n\\_runs, medián/průměr/modus/min/max "
-            "a gap vůči optimu v \\%)."
+            "a relativní gap v \\%)."
         ),
         label="tab:summary_stats",
         escape=True,
@@ -517,8 +613,13 @@ def plot_summary_table_optimum_vs_stats(
             alpha=0.85,
         )
     ax.axhline(0, color="tab:green", lw=1)
-    ax.set_ylabel("Medián gap vs. optimum (%)")
-    ax.set_title(f"Medián odchylky od optima ({manifest.get('instance', '')}, optimum={optimum})")
+    ax.set_ylabel(gap_label.replace("Gap", "Medián gap"))
+    ref_note = (
+        f"optimum={optimum}"
+        if optimum is not None and optimum > 0
+        else f"{baseline_algo} ref={baseline_ref}"
+    )
+    ax.set_title(f"Medián relativní odchylky ({manifest.get('instance', '')}, {ref_note})")
     ax.grid(axis="y", alpha=0.3)
 
     fig.tight_layout()
@@ -531,8 +632,8 @@ def plot_summary_table_optimum_vs_stats(
 def _dispatch(only: list[str]) -> dict[str, Callable[..., Any]]:
     """Mapuje klíče z --only na funkce (manifest, df, out_dir)."""
 
-    def _wrap_spaghetti(m: dict, d: pd.DataFrame, o: Path) -> None:
-        plot_convergence_gap_spaghetti(m, d, o)
+    def _wrap_spaghetti(m: dict, d: pd.DataFrame, o: Path, *, gap_label: str = "Gap (%)") -> None:
+        plot_convergence_gap_spaghetti(m, d, o, gap_label)
 
     def _wrap_box(m: dict, d: pd.DataFrame, o: Path) -> None:
         plot_metaheuristic_boxplots_tour_length(m, d, o)
@@ -546,11 +647,11 @@ def _dispatch(only: list[str]) -> dict[str, Callable[..., Any]]:
     def _wrap_violin(m: dict, d: pd.DataFrame, o: Path) -> None:
         plot_violin_tour_length_meta(m, d, o)
 
-    def _wrap_scatter(m: dict, d: pd.DataFrame, o: Path) -> None:
-        plot_scatter_time_vs_gap(m, d, o)
+    def _wrap_scatter(m: dict, d: pd.DataFrame, o: Path, *, gap_label: str = "Gap (%)") -> None:
+        plot_scatter_time_vs_gap(m, d, o, gap_label)
 
-    def _wrap_summary(m: dict, d: pd.DataFrame, o: Path) -> None:
-        plot_summary_table_optimum_vs_stats(m, d, o)
+    def _wrap_summary(m: dict, d: pd.DataFrame, o: Path, *, gap_label: str = "Gap (%)") -> None:
+        plot_summary_table_optimum_vs_stats(m, d, o, gap_label)
 
     full = {
         "spaghetti": _wrap_spaghetti,
@@ -598,6 +699,21 @@ def main() -> None:
         action="store_true",
         help="K --only autorank přidat i bayesovský AutoRank (pomalejší).",
     )
+    parser.add_argument(
+        "--baseline",
+        type=str,
+        default=None,
+        help=(
+            "Náhradní baseline algoritmus pro výpočet gapu, pokud chybí optimum "
+            "(např. --baseline LKH)."
+        ),
+    )
+    parser.add_argument(
+        "--baseline-stat",
+        choices=["median", "mean", "best"],
+        default="median",
+        help="Jak spočítat referenční hodnotu baseline algoritmu.",
+    )
     args = parser.parse_args()
 
     run_dir = args.run_dir
@@ -611,15 +727,25 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     manifest, df = load_benchmark_run(run_dir)
+    baseline_algo = args.baseline.upper().strip() if args.baseline else None
+    df, gap_label, gap_source = _attach_gap_reference_column(
+        manifest,
+        df,
+        baseline_algo,
+        args.baseline_stat,
+    )
     print(f"[graphs] run_dir={run_dir}")
     print(f"[graphs] out_dir={out_dir}")
     print(f"[graphs] řádků runs (ok): {len(df)}")
+    print(f"[graphs] gap_source={gap_source}")
 
     todo = _dispatch(args.only)
     for key, fn in todo.items():
         print(f"[graphs] generuji: {key}")
         if key == "autorank":
             fn(manifest, df, out_dir, bayesian=args.bayesian)
+        elif key in {"spaghetti", "scatter", "summary"}:
+            fn(manifest, df, out_dir, gap_label=gap_label)
         else:
             fn(manifest, df, out_dir)
 
