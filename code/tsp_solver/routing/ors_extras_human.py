@@ -483,20 +483,7 @@ def format_standard_extra_html(
         f"<tbody>{''.join(rows)}</tbody></table>"
     )
 
-    tech = ""
-    values = data.get("values")
-    if isinstance(values, list) and values:
-        try:
-            pretty_v = json.dumps(values, ensure_ascii=False)
-        except (TypeError, ValueError):
-            pretty_v = str(values)
-        tech = (
-            f"<p style='font-size:11px;color:{dim_color};margin:8px 0 4px'>"
-            "<b>Segmenty (indexy bodů trasy ORS)</b> — trojice [od, do, kód]</p>"
-            f"<pre style='white-space:pre-wrap;font-size:11px;color:{dim_color}'>{html.escape(pretty_v)}</pre>"
-        )
-
-    return table + tech
+    return table
 
 
 def format_ors_extras_html(

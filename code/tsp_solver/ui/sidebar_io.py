@@ -35,11 +35,9 @@ def export_instance_interactive(
     suggested_ext = ".gpx" if fmt == "GPX" else ".tsp"
     suggested_name = f"instance{suggested_ext}"
     file_filter = (
-        "GPX soubory (*.gpx);;"
-        "TSP/ATSP soubory (*.tsp *.atsp);;"
-        "ATSP soubory (*.atsp);;"
         "TSP soubory (*.tsp);;"
-        "Všechny soubory (*)"
+        "ATSP soubory (*.atsp);;"
+        "GPX soubory (*.gpx)"
     )
 
     filepath, _ = QFileDialog.getSaveFileName(
@@ -135,14 +133,7 @@ def import_instance_interactive(parent: QWidget, *, state) -> ImportInteractiveR
         parent,
         "Načíst instanci",
         "",
-        (
-            "Podporované soubory (*.tsp *.atsp *.gpx);;"
-            "TSP/ATSP soubory (*.tsp *.atsp);;"
-            "ATSP soubory (*.atsp);;"
-            "TSP soubory (*.tsp);;"
-            "GPX soubory (*.gpx);;"
-            "Všechny soubory (*)"
-        ),
+        "Podporované soubory (*.tsp *.atsp *.gpx)",
     )
     if not filepath:
         return ImportInteractiveResult(status="cancelled")

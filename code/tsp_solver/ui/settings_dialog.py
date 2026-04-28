@@ -71,11 +71,6 @@ class SettingsDialog(QDialog):
         row.addWidget(self._theme_combo, 1)
         root.addLayout(row)
 
-        self._indices_check = QCheckBox("Zobrazit pořadí bodů na mapě (čísla v markerech)")
-        self._indices_check.setChecked(show_waypoint_indices)
-        self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
-        root.addWidget(self._indices_check)
-
         tile_row = QHBoxLayout()
         tile_row.setSpacing(12)
         tile_row.addWidget(QLabel("Mapový podklad:"), 0)
@@ -110,6 +105,11 @@ class SettingsDialog(QDialog):
         unit_row.addWidget(self._distance_unit_combo, 1)
         root.addLayout(unit_row)
 
+        self._indices_check = QCheckBox("Zobrazit pořadí bodů na mapě (čísla v markerech)")
+        self._indices_check.setChecked(show_waypoint_indices)
+        self._indices_check.toggled.connect(self.waypoint_indices_changed.emit)
+        root.addWidget(self._indices_check)
+
         self._auto_recompute_add_check = QCheckBox(
             "Po přidání nebo odebrání bodu znovu spočítat trasu (stejně jako „Spočítat trasu“)"
         )
@@ -117,7 +117,7 @@ class SettingsDialog(QDialog):
         root.addWidget(self._auto_recompute_add_check)
         auto_rec_hint = QLabel(
             "Pozor: u velké instance může jedna změna (přidání/odebrání) trvat dlouho. Při silniční metrice "
-            "(ORS / OSRM) se při každém automatickém přepočtu posílá spousta požadavků na API — rychleji "
+            "(ORS / OSRM) se při každém automatickém přepočtu posílá spousta požadavků na API - rychleji "
             "vyčerpáte denní limit nebo kvótu klíče."
         )
         auto_rec_hint.setWordWrap(True)
@@ -125,11 +125,22 @@ class SettingsDialog(QDialog):
         root.addWidget(auto_rec_hint)
 
         root.addWidget(QLabel("Náhodnost solverů"))
+
         self._seed_enabled_check = QCheckBox(
             "Použít fixní seed pro stochastické algoritmy (ACO, GA, SA, RSO)"
         )
         self._seed_enabled_check.setChecked(load_solver_seed_enabled())
         root.addWidget(self._seed_enabled_check)
+
+        self._local_osrm_check = QCheckBox(
+            "Záloha: lokální OSRM (localhost:5000), pokud chybí klíč"
+        )
+        self._local_osrm_check.setChecked(load_use_local_osrm_fallback())
+        self._local_osrm_check.setToolTip(
+            "Vypněte, pokud nemáte lokální OSRM - aplikace použije jen OpenRouteService "
+            "(s API klíčem) nebo haversine, bez čekání na nedostupný localhost."
+        )
+        root.addWidget(self._local_osrm_check)
 
         seed_row = QHBoxLayout()
         seed_row.setSpacing(12)
@@ -149,8 +160,7 @@ class SettingsDialog(QDialog):
 
         root.addWidget(QLabel("OpenRouteService"))
         hint = QLabel(
-            "API klíč z openrouteservice.org. Volitelně ORS_API_KEY / ORS_BASE_URL "
-            "v prostředí (mají přednost před údaji níže)."
+            "API klíč z openrouteservice.org. Volitelně ORS_API_KEY / ORS_BASE_URL."
         )
         hint.setWordWrap(True)
         hint.setObjectName("SettingsHint")
@@ -172,16 +182,6 @@ class SettingsDialog(QDialog):
         self._ors_base_edit.setPlaceholderText("https://api.openrouteservice.org")
         base_row.addWidget(self._ors_base_edit, 1)
         root.addLayout(base_row)
-
-        self._local_osrm_check = QCheckBox(
-            "Záloha: lokální OSRM (localhost:5000), když ORS nestačí nebo chybí klíč"
-        )
-        self._local_osrm_check.setChecked(load_use_local_osrm_fallback())
-        self._local_osrm_check.setToolTip(
-            "Vypněte, pokud nemáte lokální OSRM — aplikace použije jen OpenRouteService "
-            "(s API klíčem) nebo haversine, bez čekání na nedostupný localhost."
-        )
-        root.addWidget(self._local_osrm_check)
 
         cache_row = QHBoxLayout()
         cache_row.setSpacing(12)
