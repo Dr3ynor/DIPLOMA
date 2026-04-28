@@ -11,11 +11,11 @@ Na základě zadání práce byly definovány klíčové požadavky, které jsou
 \hline
 \textbf{ID} & \textbf{Popis požadavku} \\ \hline
 F1 & Systém umožní import seznamu lokalit (názvy měst, GPS souřadnice) z externího souboru. \\ \hline
-F2 & Systém provede výpočet matice vzdáleností a časů pomocí mapového API nebo lokálního modelu %%\cite{20, 23}. 
+F2 & Systém provede výpočet matice vzdáleností a časů pomocí mapového API nebo lokálního modelu
 \\ \hline
-F3 & Systém umožní export vygenerované instance do formátů standardizovaného formátu TSPLIB %%\cite{26}. 
+F3 & Systém umožní export vygenerované instance do formátů standardizovaného formátu TSPLIB
 \\ \hline
-F4 & Systém zajistí vizualizaci vstupních bodů a vypočtené optimální trasy nad mapovým podkladem %%\cite{20}. 
+F4 & Systém zajistí vizualizaci vstupních bodů a vypočtené optimální trasy nad mapovým podkladem
 \\ \hline
 F5 & Systém umožní konfiguraci parametrů generování (např. typ dopravy: auto, pěší). \\ \hline
 \end{tabular}
@@ -29,7 +29,7 @@ F5 & Systém umožní konfiguraci parametrů generování (např. typ dopravy: a
     \item Vzhledem k výpočetní náročnosti analýzy větších instancí TSP bude aplikace využívat vícevláknové zpracování v prostředí Qt. Výpočetní a síťově náročné kroky by měly být přesunuty mimo hlavní vlákno uživatelského rozhraní, což udrží aplikaci plynule ovladatelnou
     \item \textbf{Portabilita:} Systém bude implementován v jazyce Python, což zajistí multiplatformní běh (Windows, Linux, macOS)
     \item \textbf{Modularita:} Architektura odděluje vrstvu rozhraní, jádro optimalizace, routovací vrstvu, správu stavu a I/O, takže lze systém postupně rozšiřovat bez zásahů do všech částí současně
-    \item \textbf{Licenční čistota:} Systém bude prioritně využívat open-source řešení (OSRM, OSM) nevyžadující placené API klíče %%\cite{23}.
+    \item \textbf{Licenční čistota:} Systém bude prioritně využívat open-source řešení (OSRM, OSM) nevyžadující placené API klíče
     \item \textbf{Uživatelské rozhraní:} Aplikace bude poskytovat přehledné grafické rozhraní pro vizualizaci
 \end{itemize}
 

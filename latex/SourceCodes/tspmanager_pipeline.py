@@ -17,7 +17,6 @@ class TSPManager:
         is_geo = state.is_geo() if is_geographic is None else is_geographic
         actual_metric = resolve_effective_metric(distance_metric, is_geo)
 
-        # EXPLICIT/FULL_MATRIX import: matice se použije přímo.
         if distance_matrix is not None:
             matrix = distance_matrix
             actual_metric = "explicit_matrix"

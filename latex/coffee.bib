@@ -23,13 +23,30 @@
   urldate = {2026-04-26},
 }
 
+@online{tsplib_a280_github,
+  author = {{mastqe}},
+  title = {{TSPLIB} instance \texttt{a280.tsp}},
+  year = {2026},
+  url = {https://github.com/mastqe/tsplib/blob/master/a280.tsp},
+  urldate = {2026-04-28},
+  organization = {GitHub},
+}
+
+@online{tsplib_kro124p_rice,
+  author = {{TSPLIB}},
+  title = {{TSPLIB} instance \texttt{kro124p.atsp.gz}},
+  year = {2026},
+  url = {https://softlib.rice.edu/pub/tsplib/atsp/kro124p.atsp.gz},
+  urldate = {2026-04-28},
+}
+
 @online{lkh_pypi,
   author = {{PyPI}},
   title = {Python package lkh},
   year = {2026},
   url = {https://pypi.org/project/lkh/},
   urldate = {2026-04-26},
-  note = {Wrapper k exekutabilnímu řešiči {LKH}.},
+  note = {Wrapper k algoritmu {LKH}.},
 }
 
 @article{dijkstra1959note,
@@ -99,37 +116,64 @@
 
 @online{osrm_backend_readme,
   author = {{Project OSRM contributors}},
-  title = {Open Source Routing Machine ({OSRM}) README},
+  title = {Open Source Routing Machine ({OSRM})},
   year = {2026},
-  url = {https://raw.githubusercontent.com/Project-OSRM/osrm-backend/master/README.md},
+  url = {https://github.com/Project-OSRM/osrm-backend},
   urldate = {2026-04-27},
 }
 
-@online{skanderova2020bia_ex3_sa,
-  author = {Skanderova, Lenka},
-  title = {Biologically Inspired Algorithms: Exercise 3 -- Simulated annealing},
-  year = {2020},
-  organization = {VSB -- Technical University of Ostrava, Faculty of Electrical Engineering and Computer Science},
-  url = {https://michaelmachu.eu/data/pdf/bia/Exercise3.pdf},
-  urldate = {2026-04-27},
+@inproceedings{luxen2011osrm,
+  author = {Luxen, Dennis and Vetter, Christian},
+  title = {Real-time routing with OpenStreetMap data},
+  booktitle = {Proceedings of the 19th {ACM} {SIGSPATIAL} International Conference on Advances in Geographic Information Systems},
+  pages = {513--516},
+  year = {2011},
+  doi = {10.1145/2093973.2094062},
+  url = {https://dl.acm.org/doi/10.1145/2093973.2094062},
 }
 
-@online{skanderova2020bia_ex4_ga_tsp,
-  author = {Skanderova, Lenka},
-  title = {Biologically Inspired Algorithms: Exercise 4 -- Genetic algorithm applied to Travelling Salesman Problem},
-  year = {2020},
-  organization = {VSB -- Technical University of Ostrava, Faculty of Electrical Engineering and Computer Science},
-  url = {https://michaelmachu.eu/data/pdf/bia/Exercise4.pdf},
-  urldate = {2026-04-27},
+@online{ors_matrix_docs,
+  author = {{HeiGIT gGmbH}},
+  title = {openrouteservice backend documentation: Matrix Endpoint},
+  year = {2026},
+  url = {https://giscience.github.io/openrouteservice/api-reference/endpoints/matrix/},
+  urldate = {2026-04-28},
+  note = {Oficiální dokumentace endpointu pro matici vzdáleností/časů včetně parametrů \texttt{sources}, \texttt{destinations} a \texttt{metrics}.},
 }
 
-@online{skanderova2020bia_ex8_aco_tsp,
-  author = {Skanderova, Lenka},
-  title = {Biologically Inspired Algorithms: Exercise 8 -- Ant Colony Optimization applied to Travelling Salesman Problem},
-  year = {2020},
-  organization = {VSB -- Technical University of Ostrava, Faculty of Electrical Engineering and Computer Science},
-  url = {https://michaelmachu.eu/data/pdf/bia/Exercise8.pdf},
-  urldate = {2026-04-27},
+@article{osm,
+  author = {Haklay, Muki and Weber, Patrick},
+  title = {OpenStreetMap: User-Generated Street Maps},
+  journal = {IEEE Pervasive Computing},
+  volume = {7},
+  number = {4},
+  pages = {12--18},
+  year = {2008},
+  doi = {10.1109/MPRV.2008.80},
+  url = {https://discovery.ucl.ac.uk/id/eprint/13849/},
+}
+
+@inproceedings{knopp2007many_to_many,
+  author = {Knopp, Sebastian and Sanders, Peter and Schultes, Dominik and Schulz, Frank and Wagner, Dorothea},
+  title = {Computing Many-to-Many Shortest Paths Using Highway Hierarchies},
+  booktitle = {Proceedings of the 9th Workshop on Algorithm Engineering and Experiments ({ALENEX})},
+  pages = {36--45},
+  year = {2007},
+  publisher = {SIAM},
+  doi = {10.1137/1.9781611972870.4},
+  url = {https://publikationen.bibliothek.kit.edu/1000015132},
+}
+
+@article{bast2016route_planning_survey,
+  author = {Bast, Hannah and Delling, Daniel and Goldberg, Andrew and M{\"u}ller-Hannemann, Matthias and Pajor, Thomas and Sanders, Peter and Wagner, Dorothea and Werneck, Renato F.},
+  title = {Route Planning in Transportation Networks},
+  journal = {ACM Computing Surveys},
+  volume = {48},
+  number = {3},
+  pages = {40:1--40:36},
+  year = {2016},
+  doi = {10.1145/2884788},
+  url = {https://arxiv.org/abs/1504.05140},
 }
 
 @article{demsar2006statcomp,
@@ -246,5 +290,5 @@
   year      = {2026},
   url       = {https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.TPESampler.html},
   urldate   = {2026-04-28},
-  note      = {Oficiální dokumentace Optuny; verze \texttt{stable}.},
+  note      = {Oficiální dokumentace Optuny, verze \texttt{stable}.},
 }

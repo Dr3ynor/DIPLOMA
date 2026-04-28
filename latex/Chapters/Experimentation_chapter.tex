@@ -1,5 +1,5 @@
 \chapter{Experimentální část}
-Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod nad různými datovými sadami TSPLIB \cite{reinelt1994tsplib,tsplib95}, konkrétně nad instancemi \texttt{a280} (symetrická), \texttt{kro124p} (asymetrická) a \texttt{europe\_main\_cities} (reálná geografická instance). Cílem je porovnat kvalitu nalezeného řešení, stabilitu heuristik a metaheuristik, konvergenční chování i kompromis mezi výpočetním časem a dosaženou odchylkou od referenční hodnoty pro různé charakteristiky úloh.
+Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod nad různými datovými sadami TSPLIB \cite{reinelt1994tsplib,tsplib95}, konkrétně nad instancemi \texttt{a280} \cite{tsplib_a280_github} (symetrická), \texttt{kro124p} \cite{tsplib_kro124p_rice} (asymetrická) a \texttt{europe\_main\_cities} (reálná geografická instance). Cílem je porovnat kvalitu nalezeného řešení, stabilitu heuristik a metaheuristik, konvergenční chování i kompromis mezi výpočetním časem a dosaženou odchylkou od referenční hodnoty pro různé charakteristiky úloh.
 
 \section{Nastavení experimentu}
 \label{sec:exp_setup}
@@ -189,10 +189,9 @@ Na instanci \texttt{kro124p} boxplot~\ref{fig:boxplots_meta_kro124p} a houslový
 
 \section{Globální srovnání všech metod}
 \label{sec:exp_global}
-Komplexní porovnání všech metod je uvedeno samostatně pro každou instanci pomocí grafu kompromisu čas versus kvalita a souhrnné tabulky statistik.
-
+Komplexní porovnání všech metod je provedeno samostatně pro každou instanci pomocí grafu kompromisu mezi časovou náročností a kvalitou řešení, doplněného souhrnnou tabulkou statistik. Hodnoceny jsou zejména medián, průměr, minimum a maximum délky trasy, rozptyl výsledků napříč opakováními a relativní odchylka vůči referenční hodnotě. Toto uspořádání umožňuje současně posoudit přesnost, stabilitu i částečně lze posoudit praktickou použitelnost jednotlivých algoritmů.
 \subsection{Symetrická instance \texttt{a280}}
-Bodový graf \ref{fig:scatter_time_vs_gap_a280} umožňuje na instanci \texttt{a280} číst výsledky ve dvou dimenzích současně. Na horizontální ose je výpočetní čas a na vertikální ose relativní odchylka od optima. Metody umístěné blíže levému dolnímu rohu představují nejvýhodnější kompromis, protože dosahují nízké chyby při současně nízké časové náročnosti. Rozptýlení bodů navíc ukazuje, zda je daný algoritmus stabilní napříč opakováními, nebo zda jeho výkon výrazně kolísá mezi jednotlivými běhy. Sloupcový graf mediánové odchylky od optima \ref{fig:summary_median_gap_a280} a tabulka \ref{tab:summary_stats_a280} rozšiřují tento pohled o konkrétní statistiky (medián, průměr, modus, minimum a maximum délky trasy a relativní odchylky vůči optimu), což umožňuje přesněji oddělit algoritmy s konzistentně dobrým výkonem od metod, které dosáhnou kvalitního řešení jen v části běhů.
+Bodový graf \ref{fig:scatter_time_vs_gap_a280} umožňuje na instanci \texttt{a280} číst výsledky na dvou osách. Na horizontální ose je výpočetní čas a na vertikální ose relativní odchylka od optima. Metody umístěné blíže levému dolnímu rohu představují nejvýhodnější kompromis, protože dosahují nízké chyby při současně nízké časové náročnosti. Rozptýlení bodů navíc ukazuje, zda je daný algoritmus stabilní napříč opakováními, nebo zda jeho výkon výrazně kolísá mezi jednotlivými běhy. Sloupcový graf mediánové odchylky od optima \ref{fig:summary_median_gap_a280} a tabulka \ref{tab:summary_stats_a280} rozšiřují tento pohled o konkrétní statistiky (medián, průměr, modus, minimum a maximum délky trasy a relativní odchylky vůči optimu), což umožňuje přesněji oddělit algoritmy s konzistentně dobrým výkonem od metod, které dosáhnou kvalitního řešení jen v části běhů.
 
 Z bodového grafu \ref{fig:scatter_time_vs_gap_a280} je patrné, že algoritmy tvoří shluky běhů, tudíž vykazují stabilní chování. Z sloupcového grafu \ref{fig:summary_median_gap_a280} můžeme pozorovat stabilní výšku jednotlivých sloupců napříč všemi algoritmy. Jediná výjimka je algoritmus 3-OPT, který vykazuje značně horší výsledky. To je způsobeno jednodušší implementací, která je zde záměrně. 3-OPT prohledává daleko větší prostor oproti 2-OPT, tudíž byl zde zvolen kompromis mezi rychlostí a nalezení optima, aby tato metoda sloužila jako jakýsi rychlý průzkumník prostoru řešení.
 \begin{figure}[H]
@@ -212,7 +211,7 @@ Z bodového grafu \ref{fig:scatter_time_vs_gap_a280} je patrné, že algoritmy t
 Souhrnná tabulka statistik pro instanci \texttt{a280} je z důvodu lepší sazby zařazena v příloze \ref{sec:Appendix2} jako tabulka \ref{tab:summary_stats_a280}.
 
 \subsection{Asymetrická instance \texttt{kro124p}}
-U instance \texttt{kro124p} je dvojici pohledů přiřazena role ověřit, jak se mění pořadí a stabilita metod v asymetrickém režimu. Bodový graf \ref{fig:scatter_time_vs_gap_kro124p} vyjadřuje časovou cenu dosažené přesnosti, sloupcový graf mediánové odchylky \ref{fig:summary_median_gap_kro124p} a tabulka \ref{tab:summary_stats_kro124p} uzavírají porovnání numerickým přehledem.
+Instance \texttt{kro124p} má za cíl prověřit, jak se mění pořadí a stabilita metod v asymetrickém režimu. Bodový graf \ref{fig:scatter_time_vs_gap_kro124p} vyjadřuje časovou cenu dosažené přesnosti, sloupcový graf mediánové odchylky \ref{fig:summary_median_gap_kro124p} a tabulka \ref{tab:summary_stats_kro124p} uzavírají porovnání numerickým přehledem.
 
 Analogicky k předchozí podkapitole lze popsat bodový \ref{fig:scatter_time_vs_gap_kro124p} a sloupcový graf\ref{tab:summary_stats_kro124p}. Rozdíl lze pozorovat ve větším rozptýlení jednotlivých běhů, což je způsobeno asymetrickou instancí a rozložením dat. Z grafu odchylek lze pozorovat, že ACO a LKH jsou nejblíže optimu, zatímco GA, RSO a SA jsou na tom v této statistice podobně.
 
@@ -233,24 +232,25 @@ Analogicky k předchozí podkapitole lze popsat bodový \ref{fig:scatter_time_vs
 Souhrnná tabulka statistik pro instanci \texttt{kro124p} je z důvodu lepší sazby zařazena v příloze \ref{sec:Appendix2} jako tabulka \ref{tab:summary_stats_kro124p}.
 
 \subsection{Reálná instance \texttt{europe\_main\_cities}}
-U instance \texttt{europe\_main\_cities} je globální srovnání provedeno analogicky. Bodový graf \ref{fig:scatter_time_vs_gap_europe} tedy vyjadřuje kompromis mezi časem běhu a odchylkou od LKH, zatímco sloupcový graf \ref{fig:summary_median_gap_europe} shrnuje mediánovou relativní odchylku jednotlivých algoritmů.
+Na reálné instanci \texttt{europe\_main\_cities} (instance, která obsahuje takové body, které reprezentují hlavní města států Evropy) je kvalita řešení vyhodnocena relativně vůči referenční metodě LKH. Bodový graf kompromisu čas--kvalita ukazuje, že LKH tvoří referenční úroveň s nulovou relativní odchylkou, zatímco ostatní metody se od této hodnoty odchylují v závislosti na dosažené kvalitě a časové náročnosti. Z hlediska kvality se metodě LKH nejvíce přibližuje LK, který vykazuje pouze malou mediánovou odchylku. Metoda 2-opt dosahuje rovněž nízké odchylky. Mezi metaheuristikami vychází nejlépe ACO, které má nižší mediánovou odchylku než RSO, GA a SA. Naopak SA dosahuje v tomto experimentu nejvyšší mediánové odchylky a současně patří k časově nejlepším metodám.
 
+Sloupcový graf mediánů relativní odchylky tento závěr potvrzuje. Pořadí metod podle kvality je koncentrováno kolem referenčních metod LKH a LK, následovaných 2-opt a ACO, zatímco RSO, GA, 3-opt a zejména SA vykazují vyšší typickou odchylku od referenční hodnoty. Výsledky tedy naznačují, že pro tuto instanci je nejlepší kompromis mezi přesností a stabilitou dosažen metodami LKH/LK, přičemž z testovaných metaheuristik má nejvhodnější profil ACO.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{Figures/europe_main_cities/scatter_time_vs_gap.png}
-    \caption{Kompromis mezi časem výpočtu a odchylkou od baseline LKH pro instanci \texttt{europe\_main\_cities}}
+    \caption{Kompromis mezi časem výpočtu a odchylkou od referenční hodnoty LKH pro instanci \texttt{europe\_main\_cities}}
     \label{fig:scatter_time_vs_gap_europe}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{Figures/europe_main_cities/summary_median_gap_bar.png}
-    \caption{Medián odchylky od baseline LKH (\%) podle algoritmu pro instanci \texttt{europe\_main\_cities}}
+    \caption{Medián odchylky od referenční hodnoty LKH (\%) podle algoritmu pro instanci \texttt{europe\_main\_cities}}
     \label{fig:summary_median_gap_europe}
 \end{figure}
 
 \section{Zhodnocení a omezení interpretace}
 \label{sec:exp_limits}
-Zařazení instancí \texttt{a280} a \texttt{kro124p} je nutné pro celkový pohled a vyhodnocení, protože umožňuje sledovat chování metod v symetrickém i asymetrickém prostředí. Přesto je nutné výsledky interpretovat s ohledem na to, že jde stále o omezenou experimentální sadu a že relativní pořadí stochastických metod může být citlivé na konkrétní kombinaci instance a naladění parametrů.
+Zařazení výše zmíněných instancí je nutné pro celkový pohled a vyhodnocení, protože umožňuje sledovat chování metod v symetrickém i asymetrickém prostředí. Přesto je nutné výsledky interpretovat s ohledem na to, že jde stále o omezenou experimentální sadu a že relativní pořadí stochastických metod může být citlivé na konkrétní kombinaci instance a naladění parametrů.
 
 Z praktického hlediska měření potvrzuje, že volba algoritmu musí vycházet z požadované rovnováhy mezi kvalitou a časem výpočtu a současně respektovat vlastnosti řešené úlohy. U asymetrických instancí je zejména důležité počítat s tím, že část klasických lokálních metod určených pro symetrický TSP není přímo použitelná a musí být nahrazena operátory navrženými pro orientované hrany.

@@ -180,11 +180,11 @@ Lokální optimalizace (označované také jako metody lokálního prohledáván
 Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance moderní logistiky využívají metaheuristiky \cite{engelbrecht2002ci}. Tyto algoritmy nehledají globální optimum s absolutní jistotou, ale zaměřují se na nalezení dostatečně kvalitního řešení v akceptovatelném čase. Klíčovou vlastností těchto metod je schopnost unikat z lokálních optim pomocí mechanismů inspirovaných přírodou.
 
 \begin{itemize}
-    \item \textbf{Genetické algoritmy (GA):} Tato technika simuluje evoluční proces nad populací kandidátních řešení, kde noví potomci vznikají operacemi křížení a mutace \cite{skanderova2020bia_ex4_ga_tsp}. Pro TSP je zároveň nutné zachovat platnou permutaci měst, tedy bez opakované návštěvy stejného města \cite{skanderova2020bia_ex4_ga_tsp}.
+    \item \textbf{Genetické algoritmy (GA):} Tato technika simuluje evoluční proces nad populací kandidátních řešení, kde noví potomci vznikají operacemi křížení a mutace \cite{engelbrecht2002ci,johnson1997tsp_local_search}. Pro TSP je zároveň nutné zachovat platnou permutaci měst, tedy bez opakované návštěvy stejného města \cite{johnson1997tsp_local_search}.
     
-    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} ACO je inspirováno chováním reálných mravenců a pro TSP používá pravděpodobnostní volbu dalšího města podle feromonu a viditelnosti (inverzní vzdálenosti) \cite{skanderova2020bia_ex8_aco_tsp}. Klíčovým mechanismem je vypařování feromonu a jeho následná aktualizace podle kvality nalezených tras, což umožňuje postupně zvýhodňovat lepší cesty \cite{skanderova2020bia_ex8_aco_tsp}.
+    \item \textbf{Mravenčí kolonie (Ant Colony Optimization - ACO):} ACO je inspirováno chováním reálných mravenců a pro TSP používá pravděpodobnostní volbu dalšího města podle feromonu a viditelnosti (inverzní vzdálenosti) \cite{dorigo1997acs}. Klíčovým mechanismem je vypařování feromonu a jeho následná aktualizace podle kvality nalezených tras, což umožňuje postupně zvýhodňovat lepší cesty \cite{dorigo1997acs}.
     
-    \item \textbf{Simulované žíhání (Simulated Annealing - SA):} SA je definováno pomocí řídicích parametrů počáteční teploty, minimální teploty a chladicí konstanty \cite{skanderova2020bia_ex3_sa}. Přijímací pravidlo dovoluje s určitou pravděpodobností přijmout i horší řešení podle členu $e^{-(f(x_1)-f(x))/T}$, takže algoritmus na začátku více prozkoumává prostor řešení a s klesající teplotou se chová více lokálně \cite{skanderova2020bia_ex3_sa}.
+    \item \textbf{Simulované žíhání (Simulated Annealing - SA):} SA je definováno pomocí řídicích parametrů počáteční teploty, minimální teploty a chladicí konstanty. Přijímací pravidlo dovoluje s určitou pravděpodobností přijmout i horší řešení podle členu $e^{-(f(x_1)-f(x))/T}$, takže algoritmus na začátku více prozkoumává prostor řešení a s klesající teplotou se chová více lokálně.
 
     \item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
 \begin{itemize}
@@ -241,7 +241,7 @@ Tyto algoritmy jsou klíčové pro pochopení mezí výpočetní složitosti u m
 Pro objektivní testování a porovnávání výkonnosti algoritmů jsou nezbytné standardizované datové sady, benchmarky. V kontextu této práce je však nutné rozlišovat mezi historickými syntetickými daty a moderními instancemi založenými na reálné dopravní infrastruktuře.
 
 \subsection{Knihovny TSPLIB a TSPLIB95}
-Knihovna TSPLIB představuje standard pro testování algoritmů řešících TSP \cite{reinelt1994tsplib,tsplib95}. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
+Knihovna TSPLIB \cite{tsplib95} představuje standard pro testování algoritmů řešících TSP \cite{reinelt1994tsplib,tsplib95}. Obsahuje široké spektrum instancí, od vrtání plošných spojů až po simulace měst cesta.
 \begin{itemize}
     \item \textbf{Formát .tsp:} Strukturovaný textový soubor obsahující metadata (název, typ metriky, dimenze) a samotná data, která jsou definována buď souřadnicemi uzlů (pro výpočet euklidovské vzdálenosti), nebo explicitní maticí vzdáleností cesta.
     \item \textbf{Formát .opt.tour:} Referenční soubor obsahující sekvenci indexů vrcholů, která tvoří prokazatelně optimální řešení dané instance.
@@ -259,23 +259,23 @@ Ačkoliv je TSPLIB stále celosvětově uznávaná, její instance jsou často n
 Aby bylo možné generovat instance odpovídající moderním požadavkům, využívá práce API geolokačních a mapových služeb.
 
 \subsection{Geografický podklad: OpenStreetMap (OSM)}
-OSM představuje kolaborativní projekt poskytující volně dostupná geografická data. Pro vyvíjený generátor slouží jako primární zdroj topologie silniční sítě, nad kterou jsou počítány reálné vzdálenosti.
+OSM představuje kolaborativní projekt poskytující volně dostupná geografická data \cite{osm}. Pro vyvíjený generátor slouží jako primární zdroj topologie silniční sítě, nad kterou jsou počítány reálné vzdálenosti.
 
 \subsection{Routovací engine: OpenRouteService a OSRM}
 Pro transformaci geografických souřadnic do matice vzdáleností jsou využívány následující routovací služby:
 \begin{itemize}
-    \item \textbf{OpenRouteService:} Primární síťová služba použitá v aplikaci pro výpočet matic, geokódování a získání detailů trasy
-    \item \textbf{OSRM (Open Source Routing Machine):} Lokálně provozovaný náhradní zdroj pro výpočet matic a tras při nedostupnosti primární služby
+    \item \textbf{OpenRouteService:} Primární síťová služba použitá v aplikaci pro výpočet matic, geokódování a získání detailů trasy \cite{ors_matrix_docs}
+    \item \textbf{OSRM (Open Source Routing Machine):} Lokálně provozovaný náhradní zdroj pro výpočet matic a tras při nedostupnosti primární služby \cite{osrm_backend_readme,luxen2011osrm}
 \end{itemize}
 
 \subsection{Metodika výpočtu matice vzdáleností}
 Výpočet matice vzdáleností představuje kritický prvek přípravy TSP instance. Z hlediska grafové teorie jde o úlohu hledání nejkratších cest mezi všemi dvojicemi vrcholů. Zatímco v teoretických modelech se vzdálenost často počítá jako euklidovská metrika, v reálných logistických systémech je nutné pracovat s váženým orientovaným grafem silniční sítě.
 
-Základem výpočtu v moderních routovacích enginech je Dijkstrův algoritmus, případně jeho vylepšená varianta A*. Vzhledem k obrovskému rozsahu celosvětové silniční sítě (OpenStreetMap obsahuje stovky milionů hran) by však standardní výpočet trval neúnosně dlouho. Proto se využívají pokročilé techniky předzpracování grafu:
+Základem výpočtu v moderních routovacích enginech je Dijkstrův algoritmus, případně jeho vylepšená varianta A*. Vzhledem k obrovskému rozsahu celosvětové silniční sítě by však standardní výpočet trval neúnosně dlouho \cite{bast2016route_planning_survey}. Proto se využívají pokročilé techniky předzpracování grafu:
 
 \begin{itemize}
-    \item \textbf{Contraction Hierarchies (CH):} Tato technika vytváří hierarchickou strukturu grafu, kde jsou méně významné vrcholy (např. v obytných zónách) postupně „stahovány“ do zkratek mezi významnějšími uzly. Výpočet cesty se pak redukuje na prohledávání výrazně menšího počtu hran v hierarchii.
-    \item \textbf{Many-to-Many Routing:} Routovací API jsou optimalizována tak, aby nepočítala každou trasu izolovaně. Využívají faktu, že cesty z jednoho zdroje k více cílům často sdílejí stejné segmenty (podstromy nejkratších cest), což dramaticky snižuje počet operací nad prioritní frontou algoritmu.
+    \item \textbf{Contraction Hierarchies (CH):} Tato technika vytváří hierarchickou strukturu grafu, kde jsou méně významné vrcholy (např. v obytných zónách) postupně „stahovány“ do zkratek mezi významnějšími uzly. Výpočet cesty se pak redukuje na prohledávání výrazně menšího počtu hran v hierarchii \cite{geisberger2008ch}.
+    \item \textbf{Many-to-Many Routing:} Routovací API podporují dávkové maticové dotazy mezi množinami zdrojů a cílů \cite{ors_matrix_docs,osrm_backend_readme}. Výpočet tabulek vzdáleností a časů mezi více zdroji a cíli je samostatně studovaná varianta problému nejkratších cest, pro kterou existují specializované akcelerační postupy v silničních sítích \cite{knopp2007many_to_many,bast2016route_planning_survey}.
 \end{itemize}
 
 Výsledkem je matice $C$ o rozměrech $n \times n$, kde prvek $c_{ij}$ odpovídá váze nejkratší cesty z uzlu $i$ do uzlu $j$ v grafu silniční sítě.
