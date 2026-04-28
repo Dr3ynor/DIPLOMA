@@ -122,7 +122,7 @@ Kde:
 
 
 
-\section{Metody řešení TSP} %\cite{ti_jancar}
+\section{Metody řešení TSP}
 Vzhledem k prokázané složitosti problému je volba metody řešení vždy kompromisem mezi výpočetním časem a kvalitou nalezeného řešení. Metody lze kategorizovat do čtyř hlavních skupin.
 
 \subsection{Přesné metody}
@@ -147,15 +147,15 @@ Tyto algoritmy garantují nalezení teoretického globálního optima, avšak je
     \textit{Nevýhody:} V nejhorším případě může být běh stále výpočetně prohibitivní \cite{lin1973tsp}.
     
 \item \textbf{Dynamické programování (Bellman-Held-Karpův algoritmus):} 
-Tento přístup využívá principu optimality, kdy optimální řešení celého problému lze sestavit z optimálních řešení jeho podproblémů. Na rozdíl od metod typu Branch and Bound, které prohledávají větve stromu a ořezávají je na základě mezí, Held-Karpův algoritmus systematicky buduje tabulku výsledků pro všechny možné podmnožiny měst.
+Tento přístup využívá principu optimality, kdy optimální řešení celého problému lze sestavit z optimálních řešení jeho podproblémů. Na rozdíl od metod typu Branch and Bound, které prohledávají větve stromu a ořezávají je na základě mezí, Held-Karpův algoritmus systematicky buduje tabulku výsledků pro všechny možné podmnožiny měst \cite{nguyen2020bhk}.
 
-\textit{Princip:} Nechť $S \subseteq V \setminus \{v_1\}$ je podmnožina měst a $g(v_i, S)$ je délka nejkratší cesty začínající v počátečním městě $v_1$, procházející všemi městy v $S$ právě jednou a končící v městě $v_i$. Algoritmus rekurzivně vypočítává hodnoty $g$ pro rostoucí velikost množiny $S$, přičemž využívá již vypočtené hodnoty uložené v paměti.
+\textit{Princip:} Nechť $S \subseteq V \setminus \{v_1\}$ je podmnožina měst a $g(v_i, S)$ je délka nejkratší cesty začínající v počátečním městě $v_1$, procházející všemi městy v $S$ právě jednou a končící v městě $v_i$. Algoritmus rekurzivně vypočítává hodnoty $g$ pro rostoucí velikost množiny $S$, přičemž využívá již vypočtené hodnoty uložené v paměti \cite{nguyen2020bhk}.
 
-\textit{Složitost a limity:} Standardní DP formulace redukuje naivní $O(n!)$ na $O(n^2 2^n)$ \cite{cmu_15451_dp2_2023}. Počet stavů DP je řádově $n 2^n$, což vede i na vysokou paměťovou náročnost při praktické implementaci.
+\textit{Složitost a limity:} Standardní formulace redukuje naivní $O(n!)$ na $O(n^2 2^n)$ \cite{nguyen2020bhk}. Počet stavů DP je řádově $n 2^n$, což v praxi vede k vysoké paměťové náročnosti při větších instancích \cite{nguyen2020bhk}.
 
-\textit{Výhody:} Garantuje nalezení optima a jeho časový průběh je deterministický (není závislý na kvalitě prořezávání jako u Branch and Bound).
+\textit{Výhody:} Metoda poskytuje řešení deterministickým stylem, tedy bez závislosti na kvalitě prořezávání, která je typická pro Branch and Bound.
 
-\textit{Nevýhody:} Extrémní nároky na operační paměť a nepoužitelnost pro rozsáhlé logistické sítě, které jsou cílem této práce.
+\textit{Nevýhody:} Nároky na čas i operační paměť rostou exponenciálně, takže u rozsáhlých logistických sítí je metoda obvykle prakticky limitující a častěji slouží jako referenční přesný přístup než jako nasazované produkční řešení \cite{nguyen2020bhk}.
 \end{itemize}
 
 \subsection{Heuristiky a lokální optimalizace}
@@ -186,12 +186,12 @@ Vzhledem k výpočetní náročnosti přesných metod se pro rozsáhlé instance
     
     \item \textbf{Simulované žíhání (Simulated Annealing - SA):} SA je definováno pomocí řídicích parametrů počáteční teploty, minimální teploty a chladicí konstanty. Přijímací pravidlo dovoluje s určitou pravděpodobností přijmout i horší řešení podle členu $e^{-(f(x_1)-f(x))/T}$, takže algoritmus na začátku více prozkoumává prostor řešení a s klesající teplotou se chová více lokálně.
 
-    \item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
+    \item \textbf{Rat Swarm Optimizer (RSO):} Biologicky inspirovaný algoritmus, který simuluje inteligentní chování potkanů v hejnu během procesu lovu \cite{dhiman2021rso}. Algoritmus je strukturálně rozdělen do dvou klíčových fází:
 \begin{itemize}
-    \item \textbf{Fáze pronásledování (Chasing):} V této fázi se potkani pohybují směrem k lídrovi (nejlepšímu dosud nalezenému řešení). Matematicky je tento pohyb definován tak, aby agenti efektivně prohledávali okolí a balancovali mezi náhodným pohybem a následováním nejúspěšnějšího jedince. To umožňuje algoritmu pokrýt širokou oblast stavového prostoru a vyhnout se uvíznutí v lokálním optimu.
-    \item \textbf{Fáze boje (Fighting):} V kontextu TSP to znamená jemné ladění trasy v blízkosti nejlepšího nalezeného řešení. Tato fáze je zodpovědná za rychlou konvergenci algoritmu k finálnímu výsledku.
+    \item \textbf{Fáze pronásledování (Chasing):} V této fázi se potkani pohybují směrem k lídrovi (nejlepšímu dosud nalezenému řešení). Matematicky je tento pohyb definován tak, aby agenti efektivně prohledávali okolí a balancovali mezi náhodným pohybem a následováním nejúspěšnějšího jedince. To umožňuje algoritmu pokrýt širokou oblast stavového prostoru a vyhnout se uvíznutí v lokálním optimu \cite{dhiman2021rso}.
+    \item \textbf{Fáze boje (Fighting):} V kontextu TSP to znamená jemné ladění trasy v blízkosti nejlepšího nalezeného řešení. Tato fáze podporuje konvergenci algoritmu k finálnímu výsledku \cite{dhiman2021rso}.
 \end{itemize}
-Díky této kombinaci globálního prohledávání a lokálního zpřesňování dosahuje RSO dobrých výsledků i na komplexních instancích.
+Díky této kombinaci globálního prohledávání a lokálního zpřesňování dosahuje RSO dobrých výsledků i na komplexních instancích. Původní práce uvádí vyhodnocení na 38 benchmark funkcích. \cite{dhiman2021rso}.
 \end{itemize}
 
 

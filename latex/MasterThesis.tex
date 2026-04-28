@@ -32,7 +32,7 @@
 \CzechAbstract{%
 Práce se zabývá návrhem a implementací softwarového nástroje pro práci s instancemi problému obchodního cestujícího vycházejícími z reálných geografických vstupů. Aplikace umožňuje zadat lokality na mapě nebo je importovat ve standardních formátech, sestavit matici vzdáleností nebo dob jízdy pomocí služby OpenRouteService a v případě potřeby přepnout na lokální Open Source Routing Machine anebo na záložní výpočet vzdálenosti na sféře, pokud trasová data nejsou dostupná. Optimalizační jádro podporuje škálu heuristik a metaheuristik včetně nástroje LKH a výsledek lze ověřit vizualizací nad mapovým podkladem.
 
-Experimentální část porovnává vybrané metody na referenčních instancích knihovny TSPLIB a ukazuje rozdíly v čase běhu, kvalitě řešení a stabilitě stochastických přístupů. Výsledky jsou vázané na konkrétní nastavení a testovací instanci.
+Experimentální část porovnává vybrané metody na třech sadách benchmarků: na symetrické referenční instanci TSPLIB, na asymetrické referenční instanci TSPLIB a na reálné instanci tvořené hlavními městy evropských států. Hodnoceny jsou rozdíly v čase běhu, kvalitě řešení a stabilitě stochastických přístupů. Výsledky jsou vázané na konkrétní nastavení a testované instance.
 
 Cílem je nabídnout provázaný nástroj pro výuku i pro ověřování chování algoritmů na datech blízkých silniční dopravě, s upozorněním na závislost na externích službách a na konfiguraci prostředí.}
 
@@ -41,7 +41,7 @@ Cílem je nabídnout provázaný nástroj pro výuku i pro ověřování chován
 \EnglishAbstract{%
 This thesis deals with the design and implementation of a software tool for working with instances of the traveling salesman problem derived from real geographic inputs. The application allows locations to be specified on a map or imported in standard formats, builds a matrix of distances or travel times using the OpenRouteService platform and, when needed, can switch to a local Open Source Routing Machine instance or to a fallback spherical distance computation when routing data are unavailable. The optimization core supports a range of heuristics and metaheuristics including the LKH solver, and the result can be checked by visualization on a map.
 
-The experimental part compares selected methods on two reference TSPLIB instances and illustrates differences in runtime, solution quality, and stability of stochastic approaches. The findings are tied to a specific configuration and a test instance. It does not imply a universal ranking of algorithms outside this implementation.
+The experimental part compares selected methods on three benchmark sets: a symmetric TSPLIB reference instance, an asymmetric TSPLIB reference instance, and a real-world instance composed of European capital cities. It illustrates differences in runtime, solution quality, and the stability of stochastic approaches. The findings are tied to a specific configuration and the tested instances, and do not imply a universal ranking of algorithms outside this implementation.
 
 The aim is to provide a coherent tool for teaching and for studying algorithm behaviour on road-like data, while making clear the dependence on external services and on the deployment environment.}
 
