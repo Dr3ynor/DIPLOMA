@@ -76,7 +76,9 @@ Na reálné geografické instanci \texttt{europe\_main\_cities} je možné pozor
     \label{fig:conv_sa_a280}
 \end{figure}
 \subsection{Asymetrická instance \texttt{kro124p}}
-Na instanci \texttt{kro124p} zůstává průběh analogický v tom, že největší část zlepšení probíhá na začátku běhu, ale rozdíly mezi metodami jsou více ovlivněny asymetrií hran a volbou ATSP-safe sousedství. Konvergenční průběh ACO \ref{fig:conv_aco_kro124p} potvrzuje, že metoda lépe využívá kombinaci \emph{swap}/\emph{relocate}/\emph{or-opt} optimalizací a vykazuje vyšší stabilitu než ostatní přístupy. \ref{fig:conv_ga_kro124p}, \ref{fig:conv_rso_kro124p}, \ref{fig:conv_sa_kro124p} 
+Na instanci \texttt{kro124p} ještě výrazněji než u symetrické sady vystupuje nesouměrnost nákladů mezi směry jízdy a s tím související volba lokálních úprav trasy, které nemění orientaci hrany. U metody GA, RSO i ACO připadá největší pokles odchylky od známého optima na začátek běhu.
+
+Na obrázku \ref{fig:conv_aco_kro124p} ACO začíná vysoko nad optimem, brzy strmě klesá a křivky jednotlivých pokusů zůstávají k sobě těsné, takže běhy působí vyrovnaně a ke konci se průběh přibližuje nejnižší odchylce ze sledovaných metaheuristik. Graf genetické metody \ref{fig:conv_ga_kro124p} ukazuje v úvodní části výpočtu prudké snížení chyby a poté už jen pozvolné sestupování k ustálení kolem patnácti procentní vzdálenosti od optima, přičemž rozdíl mezi nejpříznivějším a nejméně příznivým výsledkem jednotlivých běhů zůstává přijatelný. RSO na obrázku \ref{fig:conv_rso_kro124p} začíná podobně jako GA, dlouho drží mírný sklon dolů a těsně před koncem většina křivek ještě jednou prudce klesne, celkově je však mezi jednotlivými pokusy větší rozptyl než u ACO.
 
 \begin{figure}[H]
     \centering
