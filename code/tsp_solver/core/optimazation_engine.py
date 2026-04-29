@@ -69,6 +69,6 @@ class OptimizationEngine:
 
         self.last_execution_time = time.time() - start_time
         if not quiet:
-            print(f"DEBUG: Engine finished {solver_type} | {self.last_execution_time:.4f} s")
+            print(f"OptimizationEngine - DEBUG: Solver '{solver_type}' finished in {self.last_execution_time:.4f}s")
 
         return route

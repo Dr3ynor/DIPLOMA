@@ -5,7 +5,7 @@ def _three_opt(matrix, route=None, problem_type="TSP"):
     Využívá Search Window (okno), aby fungoval i u velkých instancí
     """
     if str(problem_type).upper() == "ATSP":
-        raise ValueError("3-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
+        raise ValueError("3-Opt in its current implementation supports only symmetric TSP (TYPE: TSP).")
     n = len(matrix)
     
     if route is None:

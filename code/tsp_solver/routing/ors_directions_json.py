@@ -282,8 +282,8 @@ def ors_post_directions_json_chunk(
     if opts:
         body["options"] = opts
     print(
-        f"ORS directions GeoJSON (detail) profile={profile_slug} (logical={logical_profile}) "
-        f"chunk={chunk_index + 1}/{num_chunks} coords={len(coordinates_lonlat)}"
+        f"ORSDirectionsJSON - DEBUG: Requesting ORS GeoJSON details profile={profile_slug} "
+        f"(logical={logical_profile}) chunk={chunk_index + 1}/{num_chunks} coords={len(coordinates_lonlat)}"
     )
     try:
         response = requests.post(
@@ -295,27 +295,27 @@ def ors_post_directions_json_chunk(
         response_payload = response.json()
         if response.status_code != 200:
             err = response_payload.get("error") if isinstance(response_payload, dict) else None
-            print(f"ORS directions GeoJSON (detail) chyba: {err or response_payload}")
+            print(f"ORSDirectionsJSON - ERROR: ORS GeoJSON detail request failed: {err or response_payload}")
             return None
         if not isinstance(response_payload, dict):
             return None
         parsed = _ors_geojson_feature_props_and_coords(response_payload)
         if not parsed:
-            print("ORS directions GeoJSON (detail): chybí Feature / coordinates")
+            print("ORSDirectionsJSON - ERROR: ORS GeoJSON detail response is missing Feature/coordinates")
             return None
         props, coords = parsed
         if coords and len(coords[0]) >= 3:
             print(
-                f"ORS directions GeoJSON: chunk {chunk_index + 1} bodů={len(coords)} (3D s výškou)"
+                f"ORSDirectionsJSON - DEBUG: GeoJSON chunk {chunk_index + 1} points={len(coords)} (3D with elevation)"
             )
         else:
             print(
-                f"ORS directions GeoJSON: chunk {chunk_index + 1} bodů={len(coords)} "
-                "(2D výška v odpovědi chybí, zkontrolujte elevation=true a backend)"
+                f"ORSDirectionsJSON - DEBUG: GeoJSON chunk {chunk_index + 1} points={len(coords)} "
+                "(2D only, elevation missing in response; verify elevation=true and backend support)"
             )
         return props, coords
     except Exception as e:
-        print(f"ORS directions GeoJSON (detail) výjimka: {e}")
+        print(f"ORSDirectionsJSON - ERROR: ORS GeoJSON detail exception: {e}")
         return None
 
 
@@ -407,8 +407,8 @@ def ors_directions_full_detail(
         last_stop = route_core[-1]
         if not _same_latlon(last_stop, return_start):
             print(
-                "ORS directions: závěrečný úsek návratu na start"
-                f"({last_stop[0]:.5f},{last_stop[1]:.5f}) → ({return_start[0]:.5f},{return_start[1]:.5f})"
+                "ORSDirectionsJSON - DEBUG: Requesting final return-to-start segment "
+                f"({last_stop[0]:.5f},{last_stop[1]:.5f}) -> ({return_start[0]:.5f},{return_start[1]:.5f})"
             )
             closing = ors_post_directions_json_chunk(
                 [
@@ -427,8 +427,8 @@ def ors_directions_full_detail(
             )
             if closing is None:
                 print(
-                    "ORS directions: varování – závěrečný úsek návratu selhal, "
-                    "návod může končit u poslední zastávky."
+                    "ORSDirectionsJSON - WARNING: Final return-to-start segment failed, "
+                    "instructions may end at the last stop"
                 )
             else:
                 closing_props, closing_coords = closing
@@ -485,7 +485,7 @@ def _osrm_leg_instructions(url_base: str, chunk: list[tuple[float, float]]) -> l
                     leg_out.append(ins.strip())
         return leg_out
     except Exception as e:
-        print(f"OSRM instructions: {e}")
+        print(f"ORSDirectionsJSON - ERROR: OSRM instructions request failed: {e}")
         return None
 
 
@@ -524,7 +524,7 @@ def osrm_fetch_instructions_only(
         if not _same_latlon(last_stop, return_start):
             leg = _osrm_leg_instructions(route_base, [last_stop, return_start])
             if leg is None:
-                print("OSRM: závěrečný úsek návratu selhal")
+                print("ORSDirectionsJSON - WARNING: OSRM final return-to-start segment failed")
             else:
                 _extend_instructions_dedupe_consecutive(out, leg)
 

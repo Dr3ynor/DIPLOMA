@@ -93,7 +93,7 @@ def _normalize_lkh_route(nodes_one_based: list[int], n: int) -> list[int]:
         tour = tour[:-1]
     if len(tour) != n or sorted(tour) != list(range(1, n + 1)):
         raise RuntimeError(
-            f"Neočekávaný tvar trasy z LKH: délka={len(tour)}, n={n}, ukázka={tour[:20]}"
+            f"Unexpected route shape from LKH: length={len(tour)}, n={n}, sample={tour[:20]}"
         )
     zero_at = tour.index(1)
     rotated = tour[zero_at:] + tour[:zero_at]
@@ -112,9 +112,9 @@ def _resolve_lkh_executable() -> str:
                 return str(p.resolve())
     tried = ", ".join(str(_ALGORITHMS_DIR / n) for n in _LKH_BINARY_CANDIDATES)
     raise RuntimeError(
-        "V složce tsp_solver/algorithms/ chybí spustitelná binárka LKH-3. "
-        f"Očekává se jeden z: {_LKH_BINARY_CANDIDATES} (zkoušeno: {tried}). "
-        "Na Linuxu musí mít právo spuštění (chmod +x)."
+        "Missing executable LKH-3 binary in tsp_solver/algorithms/. "
+        f"Expected one of: {_LKH_BINARY_CANDIDATES} (checked: {tried}). "
+        "On Linux, the binary must have execute permission (chmod +x)."
     )
 
 
@@ -136,7 +136,7 @@ def _lkh(
         import lkh
     except ImportError as e:
         raise RuntimeError(
-            "Chybí balíček ``lkh``. Nainstalujte: pip install lkh"
+            "Missing ``lkh`` package. Install it with: pip install lkh"
         ) from e
 
     exe = _resolve_lkh_executable()
@@ -152,12 +152,12 @@ def _lkh(
         routes = lkh.solve(exe, problem=problem, **extra)
     except lkh.NoToursException as e:
         raise RuntimeError(
-            "LKH-3 nenašel žádnou trasu (prázdný výstup). Zkuste zvýšit MAX_TRIALS nebo "
-            "zkontrolujte matici vzdáleností (např. hodnoty inf)."
+            "LKH-3 returned no tour (empty output). Try increasing MAX_TRIALS or "
+            "check the distance matrix (e.g., inf values)."
         ) from e
     except Exception as e:
-        raise RuntimeError(f"LKH-3 selhal: {e}") from e
+        raise RuntimeError(f"LKH-3 failed: {e}") from e
 
     if not routes or not routes[0]:
-        raise RuntimeError("LKH-3 vrátil prázdný seznam tras.")
+        raise RuntimeError("LKH-3 returned an empty list of tours.")
     return _normalize_lkh_route(routes[0], n)

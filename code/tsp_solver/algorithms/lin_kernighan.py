@@ -23,7 +23,7 @@ def _lin_kernighan(
     """
     if str(problem_type).upper() == "ATSP":
         raise ValueError(
-            "Lin-Kernighan (lite) v implementaci podporuje jen TYPE: TSP."
+            "Lin-Kernighan (lite) in this implementation supports only TYPE: TSP."
         )
     n = len(matrix)
     if n < 2:

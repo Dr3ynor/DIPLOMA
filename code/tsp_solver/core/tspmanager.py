@@ -66,8 +66,8 @@ class TSPManager:
             logical = routing_config.profile_key or "car"
             ors_hint = f", ORS profile={slug} (logical={logical})"
         print(
-            f"DEBUG: Running solver '{solver_type}' with metric '{actual_metric}'"
-            f"{ors_hint}, problem_type='{problem_type_key}' and kwargs: {solver_kwargs}"
+            f"TSPManager - DEBUG: Running solver='{solver_type}' metric='{actual_metric}'"
+            f"{ors_hint}, problem_type='{problem_type_key}', kwargs={solver_kwargs}"
         )
         route_indices = self.engine.run(
             solver_type, matrix, problem_type=problem_type_key, **solver_kwargs
@@ -85,7 +85,7 @@ class TSPManager:
         if distance_matrix is not None:
             visual_route = ordered_cities
         else:
-            print(f"DEBUG: Generating visual route for: {actual_metric}{ors_hint}")
+            print(f"TSPManager - DEBUG: Building route geometry for metric='{actual_metric}'{ors_hint}")
             visual_route = self.matrix_builder.get_route_geometry(
                 ordered_cities,
                 mode=actual_metric,

@@ -263,7 +263,7 @@ def _write_instructions_pdf(
     # PyQt6: novější vazby používají print(); starší print_()
     _doc_print = getattr(doc, "print", None) or getattr(doc, "print_", None)
     if _doc_print is None:
-        raise RuntimeError("QTextDocument: chybí metoda print/print_")
+        raise RuntimeError("QTextDocument: missing print/print_ method")
     _doc_print(writer)
 
 
@@ -694,7 +694,7 @@ class RightRoutePanel(QWidget):
         self._finish_fetch(detail if isinstance(detail, RouteDirectionsDetail) else None)
 
     def _on_worker_failed(self, msg: str) -> None:
-        print(f"Directions fetch error: {msg}")
+        print(f"RightRoutePanel - ERROR: Directions fetch failed: {msg}")
         self._finish_fetch(None)
 
     def _on_pdf_click(self) -> None:

@@ -96,7 +96,7 @@ def export_instance_interactive(
             route_points=route_points,
         )
         geocode_cache.add_from_state(state)
-        print(f"DEBUG: Uloženo do {target_filepath}")
+        print(f"SidebarIO - DEBUG: Instance exported to {target_filepath}")
         if used_tsp_fallback:
             QMessageBox.information(
                 parent,
@@ -113,7 +113,7 @@ def export_instance_interactive(
         )
 
     except Exception as ex:
-        print(f"ERROR EXPORT: {ex}")
+        print(f"SidebarIO - ERROR: Export failed: {ex}")
         return ExportInteractiveResult(status="error")
 
 
@@ -162,5 +162,5 @@ def import_instance_interactive(parent: QWidget, *, state) -> ImportInteractiveR
         return ImportInteractiveResult(status="empty")
 
     except Exception as ex:
-        print(f"ERROR IMPORT: {ex}")
+        print(f"SidebarIO - ERROR: Import failed: {ex}")
         return ImportInteractiveResult(status="error")

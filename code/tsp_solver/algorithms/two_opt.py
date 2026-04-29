@@ -8,7 +8,7 @@ def _two_opt(matrix, route=None, problem_type="TSP"):
     překřížené cesty zrcadlovým otočením segmentů.
     """
     if str(problem_type).upper() == "ATSP":
-        raise ValueError("2-Opt v aktuální podobě podporuje jen symetrické TSP (TYPE: TSP).")
+        raise ValueError("2-Opt in its current implementation supports only symmetric TSP (TYPE: TSP).")
     n = len(matrix)
     if route is None:
         best_route = _nearest_neighbor(matrix)

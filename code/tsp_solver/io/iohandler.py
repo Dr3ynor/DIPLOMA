@@ -41,7 +41,7 @@ class IOHandler:
         Automaticky detekuje formát souboru podle hlavičky 
         a načte data pomocí správné strategie.
         """
-        print(f"DEBUG IOHANDLER: Autodetect of {filepath}...")
+        print(f"IOHandler - DEBUG: Auto-detecting file format for {filepath}")
         
         try:
             with open(filepath, "r", encoding="utf-8") as f:
@@ -54,34 +54,34 @@ class IOHandler:
             if filepath.lower().endswith(".gpx") or "<gpx" in header_lower:
                 target_strategy = self._strategies["GPX"]
                 fallback_is_geo = True
-                print("DEBUG: Detected: GPX")
+                print("IOHandler - DEBUG: Detected format: GPX")
             elif "TYPE: AGTSP" in header or "TYPE : AGTSP" in header:
-                raise ValueError("AGTSP není podporované.")
+                raise ValueError("AGTSP is not supported.")
             elif (
                 ("EDGE_WEIGHT_TYPE: EXPLICIT" in header or "EDGE_WEIGHT_TYPE : EXPLICIT" in header)
                 and ("EDGE_WEIGHT_FORMAT: FULL_MATRIX" in header or "EDGE_WEIGHT_FORMAT : FULL_MATRIX" in header)
             ):
                 target_strategy = self._strategies["TSP_EXPLICIT_FULL_MATRIX"]
                 fallback_is_geo = False
-                print("DEBUG: Detected: EXPLICIT/FULL_MATRIX")
+                print("IOHandler - DEBUG: Detected format: EXPLICIT/FULL_MATRIX")
             elif "EDGE_WEIGHT_TYPE: GEO" in header or "EDGE_WEIGHT_TYPE : GEO" in header:
                 target_strategy = self._strategies["TSP_GEO"]
                 fallback_is_geo = True
-                print("DEBUG: Detected: GEO")
+                print("IOHandler - DEBUG: Detected format: GEO")
             elif "EDGE_WEIGHT_TYPE: EUC_2D" in header or "EDGE_WEIGHT_TYPE : EUC_2D" in header:
                 target_strategy = self._strategies["TSP_EUC_2D"]
                 fallback_is_geo = False
-                print("DEBUG: Detected: EUC_2D")
+                print("IOHandler - DEBUG: Detected format: EUC_2D")
             
             if target_strategy:
                 loaded = target_strategy.load(filepath)
                 return self._to_payload(loaded, fallback_is_geo=fallback_is_geo)
             else:
-                print("ERROR: Unsupported file format. No EDGE_WEIGHT_TYPE found.")
+                print("IOHandler - ERROR: Unsupported file format, EDGE_WEIGHT_TYPE not found")
                 return self._to_payload([], fallback_is_geo=True)
 
         except Exception as e:
-            print(f"ERROR: Error occurred while loading file {filepath}: {e}")
+            print(f"IOHandler - ERROR: Failed to load file {filepath}: {e}")
             return self._to_payload([], fallback_is_geo=True)
 
     def export(self, filepath, points, format_name, route_points=None):

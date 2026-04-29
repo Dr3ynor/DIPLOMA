@@ -33,7 +33,7 @@ def _parse_tsp_file(filepath: str) -> tuple:
     """
     Vrací tuple: (seznam_bodu, jestli se jedná o vlastní export nebo ne)
     """
-    print(f"DEBUG: Parsing file: {filepath}...")
+    print(f"FileStrategies - DEBUG: Parsing file: {filepath}")
     points = []
     is_custom_export = False # hledání custom commentu
     
@@ -67,10 +67,10 @@ def _parse_tsp_file(filepath: str) -> tuple:
                     except ValueError:
                         continue
                         
-        print(f"DEBUG: Parser loaded {len(points)} points. Custom: {is_custom_export}")
+        print(f"FileStrategies - DEBUG: Parsed {len(points)} points. Custom export: {is_custom_export}")
         return points, is_custom_export
     except Exception as e:
-        print(f"Error parsing file {filepath}: {e}")
+        print(f"FileStrategies - ERROR: Failed to parse file {filepath}: {e}")
         return [], False
 
 class TspFileStrategy(ABC):
@@ -106,7 +106,7 @@ class TspGeoStrategy(TspFileStrategy):
         raw_points, is_custom = _parse_tsp_file(filepath)
         
         if not is_custom:
-            print("DEBUG:  TSPLIB format detected (DDD.MM), recalculating for GPS...")
+            print("FileStrategies - DEBUG: Detected TSPLIB GEO format (DDD.MM), converting to decimal GPS")
             converted_points = []
             for lat, lon in raw_points:
                 converted_points.append((
@@ -163,7 +163,7 @@ class TspExplicitMatrixStrategy(TspFileStrategy):
     """loader matic ATSP/TSP FULL_MATRIX)."""
 
     def export(self, filepath: str, points: list, route_points: list | None = None):
-        raise ValueError("Export EXPLICIT/FULL_MATRIX není podporován v GUI exportu.")
+        raise ValueError("EXPLICIT/FULL_MATRIX export is not supported by the GUI exporter.")
 
     def load(self, filepath: str):
         with open(filepath, "r", encoding="utf-8") as f:
@@ -172,26 +172,26 @@ class TspExplicitMatrixStrategy(TspFileStrategy):
         header = _parse_key_value_header(lines)
         problem_type = header.get("TYPE", "TSP").upper()
         if problem_type == "AGTSP":
-            raise ValueError("AGTSP není podporovaný formát (fail-fast).")
+            raise ValueError("AGTSP is not a supported format (fail-fast).")
         if problem_type not in {"TSP", "ATSP"}:
-            raise ValueError(f"Nepodporovaný TYPE: {problem_type}")
+            raise ValueError(f"Unsupported TYPE: {problem_type}")
 
         ewt = header.get("EDGE_WEIGHT_TYPE", "").upper()
         ewf = header.get("EDGE_WEIGHT_FORMAT", "").upper()
         if ewt != "EXPLICIT" or ewf != "FULL_MATRIX":
             raise ValueError(
-                "Podporováno je jen EDGE_WEIGHT_TYPE: EXPLICIT + EDGE_WEIGHT_FORMAT: FULL_MATRIX."
+                "Only EDGE_WEIGHT_TYPE: EXPLICIT with EDGE_WEIGHT_FORMAT: FULL_MATRIX is supported."
             )
 
         dim_raw = header.get("DIMENSION")
         if dim_raw is None:
-            raise ValueError("Chybí DIMENSION.")
+            raise ValueError("Missing DIMENSION.")
         try:
             n = int(dim_raw)
         except ValueError as exc:
-            raise ValueError(f"Neplatná DIMENSION: {dim_raw}") from exc
+            raise ValueError(f"Invalid DIMENSION: {dim_raw}") from exc
         if n < 2:
-            raise ValueError("DIMENSION musí být >= 2.")
+            raise ValueError("DIMENSION must be >= 2.")
 
         in_weights = False
         tokens: list[float] = []
@@ -211,12 +211,12 @@ class TspExplicitMatrixStrategy(TspFileStrategy):
                 try:
                     tokens.append(float(part))
                 except ValueError:
-                    raise ValueError(f"Neplatná váha v EDGE_WEIGHT_SECTION: {part}")
+                    raise ValueError(f"Invalid weight in EDGE_WEIGHT_SECTION: {part}")
 
         expected = n * n
         if len(tokens) != expected:
             raise ValueError(
-                f"EDGE_WEIGHT_SECTION má {len(tokens)} hodnot, očekáváno {expected} (n*n)."
+                f"EDGE_WEIGHT_SECTION contains {len(tokens)} values, expected {expected} (n*n)."
             )
 
         matrix: list[list[float]] = []

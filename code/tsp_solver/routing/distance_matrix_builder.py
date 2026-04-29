@@ -67,7 +67,7 @@ class DistanceMatrixBuilder:
                 else:
                     return [[d / 60.0 for d in row] for row in osrm_payload["durations"]]
         except Exception as e:
-            print(f"CHYBA: OSRM Table selhal: {e}")
+            print(f"DistanceMatrixBuilder - ERROR: OSRM table request failed: {e}")
         return None
 
     def _resolve_ors(self, cfg: OrsRoutingConfig) -> tuple[str, str, str] | None:
@@ -110,11 +110,11 @@ class DistanceMatrixBuilder:
             )
             if ors_geometry is not None:
                 return ors_geometry
-            print("DEBUG: ORS geometrie selhala - fallback OSRM")
+            print("DistanceMatrixBuilder - DEBUG: ORS geometry request failed, falling back to local OSRM")
 
         if not cfg.allow_local_osrm_fallback:
             print(
-                "DEBUG: Lokální OSRM vypnut v nastavení - geometrie jako přímky mezi body"
+                "DistanceMatrixBuilder - DEBUG: Local OSRM fallback is disabled, using straight-line geometry"
             )
             return [tuple(p) for p in ordered_points]
 
@@ -143,7 +143,7 @@ class DistanceMatrixBuilder:
                     else:
                         full_geometry.extend(chunk_geometry)
             except Exception as e:
-                print(f"CHYBA: Geometrie selhala pro úsek {i}: {e}")
+                print(f"DistanceMatrixBuilder - ERROR: Geometry request failed for chunk starting at index {i}: {e}")
                 full_geometry.extend(chunk)
 
         return full_geometry
@@ -166,20 +166,18 @@ class DistanceMatrixBuilder:
             if not resolved:
                 if cfg.allow_local_osrm_fallback:
                     print(
-                        "DEBUG: ORS API klíč není nastaven (Nastavení / ORS_API_KEY) → "
-                        "zkouším lokální OSRM"
+                        "DistanceMatrixBuilder - DEBUG: ORS API key is missing, trying local OSRM fallback"
                     )
                 else:
                     print(
-                        "DEBUG: ORS API klíč není nastaven a lokální OSRM je vypnutý → "
-                        "haversine"
+                        "DistanceMatrixBuilder - DEBUG: ORS API key is missing and local OSRM fallback is disabled, using haversine"
                     )
             if resolved:
                 api_key, base_url, logical_profile = resolved
                 slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice vzdáleností - ORS profile={slug} (logical={logical_profile}), "
-                    f"n={n} bodů"
+                    f"DistanceMatrixBuilder - DEBUG: Building distance matrix via ORS profile={slug} "
+                    f"(logical={logical_profile}), n={n} points"
                 )
                 matrix = ors_build_full_matrix(
                     points,
@@ -194,10 +192,10 @@ class DistanceMatrixBuilder:
                 if matrix:
                     return matrix
                 if cfg.allow_local_osrm_fallback:
-                    print("DEBUG: ORS matice selhala - fallback na lokální OSRM")
+                    print("DistanceMatrixBuilder - DEBUG: ORS distance matrix request failed, falling back to local OSRM")
                 else:
                     print(
-                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý - haversine"
+                        "DistanceMatrixBuilder - DEBUG: ORS distance matrix request failed and local OSRM fallback is disabled, using haversine"
                     )
             if cfg.allow_local_osrm_fallback:
                 matrix = self._get_osrm_matrix(
@@ -208,25 +206,23 @@ class DistanceMatrixBuilder:
             mode = "haversine"
 
         elif mode == ROUTING_TIME:
-            print(f"DEBUG: ČAS JÍZDY / CHŮZE (min) pro {n} bodů…")
+            print(f"DistanceMatrixBuilder - DEBUG: Building travel-time matrix (minutes) for n={n} points")
             resolved = self._resolve_ors(cfg)
             if not resolved:
                 if cfg.allow_local_osrm_fallback:
                     print(
-                        "DEBUG: ORS API klíč není nastaven (Nastavení / ORS_API_KEY) → "
-                        "zkouším lokální OSRM"
+                        "DistanceMatrixBuilder - DEBUG: ORS API key is missing, trying local OSRM fallback"
                     )
                 else:
                     print(
-                        "DEBUG: ORS API klíč není nastaven a lokální OSRM je vypnutý → "
-                        "haversine"
+                        "DistanceMatrixBuilder - DEBUG: ORS API key is missing and local OSRM fallback is disabled, using haversine"
                     )
             if resolved:
                 api_key, base_url, logical_profile = resolved
                 slug = ors_profile_slug(logical_profile)
                 print(
-                    f"DEBUG: Matice času - ORS profile={slug} (logical={logical_profile}), "
-                    f"n={n} bodů"
+                    f"DistanceMatrixBuilder - DEBUG: Building time matrix via ORS profile={slug} "
+                    f"(logical={logical_profile}), n={n} points"
                 )
                 matrix = ors_build_full_matrix(
                     points,
@@ -241,10 +237,10 @@ class DistanceMatrixBuilder:
                 if matrix:
                     return matrix
                 if cfg.allow_local_osrm_fallback:
-                    print("DEBUG: ORS matice selhala - fallback na lokální OSRM")
+                    print("DistanceMatrixBuilder - DEBUG: ORS time matrix request failed, falling back to local OSRM")
                 else:
                     print(
-                        "DEBUG: ORS matice selhala, lokální OSRM vypnutý - haversine"
+                        "DistanceMatrixBuilder - DEBUG: ORS time matrix request failed and local OSRM fallback is disabled, using haversine"
                     )
             if cfg.allow_local_osrm_fallback:
                 matrix = self._get_osrm_matrix(
@@ -256,7 +252,7 @@ class DistanceMatrixBuilder:
 
         point_metric = self._point_metric_dispatch.get(mode)
         if point_metric is None:
-            print(f"DEBUG: Neznámý režim '{mode}', fallback na haversine")
+            print(f"DistanceMatrixBuilder - DEBUG: Unknown mode '{mode}', falling back to haversine")
             point_metric = self._point_metric_dispatch[HAVERSINE]
 
         matrix = [[0.0 for _ in range(n)] for _ in range(n)]

@@ -87,7 +87,7 @@ def ors_profile_slug(logical_key: str | None) -> str:
     slug = ORS_PROFILE_SLUGS.get(key)
     if not slug:
         print(
-            f"ORS: neznámý profil logical={key!r}, fallback na {DEFAULT_ORS_PROFILE_KEY}"
+            f"OpenRouteServiceRouting - DEBUG: Unknown logical profile={key!r}, falling back to {DEFAULT_ORS_PROFILE_KEY}"
         )
         return ORS_PROFILE_SLUGS[DEFAULT_ORS_PROFILE_KEY]
     return slug
@@ -203,12 +203,12 @@ def _parse_matrix_response(
 
     raw = data.get(key)
     if not raw or len(raw) != n_src:
-        print(f"ORS matrix: neočekávaný tvar pole {key}: {type(raw)} len={len(raw) if raw else 0}")
+        print(f"OpenRouteServiceRouting - ERROR: ORS matrix returned unexpected '{key}' shape: {type(raw)} len={len(raw) if raw else 0}")
         return None
     out: list[list[float]] = []
     for row in raw:
         if not isinstance(row, list) or len(row) != n_dst:
-            print(f"ORS matrix: špatná délka řádku {key}")
+            print(f"OpenRouteServiceRouting - ERROR: ORS matrix row has invalid length for '{key}'")
             return None
         row_out: list[float] = []
         for v in row:
@@ -262,16 +262,16 @@ def ors_post_matrix_block(
             headers=_ors_headers(api_key),
             timeout=_MATRIX_TIMEOUT_S,
         )
-        print(f"ORS matrix response HTTP {response.status_code}")
+        print(f"OpenRouteServiceRouting - DEBUG: ORS matrix HTTP status={response.status_code}")
         response_payload = response.json()
         if response.status_code != 200:
             err = response_payload.get("error") if isinstance(response_payload, dict) else None
-            print(f"ORS matrix chyba: {err or response_payload}")
+            print(f"OpenRouteServiceRouting - ERROR: ORS matrix request failed: {err or response_payload}")
             return None
         want_km = "distance" in metrics
         return _parse_matrix_response(response_payload, len(sources), len(destinations), want_km)
     except Exception as e:
-        print(f"ORS matrix výjimka: {e}")
+        print(f"OpenRouteServiceRouting - ERROR: ORS matrix exception: {e}")
         return None
 
 
@@ -343,8 +343,8 @@ def ors_post_directions_chunk(
     if opts:
         body["options"] = opts
     print(
-        f"ORS directions POST profile={profile_slug} (logical={logical_profile}) "
-        f"chunk={chunk_index + 1}/{num_chunks} coords={n} "
+        f"OpenRouteServiceRouting - DEBUG: ORS directions POST profile={profile_slug} "
+        f"(logical={logical_profile}) chunk={chunk_index + 1}/{num_chunks} coords={n} "
         f"base={base} api_key={_mask_key(api_key)}"
     )
 
@@ -355,12 +355,12 @@ def ors_post_directions_chunk(
             headers=_ors_headers(api_key),
             timeout=_DIRECTIONS_TIMEOUT_S,
         )
-        print(f"ORS directions response HTTP {response.status_code} (chunk {chunk_index + 1}/{num_chunks})")
+        print(f"OpenRouteServiceRouting - DEBUG: ORS directions HTTP status={response.status_code} (chunk {chunk_index + 1}/{num_chunks})")
         response_payload = response.json()
 
         if response.status_code != 200:
             err = response_payload.get("error") if isinstance(response_payload, dict) else None
-            print(f"ORS directions chyba: {err or response_payload}")
+            print(f"OpenRouteServiceRouting - ERROR: ORS directions request failed: {err or response_payload}")
             return None
         route_geometry = None
         if isinstance(response_payload, dict):
@@ -371,17 +371,17 @@ def ors_post_directions_chunk(
                 if feats:
                     route_geometry = feats[0].get("geometry") or {}
         if not route_geometry:
-            print("ORS directions: chybí geometry (Feature/FeatureCollection)")
+            print("OpenRouteServiceRouting - ERROR: ORS directions response is missing geometry (Feature/FeatureCollection)")
             return None
         coords = route_geometry.get("coordinates")
         if not coords:
-            print("ORS directions: chybí geometry.coordinates")
+            print("OpenRouteServiceRouting - ERROR: ORS directions response is missing geometry.coordinates")
             return None
         route_points_latlon = [[p[1], p[0]] for p in coords]
-        print(f"ORS directions: chunk {chunk_index + 1} bodů geometrie={len(route_points_latlon)}")
+        print(f"OpenRouteServiceRouting - DEBUG: ORS directions chunk {chunk_index + 1} geometry points={len(route_points_latlon)}")
         return route_points_latlon
     except Exception as e:
-        print(f"ORS directions výjimka chunk {chunk_index}: {e}")
+        print(f"OpenRouteServiceRouting - ERROR: ORS directions exception in chunk {chunk_index}: {e}")
         return None
 
 

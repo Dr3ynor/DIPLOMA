@@ -644,12 +644,12 @@ class Sidebar(QWidget):
         self._last_total_dist = total_dist
         self._last_metric_key = metric_key
         self._refresh_distance_label()
-        print(f"Trasa nalezena: {total_dist:.2f}")
+        print(f"Sidebar UI - DEBUG: Route solved successfully, total value={total_dist:.2f}")
         self._finish_solve_ui()
 
     def _on_solve_failed(self, msg: str):
         self._solve_progress_bar.setVisible(False)
-        print(f"ERROR SOLVE: {msg}")
+        print(f"Sidebar UI - ERROR: Solve failed: {msg}")
         self._finish_solve_ui()
 
     def _on_solve_click(self):
@@ -677,9 +677,9 @@ class Sidebar(QWidget):
         self._solve_progress_bar.setVisible(True)
 
         if os.environ.get("ORS_API_KEY", "").strip():
-            print("DEBUG: ORS API klíč z proměnné prostředí ORS_API_KEY (přednost před QSettings)")
+            print("Sidebar UI - DEBUG: Using ORS_API_KEY from environment (priority over QSettings)")
         if os.environ.get("ORS_BASE_URL", "").strip():
-            print("DEBUG: ORS base URL z proměnné prostředí ORS_BASE_URL")
+            print("Sidebar UI - DEBUG: Using ORS_BASE_URL from environment")
 
         ors_cfg = ors_config_from_state(state)
         self._solve_thread = QThread()
@@ -757,7 +757,7 @@ class Sidebar(QWidget):
             if len(state.get_points()) < 2:
                 state.set_route([])
             elif load_auto_recompute_on_add_point():
-                print("DEBUG: Automatický přepočet po smazání bodu…")
+                print("Sidebar UI - DEBUG: Auto-recompute triggered after point deletion")
                 self._on_solve_click()
 
     def _on_notify_full_points(self, data) -> None:
@@ -775,7 +775,7 @@ class Sidebar(QWidget):
                 and state.get_route()
                 and new_count >= 2
             ):
-                print("DEBUG: Automatický přepočet po přidání bodu…")
+                print("Sidebar UI - DEBUG: Auto-recompute triggered after point add")
                 self._on_solve_click()
         else:
             self.points_list.clear()
