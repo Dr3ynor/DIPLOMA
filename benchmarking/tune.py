@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tuning hyperparametrů (Optuna) nad TSPLIB; výstup JSON do tuned_params/."""
+"""Tuning hyperparametrů (Optuna) nad TSPLIB výstup JSON do tuned_params/."""
 
 from __future__ import annotations
 

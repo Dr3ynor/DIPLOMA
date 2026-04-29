@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
 
 from tsp_solver.state.app_state import state
 from tsp_solver.state.app_settings import (
@@ -16,6 +16,7 @@ from tsp_solver.ui.map_viewer import MapViewer
 from tsp_solver.ui.right_route_panel import RightRoutePanel
 from tsp_solver.ui.settings_dialog import SettingsDialog
 from tsp_solver.ui.sidebar import Sidebar
+from tsp_solver.ui.svg_icons import tinted_svg_icon
 from tsp_solver.ui.theme import PALETTES, central_widget_bg_style
 
 
@@ -96,6 +97,17 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self._central_widget)
         self._apply_theme(theme_mode)
+        dpr = max(1.0, float(self.devicePixelRatioF()))
+        app_icon = tinted_svg_icon(
+            "briefcase-business.svg",
+            "#ffffff",
+            size=128,
+            device_pixel_ratio=dpr,
+        )
+        self.setWindowIcon(app_icon)
+        app = QApplication.instance()
+        if app is not None:
+            app.setWindowIcon(app_icon)
         self.showMaximized()
 
     def _apply_theme(self, mode: str):

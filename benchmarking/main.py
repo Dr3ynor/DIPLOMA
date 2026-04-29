@@ -118,7 +118,7 @@ def _print_tuned_banners_in_job_order(jobs: list[dict[str, Any]], algo_manifest:
 
 
 def _start_progress_reporter(progress_q: Any, total_jobs: int, max_workers: int) -> threading.Thread:
-    """Vlákno: čte progress frontu workerů a tiskne stav běhu."""
+    """Vlákno: čte progress frontu workerů a printuje stav běhu."""
 
     def body() -> None:
         active: dict[str, str] = {}

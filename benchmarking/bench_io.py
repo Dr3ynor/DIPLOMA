@@ -200,7 +200,7 @@ def parse_tsplib_explicit_full_matrix(
 def load_tsplib_distance_matrix(
     tsp_file: Path,
 ) -> tuple[list[list[float]], int, str, str] | None:
-    """Hustá matice, n, podsložka tuned_params (symetric/asymmetric), popisek typu hran."""
+    """matice, n, podsložka tuned_params (symetric/asymmetric), popisek typu hran."""
     if tsp_file.suffix.lower() == ".atsp":
         prob, matrix = parse_tsplib_explicit_full_matrix(tsp_file)
         if matrix is None or len(matrix) < 2:
@@ -277,7 +277,7 @@ def _normalize_profile(parts: tuple[str, ...]) -> str | None:
 
 
 def load_tuned_params_index(tuned_root: Path) -> dict[str, dict[str, dict[str, object]]]:
-    """Projde tuned_root a sestaví mapu profil → algoritmus → params + cesta k JSON."""
+    """Projde tuned_root a sestaví mapu profil: algoritmus -> params + cesta k JSON."""
     result: dict[str, dict[str, dict[str, object]]] = {profile: {} for profile in SIZE_PROFILES}
     if not tuned_root.exists():
         return result
