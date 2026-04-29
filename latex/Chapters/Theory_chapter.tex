@@ -1,7 +1,7 @@
 \chapter{Teoretická část}
 
 \section{Problém obchodního cestujícího}
-Problém obchodního cestujícího patří mezi nejznámější úlohy kombinatorické optimalizace. Jedná se o permutační problém, jehož cílem je nalézt nejkratší uzavřenou cestu, která navštíví množinu zadaných lokalit právě jednou a vrátí se do výchozího bodu.
+Problém obchodního cestujícího patří mezi nejznámější úlohy kombinatorické optimalizace. Jedná se o permutační problém, jehož cílem je nalézt nejkratší uzavřenou cestu, která navštíví množinu zadaných lokalit právě jednou a vrátí se do výchozího bodu. \cite{jancar_vsb_ti_skript}.
 
 \subsection{Formální definice problému}
 % https://www.cs.vsb.cz/sawa/uti/2025/slides/uti-cz.pdf | 21 slide
@@ -14,7 +14,7 @@ Nechť $G = (V, A)$ je úplný orientovaný graf, kde $V = \{v_1, v_2, \dots, v_
     \item \textbf{Asymetrické TSP:} Existuje alespoň jedna dvojice $(i, j)$ taková, že $c_{ij} \neq c_{ji}$.
 \end{itemize}
 
-Cílem je nalézt takovou permutaci $\pi$ indexů $\{1, \dots, n\}$, která minimalizuje celkovou nákladovou funkci:
+Cílem je nalézt takovou permutaci $\pi$ indexů $\{1, \dots, n\}$, která minimalizuje celkovou nákladovou funkci~\cite{reinelt1994tsplib}:
 
 \begin{equation}
     \min z(\pi) = \sum_{i=1}^{n-1} c_{\pi(i), \pi(i+1)} + c_{\pi(n), \pi(1)}
@@ -33,10 +33,10 @@ Tato uzavřená cesta, která navštíví každý vrchol grafu právě jednou, s
 \label{eq:general_cost_matrix}
 C = 
 \begin{pmatrix}
-v_{11} & v_{12} & \cdots & v_{1n} \\
-v_{21} & v_{22} & \cdots & v_{2n} \\
+c_{11} & c_{12} & \cdots & c_{1n} \\
+c_{21} & c_{22} & \cdots & c_{2n} \\
 \vdots & \vdots & \ddots & \vdots \\
-v_{n1} & v_{n2} & \cdots & v_{nn}
+c_{n1} & c_{n2} & \cdots & c_{nn}
 \end{pmatrix}
 \end{equation}
 
@@ -108,8 +108,7 @@ A* je heuristicky řízené rozšíření vyhledávání nejkratší cesty, kter
 \label{eq:a_star}
 f(n) = g(n) + h(n)
 \end{equation}
-Tento tvar hodnoticí funkce je přímo uveden v původní práci o A* \cite{hart1968astar}.
-Kde:
+Tento tvar hodnoticí funkce je přímo uveden v původní práci o A*~\cite{hart1968astar} kde:
 \begin{itemize}
     \item $g(n)$ představuje cenu nejlevnější dosud nalezené cesty ze startu do uzlu $n$ \cite{hart1968astar}.
     \item $h(n)$ je heuristický odhad zbývající ceny z uzlu $n$ do cíle \cite{hart1968astar}.
