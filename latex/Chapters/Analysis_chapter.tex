@@ -26,18 +26,18 @@ F5 & Systém umožní konfiguraci parametrů generování (např. typ dopravy: a
 
 \subsection{Nefunkční požadavky}
 \begin{itemize}
-    \item Vzhledem k výpočetní náročnosti analýzy větších instancí TSP bude aplikace využívat vícevláknové zpracování v prostředí Qt. Výpočetní a síťově náročné kroky by měly být přesunuty mimo hlavní vlákno uživatelského rozhraní, což udrží aplikaci plynule ovladatelnou
-    \item \textbf{Portabilita:} Systém bude implementován v jazyce Python, což zajistí multiplatformní běh (Windows, Linux, macOS)
+    \item Vzhledem k výpočetní náročnosti analýzy větších instancí TSP bude aplikace využívat vícevláknové zpracování. Výpočetní a síťově náročné kroky by měly být přesunuty mimo hlavní vlákno uživatelského rozhraní, což udrží aplikaci plynule ovladatelnou
+    \item \textbf{Portabilita:} Systém bude implementován v jazyce, který zajistí multiplatformní běh (Windows, Linux, macOS)
     \item \textbf{Modularita:} Architektura odděluje vrstvu rozhraní, jádro optimalizace, routovací vrstvu, správu stavu a I/O, takže lze systém postupně rozšiřovat bez zásahů do všech částí současně
     \item \textbf{Licenční čistota:} Systém bude prioritně využívat open-source řešení (OSRM, OSM) nevyžadující placené API klíče
     \item \textbf{Uživatelské rozhraní:} Aplikace bude poskytovat přehledné grafické rozhraní pro vizualizaci
 \end{itemize}
 
-\section{UML analýza}
+\section{Diagramy}
 Pro formální zachycení struktury, interakcí a dynamického chování navrženého systému byly využity standardizované diagramy jazyka UML. Tato vizualizace slouží k dekompozici komplexních procesů generování instancí a k definici jasných rozhraní mezi výpočetním jádrem a externími službami.
 
 \subsection{Případy užití}
-Diagram případů užití definuje hranice systému a specifikuje interakce mezi uživatelem a jednotlivými funkcionalitami generátoru. Zaměřuje se především na proces konfigurace experimentu, kde uživatel rozhoduje o výběru datového zdroje a optimalizačního kritéria.
+Diagram případů užití\ref{fig:use_case_diagram} definuje hranice systému a specifikuje interakce mezi uživatelem a jednotlivými funkcionalitami generátoru. Zaměřuje se především na proces konfigurace experimentu, kde uživatel rozhoduje o výběru datového zdroje a optimalizačního kritéria.
 
 \begin{figure}[H]
     \centering
@@ -47,6 +47,7 @@ Diagram případů užití definuje hranice systému a specifikuje interakce mez
 \end{figure}
 
 \subsection{Diagram komponent}
+Diagram komponent \ref{fig:component_diagram} znázorňuje modulární strukturu systému. Centrálním bodem je \textit{TSP Manager}, který koordinuje tok dat mezi uživatelským rozhraním, tvorbou matice a optimalizačním jádrem. Odpovědnosti jsou rozděleny mezi komponenty rozhraní, routovací vrstvu a I/O strategie. Výpočetní jádro \textit{Optimization Engine} je odděleno od síťové vrstvy, takže lze měnit optimalizační metody bez zásahu do routovacích volání.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{Figures/component_diagram.png}
@@ -54,28 +55,26 @@ Diagram případů užití definuje hranice systému a specifikuje interakce mez
     \label{fig:component_diagram}
 \end{figure}
 
-Diagram komponent \ref{fig:component_diagram} znázorňuje modulární strukturu systému. Centrálním bodem je \textit{TSP Manager}, který koordinuje tok dat mezi uživatelským rozhraním, tvorbou matice a optimalizačním jádrem. Odpovědnosti jsou rozděleny mezi komponenty rozhraní, routovací vrstvu a I/O strategie. Výpočetní jádro \textit{Optimization Engine} je odděleno od síťové vrstvy, takže lze měnit optimalizační metody bez zásahu do routovacích volání.
-
 \subsection{Aktivitní diagram}
-Popisuje generování instance od vstupu až po finální export s pomocí externího API. Podobně lze přistupovat i k lokálnímu OSRM modelu.
+Aktivitní diagram \ref{fig:activity_diagram} popisuje generování instance od vstupu až po finální export s pomocí externího API. Podobně lze přistupovat i k lokálnímu OSRM modelu.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.78\textwidth,height=0.58\textheight,keepaspectratio]{Figures/TSP_gen_activity_diagram.png}
+    \includegraphics[width=0.98\textwidth,height=0.88\textheight,keepaspectratio]{Figures/TSP_gen_activity_diagram.png}
     \caption{Diagram aktivit v aplikaci}
     \label{fig:activity_diagram}
 \end{figure}
 
-Výpočet matice vzdáleností pro trasové metriky využívá dávkové volání maticových rozhraní služeb ORS a OSRM. Počet vyhodnocovaných dvojic je $n^2-n$, ale v praxi se neřeší samostatným dotazem pro každou dvojici. Matice je sestavována po blocích.
+Pro aktivitu sestavení matice vzdáleností viz. \ref{fig:activity_diagram} využívá dávkové volání maticových rozhraní služeb ORS a OSRM. Počet vyhodnocovaných dvojic je $n^2-n$, ale v praxi se neřeší samostatným dotazem pro každou dvojici. Matice je sestavována po blocích.
 
 \subsection{Třídní diagram}
 Diagram tříd \ref{fig:class_diagram}. Znázorňuje statickou strukturu navrženého systému. Architektura je striktně rozdělena do několika logických celků, které zajišťují oddělení odpovědnosti a rozšiřitelnost.
 \textbf{Klíčové komponenty a jejich vazby:}
 
 \begin{itemize}
-    \item \textbf{Řídicí vrstva:} Centrálním bodem je třída \texttt{TSPManager}. Zajišťuje validaci vstupu, volbu metriky, sestavení matice a spuštění optimalizační metody
-    \item \textbf{Optimalizační jádro:} Třída \texttt{OptimizationEngine} mapuje zvolený algoritmus na konkrétní implementační funkci. To umožňuje jednotné volání více metod nad stejnou maticí
-    \item \textbf{Stav aplikace a notifikace:} Sdílený stav je soustředěn ve třídě \texttt{AppState}. Synchronizace mezi panely rozhraní a mapou je realizována oznamovacím mechanismem, návrhovým vzorem Observer
-    \item \textbf{Import a export:} Vrstva I/O používá strategii formátů (\texttt{TspGeoStrategy}, \texttt{TspEuc2DStrategy}, \texttt{GpxStrategy}), čímž odděluje orchestraci od konkrétní serializace dat
+    \item \textbf{Řídicí vrstva:} Centrálním bodem je třída \texttt{TSPManager}. Zajišťuje validaci vstupu, volbu metriky, sestavení matice a spuštění optimalizační metody.
+    \item \textbf{Optimalizační jádro:} Třída \texttt{OptimizationEngine} mapuje zvolený algoritmus na konkrétní implementační funkci. To umožňuje jednotné volání více metod nad stejnou maticí.
+    \item \textbf{Stav aplikace a notifikace:} Sdílený stav je soustředěn ve třídě \texttt{AppState}. Synchronizace mezi panely rozhraní a mapou je realizována oznamovacím mechanismem, návrhovým vzorem Observer.
+    \item \textbf{Import a export:} Vrstva I/O používá strategii formátů (\texttt{TspGeoStrategy}, \texttt{TspEuc2DStrategy}, \texttt{GpxStrategy}), čímž odděluje orchestraci od konkrétní serializace dat.
 \end{itemize}
 
 
@@ -96,11 +95,11 @@ Z hlediska softwarového inženýrství je systém navržen s využitím návrho
     \item \textbf{Core modul:} Řídí životní cyklus výpočtu, validaci vstupu a spuštění optimalizace
     \item \textbf{Routovací vrstva:} Realizuje volání ORS a OSRM, skládání matic po blocích a náhradní režim při chybách služby
     \item \textbf{I/O vrstva:} Zajišťuje import a export TSPLIB a GPX prostřednictvím strategií formátů
-    \item \textbf{Prezentační vrstva:} Kombinuje mapové zobrazení v \texttt{QWebEngineView} s ovládacími panely Flet (později PyQt6)
+    \item \textbf{Prezentační vrstva:} Kombinuje mapové zobrazení s ovládacími panely
 \end{itemize}
 
 \section{Návrh datového modelu}
-Základním objektem systému je \texttt{TSPInstance}, která vnitřně reprezentuje graf $G=(V, E)$.
+Základním objektem systému je \texttt{TSPInstance}, která vnitřně reprezentuje graf $G=(V, A)$.
 
 \subsection{Datové struktury}
 V paměti bude instance uložena jako objekt obsahující:
@@ -124,12 +123,12 @@ T_{total} = n(n-1) \cdot t_{lat} \approx 10\,000 \cdot 0,1\,\text{s} = 1\,000\,\
 Tento výpočet je orientační horní odhad. Reálná implementace je rychlejší díky maticovým blokům, ale celková doba je stále ovlivněna latencí, limity služeb a lokálním zpracováním odpovědí.
 
 \subsection{Model neblokujícího získávání matic vzdáleností}
-V aplikaci je použita kombinace běhu ve worker vlákně a dávkového maticového volání. Síťové requesty jsou v Pythonu synchronní, ale běží mimo hlavní vlákno GUI, takže rozhraní zůstává během výpočtu responzivní.
+V aplikaci bude použita kombinace běhu ve worker vlákně a dávkového maticového volání. Síťové requesty jsou synchronní, ale běží mimo hlavní vlákno GUI, takže rozhraní zůstává během výpočtu responzivní.
 
 \begin{itemize}
-    \item \textbf{Dávkování požadavků:} Kvůli limitu ORS Matrix jsou zdroje a cíle děleny do bloků a výsledná matice je skládána postupně
-    \item \textbf{Vlákna v GUI:} Výpočet trasy běží v \texttt{QThread} workeru, takže hlavní vlákno nečeká na síťové operace
-    \item \textbf{Náhradní režim:} Při chybě ORS volání se systém přepne na lokální OSRM Table API a při selhání obou trasových služeb použije bodovou metriku
+    \item \textbf{Dávkování požadavků:} Kvůli limitu ORS Matrix jsou zdroje a cíle děleny do bloků a výsledná matice je skládána postupně.
+    \item \textbf{Vlákna v GUI:} Výpočet trasy běží v workeru, takže hlavní vlákno nečeká na síťové operace.
+    \item \textbf{Náhradní režim:} Při chybě ORS volání se systém přepne na lokální OSRM Table API a při selhání obou trasových služeb použije bodovou metriku.
 \end{itemize}
 
 \subsection{Sekvenční diagram získávání dat}
@@ -149,14 +148,14 @@ Pro implementaci byly zvoleny technologie s ohledem na efektivitu vývoje a dost
 
 \begin{itemize}
     \item \textbf{Programovací jazyk:} Python 3.13
-    \item \textbf{Komunikace po síti:} knihovna \texttt{requests} a síťové komponenty Qt (\texttt{QNetworkAccessManager}) pro routovací i geokódovací volání
-    \item \textbf{Zpracování dat:} standardní datové struktury jazyka Python a specializované pomocné funkce pro práci s maticemi vzdáleností
-    \item \textbf{Mapové podklady:} Leaflet vykreslovaný v \texttt{QWebEngineView} nad daty OpenStreetMap
+    \item \textbf{Komunikace po síti:} Knihovna \texttt{requests} a síťové komponenty Qt (\texttt{QNetworkAccessManager}) pro routing i geokódovací volání
+    \item \textbf{Zpracování dat:} Standardní datové struktury jazyka Python a specializované pomocné funkce pro práci s maticemi vzdáleností
+    \item \textbf{Mapové podklady:} Leaflet vykreslovaný v \texttt{QWebEngineView} nad daty OpenStreetMap.
     \item \textbf{Mapová API:}
     \begin{itemize}
         \item \textbf{OpenRouteService:} Primární zdroj trasových matic i geokódovacích služeb
-        \item \textbf{OSRM (Open Source Routing Machine):} Lokální náhradní zdroj pro výpočet matic a tras při výpadku primární služby
+        \item \textbf{Open Source Routing Machine:} Lokální náhradní zdroj pro výpočet matic a tras při výpadku primární služby
     \end{itemize}
-    \item \textbf{Volba oproti rozhraní Mapy.cz:} Po předchozí domluvě s vedoucím práce bylo pro tuto implementaci zvoleno API OpenRouteService (ORS): služba je pro běžné a akademické využití při vlastním API klíči bezplatná, má otevřený ekosystém a veřejnou dokumentaci, klíč lze získat v řádu minut a limity dotazů jsou pro účely práce přijatelné. ORS navíc poskytuje přehledné příklady volání endpointů včetně maticových a directions rozhraní, která odpovídají potřebě generátoru.
+    \item \textbf{Volba oproti rozhraní Mapy.cz:} Po předchozí domluvě s vedoucím práce bylo pro tuto implementaci zvoleno API ORS. Služba je pro běžné a akademické využití při vlastním API klíči bezplatná, má otevřený ekosystém a veřejnou dokumentaci, klíč lze získat v řádu minut a limity dotazů jsou pro účely práce přijatelné. ORS navíc poskytuje přehledné příklady volání endpointů včetně maticových a directions rozhraní, která odpovídají potřebě generátoru.\cite{ors_matrix_docs,ors_directions_docs}
 \end{itemize}
 \endinput

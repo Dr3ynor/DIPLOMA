@@ -144,7 +144,7 @@ def _lkh(
     text = _build_tsplib_explicit_problem_text(int_mat, problem_type=problem_type)
     problem = lkh.LKHProblem.parse(text)
 
-    extra: dict = {"runs": int(runs), "max_trials": int(max_trials)}
+    extra: dict = {"runs": int(runs), "max_trials": int(max_trials),"precision": 100}
     if seed is not None:
         extra["seed"] = int(seed)
 

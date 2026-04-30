@@ -5,7 +5,7 @@ Tato kapitola prezentuje vyhodnocení implementovaných optimalizačních metod 
 \label{sec:exp_setup}
 Měření bylo provedeno nad instancemi \texttt{a280}, \texttt{kro124p} a \texttt{europe\_main\_cities} na pracovní stanici s procesorem AMD Ryzen\,5\,4600H, pamětí DDR4\,16\,GB\,RAM a grafickou kartou NVIDIA GeForce RTX\,2060 (GPU se u uvedených měření solverů nepoužívala). Testovaná sada algoritmů obsahuje metody 2-opt, 3-opt, LK, LKH, GA, ACO, RSO a SA a jejich parametrizace byla převzata z ladění pomocí knihovny \texttt{Optuna} (viz níže). Všechny heuristiky i metaheuristiky byly v rámci jednotného protokolu vyhodnoceny ve 30 bězích, aby bylo možné konzistentně posoudit stabilitu i rozptyl výsledků.
 
-Parametry metaheuristik pro jednotlivé pásma velikosti instancí (např. small, mid, large) byly získány skriptem benchmarking/tune.py. Optuna minimalizuje skalární účelovou funkci. V každém trialu skript navrhne hyperparametry, načte matici vzdáleností z vybraných souborů TSPLIB a opakovaně spustí solver nad touto maticí s deterministicky odvozeným seedem. Účelová hodnota vychází z průměru relativních odchylek délky trasy od známého optima v procentech, pokud je optimální hodnota k dispozici v souboru solutions, jinak se používá absolutní délka trasy. Současně se do účelové funkce promítá i průměrný čas běhu solveru, aby se nepreferovaly pouze kvalitativně lepší, ale výpočetně extrémně drahé konfigurace. Výsledné nejlepší parametry se ukládají do adresáře \texttt{benchmarking/tuned\_params/} podle velikosti instance (\texttt{small}, \texttt{mid}, \texttt{large}). Samotný generátor grafů a tabulek v této kapitole pak spouští skript \texttt{benchmarking/main.py}, který pro každý algoritmus načte odpovídající vyladěný JSON, sestaví dávku jobů a výsledky zapisuje do strukturovaného výstupního adresáře včetně konvergenčních stop.
+Parametry metaheuristik pro jednotlivé pásma velikosti instancí (např. \texttt{small, mid, large}) byly získány skriptem \texttt{benchmarking/tune.py}. \texttt{Optuna} minimalizuje skalární účelovou funkci. V každém trialu skript navrhne hyperparametry, načte matici vzdáleností z vybraných souborů TSPLIB a opakovaně spustí solver nad touto maticí s deterministicky odvozeným seedem. Účelová hodnota vychází z průměru relativních odchylek délky trasy od známého optima v procentech, pokud je optimální hodnota k dispozici v souboru \texttt{solutions}, jinak se používá absolutní délka trasy. Současně se do účelové funkce promítá i průměrný čas běhu solveru, aby se nepreferovaly pouze kvalitativně lepší, ale výpočetně extrémně drahé konfigurace. Výsledné nejlepší parametry se ukládají do adresáře \texttt{benchmarking/tuned\_params/} podle velikosti instance (\texttt{small}, \texttt{mid}, \texttt{large}). Samotný generátor grafů a tabulek v této kapitole pak spouští skript \texttt{benchmarking/main.py}, který pro každý algoritmus načte odpovídající vyladěný JSON, sestaví dávku úloh a výsledky zapisuje do strukturovaného výstupního adresáře včetně konvergenčních stop.
 
 V závěrečné fázi byl každý algoritmus doplněn lokálním vylepšením trasy, aby výsledná hodnota reprezentovala nejen hrubý výstup hlavní heuristiky, ale i běžnou praktickou finalizaci řešení. U symetrické instance byl tento krok realizován především pomocí 2-opt zlepšování, zatímco u asymetrické instance byl použit lokální průchod bez reverzace segmentů založený na operátorech \emph{Swap}, \emph{relocate} a \emph{or-opt}, které zachovávají orientaci hran. Konkrétně jde o opakované náhodné vybírání sousedů. \emph{swap} prohodí pořadí dvou měst v permutaci, \emph{relocate} vytáhne jedno město a vloží je na jinou pozici, \emph{or-opt} přesune krátký souvislý úsek (délky 2 nebo 3) na nové místo v pořadí. Akceptuje se jen zlepšení délky trasy. Metody 2-opt, 3-opt a LK jsou v této implementaci navrženy pro symetrické TSP a na asymetrické instanci nejsou nasazovány, protože jejich implementace není pro orientované hrany přímo použitelná.
 
@@ -24,8 +24,31 @@ Na instanci \texttt{a280} je patrné, že všechny metaheuristiky dosahují nejv
     \caption{Konvergenční průběhy ACO pro instanci \texttt{a280}}
     \label{fig:conv_aco_a280}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_GA.png}
+    \caption{Konvergenční průběhy GA pro instanci \texttt{a280}}
+    \label{fig:conv_ga_a280}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_RSO.png}
+    \caption{Konvergenční průběhy RSO pro instanci \texttt{a280}}
+    \label{fig:conv_rso_a280}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_SA.png}
+    \caption{Konvergenční průběhy SA pro instanci \texttt{a280}}
+    \label{fig:conv_sa_a280}
+\end{figure}
+
+
 \subsection{Reálná instance \texttt{europe\_main\_cities}}
-Na reálné geografické instanci \texttt{europe\_main\_cities} je možné pozorovat obdobný trend jako u předchozích datových sad: největší zlepšení probíhá v úvodní části běhu a následně následuje stabilizace. Protože pro tuto instanci není v experimentální sadě k dispozici známé globální optimum, je konvergenční osa vztažena k referenci získané metodou LKH. Konvergenční průběhy \ref{fig:conv_aco_europe}, \ref{fig:conv_ga_europe}, \ref{fig:conv_rso_europe} a \ref{fig:conv_sa_europe} tak ukazují relativní rychlost a stabilitu přibližování jednotlivých metaheuristik k této hodnotě LKH.
+Na reálné geografické instanci \texttt{europe\_main\_cities} je možné pozorovat obdobný trend jako u předchozích datových sad. Největší zlepšení probíhá v úvodní části běhu a následně následuje stabilizace. Protože pro tuto instanci není v experimentální sadě k dispozici známé globální optimum, je konvergenční osa vztažena k referenci získané metodou LKH. Konvergenční průběhy \ref{fig:conv_aco_europe}, \ref{fig:conv_ga_europe}, \ref{fig:conv_rso_europe} a \ref{fig:conv_sa_europe} tak ukazují relativní rychlost a stabilitu přibližování jednotlivých metaheuristik k této hodnotě LKH.
 
 \begin{figure}[H]
     \centering
@@ -55,26 +78,6 @@ Na reálné geografické instanci \texttt{europe\_main\_cities} je možné pozor
     \label{fig:conv_sa_europe}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_GA.png}
-    \caption{Konvergenční průběhy GA pro instanci \texttt{a280}}
-    \label{fig:conv_ga_a280}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_RSO.png}
-    \caption{Konvergenční průběhy RSO pro instanci \texttt{a280}}
-    \label{fig:conv_rso_a280}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/symmetric_a280/convergence_spaghetti_SA.png}
-    \caption{Konvergenční průběhy SA pro instanci \texttt{a280}}
-    \label{fig:conv_sa_a280}
-\end{figure}
 \subsection{Asymetrická instance \texttt{kro124p}}
 Na instanci \texttt{kro124p} ještě výrazněji než u symetrické sady vystupuje nesouměrnost nákladů mezi směry jízdy a s tím související volba lokálních úprav trasy, které nemění orientaci hrany. U metody GA, RSO i ACO připadá největší pokles odchylky od známého optima na začátek běhu.
 
@@ -129,6 +132,22 @@ AutoRank (CD diagram) \ref{fig:autorank_frequentist_a280} shrnuje pořadí metod
     \label{fig:boxplots_meta_a280}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/symmetric_a280/violin_metaheuristics_strip.png}
+    \caption{Houslový graf rozdělení odchylek metaheuristik pro instanci \texttt{a280}}
+    \label{fig:violin_meta_a280}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Figures/symmetric_a280/autorank_plot_frequentist.png}
+    \caption{Statistické srovnání metod pomocí autorank pro instanci \texttt{a280}}
+    \label{fig:autorank_frequentist_a280}
+\end{figure}
+
+
+
 \subsection{Reálná instance \texttt{europe\_main\_cities}}
 Na instanci \texttt{europe\_main\_cities} boxplot \ref{fig:boxplots_meta_europe} a houslový graf \ref{fig:violin_meta_europe} ukazují, že mezi stochastickými metodami zůstává i v reálných datech rozdíl v robustnosti i dosažené kvalitě tras. AutoRank \ref{fig:autorank_frequentist_europe} doplňuje tento pohled o statistické pořadí metod na úrovni párových běhů.
 \begin{figure}[H]
@@ -152,19 +171,6 @@ Na instanci \texttt{europe\_main\_cities} boxplot \ref{fig:boxplots_meta_europe}
     \label{fig:autorank_frequentist_europe}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/symmetric_a280/violin_metaheuristics_strip.png}
-    \caption{Houslový graf rozdělení odchylek metaheuristik pro instanci \texttt{a280}}
-    \label{fig:violin_meta_a280}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{Figures/symmetric_a280/autorank_plot_frequentist.png}
-    \caption{Statistické srovnání metod pomocí autorank pro instanci \texttt{a280}}
-    \label{fig:autorank_frequentist_a280}
-\end{figure}
 
 \subsection{Asymetrická instance \texttt{kro124p}}
 Na instanci \texttt{kro124p} boxplot~\ref{fig:boxplots_meta_kro124p} a houslový graf~\ref{fig:violin_meta_kro124p} ukazují jednoznačnou separaci. ACO drží délky tras blízko optima a s relativně úzkou variabilitou, zatímco GA, SA a RSO mají podstatně vyšší hodnoty v úzkém pásmu nad sebou. U GA se na tomto chování může podílet elitistický přístup k populaci, kdy algoritmus průběžně drží nejlepší nalezené řešení a slabší jedince průběžně nahrazuje, což snižuje diverzitu populace a může vést k horší kvalitě řešení v asymetrickém prostoru. Autorank~\ref{fig:autorank_frequentist_kro124p} potvrzuje, že ACO je statisticky odděleno jako nejlepší, kdežto GA, RSO a SA leží ve společné skupině bez vzájemně významného rozdílu v pořadí.
@@ -193,9 +199,7 @@ Na instanci \texttt{kro124p} boxplot~\ref{fig:boxplots_meta_kro124p} a houslový
 \label{sec:exp_global}
 Komplexní porovnání všech metod je provedeno samostatně pro každou instanci pomocí grafu kompromisu mezi časovou náročností a kvalitou řešení, doplněného souhrnnou tabulkou statistik. Hodnoceny jsou zejména medián, průměr, minimum a maximum délky trasy, rozptyl výsledků napříč opakováními a relativní odchylka vůči referenční hodnotě. Toto uspořádání umožňuje současně posoudit přesnost, stabilitu i částečně lze posoudit praktickou použitelnost jednotlivých algoritmů.
 \subsection{Symetrická instance \texttt{a280}}
-Bodový graf \ref{fig:scatter_time_vs_gap_a280} umožňuje na instanci \texttt{a280} číst výsledky na dvou osách. Na horizontální ose je výpočetní čas a na vertikální ose relativní odchylka od optima. Metody umístěné blíže levému dolnímu rohu představují nejvýhodnější kompromis, protože dosahují nízké chyby při současně nízké časové náročnosti. Rozptýlení bodů navíc ukazuje, zda je daný algoritmus stabilní napříč opakováními, nebo zda jeho výkon výrazně kolísá mezi jednotlivými běhy. Sloupcový graf mediánové odchylky od optima \ref{fig:summary_median_gap_a280} a tabulka \ref{tab:summary_stats_a280} rozšiřují tento pohled o konkrétní statistiky (medián, průměr, modus, minimum a maximum délky trasy a relativní odchylky vůči optimu), což umožňuje přesněji oddělit algoritmy s konzistentně dobrým výkonem od metod, které dosáhnou kvalitního řešení jen v části běhů.
-
-Z bodového grafu \ref{fig:scatter_time_vs_gap_a280} je patrné, že algoritmy tvoří shluky běhů, tudíž vykazují stabilní chování. Ze sloupcového grafu \ref{fig:summary_median_gap_a280} můžeme pozorovat stabilní výšku jednotlivých sloupců napříč všemi algoritmy. Jediná výjimka je algoritmus 3-OPT, který vykazuje značně horší výsledky. To je způsobeno jednodušší implementací, která je zde záměrně. 3-OPT prohledává daleko větší prostor oproti 2-OPT, tudíž byl zde zvolen kompromis mezi rychlostí a nalezení optima, aby tato metoda sloužila jako jakýsi rychlý průzkumník prostoru řešení.
+Bodový graf \ref{fig:scatter_time_vs_gap_a280} umožňuje na instanci \texttt{a280} číst výsledky na dvou osách. Na horizontální ose je výpočetní čas a na vertikální ose relativní odchylka od optima. Metody umístěné blíže levému dolnímu rohu představují nejvýhodnější kompromis, protože dosahují nízké chyby při současně nízké časové náročnosti. Rozptýlení bodů navíc ukazuje, zda je daný algoritmus stabilní napříč opakováními, nebo zda jeho výkon výrazně kolísá mezi jednotlivými běhy. Sloupcový graf mediánové odchylky od optima \ref{fig:summary_median_gap_a280} a tabulka \ref{tab:summary_stats_a280} rozšiřují tento pohled o konkrétní statistiky (medián, průměr, modus, minimum a maximum délky trasy a relativní odchylky vůči optimu), což umožňuje přesněji oddělit algoritmy s konzistentně dobrým výkonem od metod, které dosáhnou kvalitního řešení jen v části běhů. Jediná výjimka je algoritmus 3-OPT, který vykazuje značně horší výsledky. To je způsobeno jednodušší implementací, která je zde záměrně. 3-OPT prohledává daleko větší prostor oproti 2-OPT, tudíž byl zde zvolen kompromis mezi rychlostí a nalezení optima, aby tato metoda sloužila jako jakýsi rychlý průzkumník prostoru řešení.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{Figures/symmetric_a280/scatter_time_vs_gap.png}
@@ -210,12 +214,8 @@ Z bodového grafu \ref{fig:scatter_time_vs_gap_a280} je patrné, že algoritmy t
     \label{fig:summary_median_gap_a280}
 \end{figure}
 
-Souhrnná tabulka statistik pro instanci \texttt{a280} je z důvodu lepší sazby zařazena v příloze \ref{sec:Appendix2} jako tabulka \ref{tab:summary_stats_a280}.
-
 \subsection{Asymetrická instance \texttt{kro124p}}
-Instance \texttt{kro124p} má za cíl prověřit, jak se mění pořadí a stabilita metod v asymetrickém režimu. Bodový graf \ref{fig:scatter_time_vs_gap_kro124p} vyjadřuje časovou cenu dosažené přesnosti, sloupcový graf mediánové odchylky \ref{fig:summary_median_gap_kro124p} a tabulka \ref{tab:summary_stats_kro124p} uzavírají porovnání numerickým přehledem.
-
-Analogicky k předchozí podkapitole lze popsat bodový ~\ref{fig:scatter_time_vs_gap_kro124p} a sloupcový graf~\ref{fig:summary_median_gap_kro124p}. Rozdíl lze pozorovat ve větším rozptýlení jednotlivých běhů, což je způsobeno asymetrickou instancí a rozložením dat. Z grafu odchylek lze pozorovat, že ACO a LKH jsou nejblíže optimu, zatímco GA, RSO a SA jsou na tom v této statistice podobně.
+Analogicky k předchozí podkapitole lze popsat bodový ~\ref{fig:scatter_time_vs_gap_kro124p} a sloupcový graf~\ref{fig:summary_median_gap_kro124p}. Rozdíl lze pozorovat ve větším rozptýlení jednotlivých běhů, což je způsobeno asymetrickou instancí a rozložením dat. Z grafu odchylek lze pozorovat, že ACO a LKH jsou nejblíže optimu, zatímco GA, RSO a SA jsou na tom v této statistice podobně. \ref{tab:summary_stats_kro124p}
 
 \begin{figure}[H]
     \centering
@@ -231,12 +231,8 @@ Analogicky k předchozí podkapitole lze popsat bodový ~\ref{fig:scatter_time_v
     \label{fig:summary_median_gap_kro124p}
 \end{figure}
 
-Souhrnná tabulka statistik pro instanci \texttt{kro124p} je z důvodu lepší sazby zařazena v příloze \ref{sec:Appendix2} jako tabulka \ref{tab:summary_stats_kro124p}.
-
 \subsection{Reálná instance \texttt{europe\_main\_cities}}
-Na reálné instanci \texttt{europe\_main\_cities} (instance, která obsahuje takové body, které reprezentují hlavní města států Evropy) je kvalita řešení vyhodnocena relativně vůči referenční metodě LKH. Bodový graf kompromisu čas--kvalita ukazuje, že LKH tvoří referenční úroveň s nulovou relativní odchylkou, zatímco ostatní metody se od této hodnoty odchylují v závislosti na dosažené kvalitě a časové náročnosti. Z hlediska kvality se metodě LKH nejvíce přibližuje LK, který vykazuje pouze malou mediánovou odchylku. Metoda 2-opt dosahuje rovněž nízké odchylky. Mezi metaheuristikami vychází nejlépe ACO, které má nižší mediánovou odchylku než RSO, GA a SA. Naopak SA dosahuje v tomto experimentu nejvyšší mediánové odchylky a současně patří k časově nejlepším metodám.
-
-Sloupcový graf mediánů relativní odchylky tento závěr potvrzuje. Pořadí metod podle kvality je koncentrováno kolem referenčních metod LKH a LK, následovaných 2-opt a ACO, zatímco RSO, GA, 3-opt a zejména SA vykazují vyšší typickou odchylku od referenční hodnoty. Výsledky tedy naznačují, že pro tuto instanci je nejlepší kompromis mezi přesností a stabilitou dosažen metodami LKH/LK, přičemž z testovaných metaheuristik má nejvhodnější profil ACO.
+Na reálné instanci \texttt{europe\_main\_cities} (instance, která obsahuje takové body, které reprezentují hlavní města států Evropy) je kvalita řešení vyhodnocena relativně vůči referenční metodě LKH. Bodový graf \ref{fig:scatter_time_vs_gap_europe} kompromisu čas--kvalita ukazuje, že LKH tvoří referenční úroveň s nulovou relativní odchylkou, zatímco ostatní metody se od této hodnoty odchylují v závislosti na dosažené kvalitě a časové náročnosti. Z hlediska kvality se metodě LKH nejvíce přibližuje LK, který vykazuje pouze malou mediánovou odchylku. Metoda 2-opt dosahuje rovněž nízké odchylky. Mezi metaheuristikami vychází nejlépe ACO, které má nižší mediánovou odchylku než RSO, GA a SA. Naopak SA dosahuje v tomto experimentu nejvyšší mediánové odchylky a současně patří k časově nejlepším metodám. Sloupcový graf \ref{fig:summary_median_gap_europe} mediánů relativní odchylky tento závěr potvrzuje. Pořadí metod podle kvality je koncentrováno kolem referenčních metod LKH a LK, následovaných 2-opt a ACO, zatímco RSO, GA, 3-opt a zejména SA vykazují vyšší typickou odchylku od referenční hodnoty. Výsledky tedy naznačují, že pro tuto instanci je nejlepší kompromis mezi přesností a stabilitou dosažen metodami LKH/LK, přičemž z testovaných metaheuristik má nejvhodnější profil ACO.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{Figures/europe_main_cities/scatter_time_vs_gap.png}

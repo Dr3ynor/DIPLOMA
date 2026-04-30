@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gpx version="1.1" creator="MODERN_GPS_DIPLOMA" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="35.68515865" lon="139.72342908">
+    <name>WP 1</name>
+  </wpt>
+  <wpt lat="35.68487979" lon="139.72321719">
+    <name>WP 2</name>
+  </wpt>
+  <trk>
+    <name>Solved Route</name>
+    <trkseg>
+      <trkpt lat="35.68515800" lon="139.72343000" />
+      <trkpt lat="35.68514500" lon="139.72342000" />
+      <trkpt lat="35.68501500" lon="139.72330200" />
+      <trkpt lat="35.68489200" lon="139.72321900" />
+      <trkpt lat="35.68488000" lon="139.72321500" />
+      <trkpt lat="35.68489200" lon="139.72321900" />
+      <trkpt lat="35.68501500" lon="139.72330200" />
+      <trkpt lat="35.68514500" lon="139.72342000" />
+      <trkpt lat="35.68515800" lon="139.72343000" />
+    </trkseg>
+  </trk>
+</gpx>

@@ -1,6 +1,5 @@
 from PyQt6.QtCore import QObject, QThread
 
-
 def start_worker_in_qthread(
     thread: QThread,
     worker: QObject,

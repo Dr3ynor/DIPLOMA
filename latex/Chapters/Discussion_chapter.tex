@@ -2,7 +2,7 @@
 
 \section{Význam a uplatnění vytvořeného nástroje}
 
-Tato práce vznikla jako pokus spojit generování a práci s instancemi problému obchodního cestujícího s prostředím, které inženýr nebo student skutečně používá při práci s reálnými daty, tedy s mapou, adresami a trasami. Desktopová aplikace v Pythonu s knihovnou Qt není sama o sobě jediná možná cesta, ale umožňuje rychle propojit výpočet, nastavení algoritmů a vizualizaci na jedné obrazovce bez nutnosti skládat dohromady několik nesourodých skriptů. Z pohledu někoho, kdo vstupuje do oboru, je na tom hodnota v tom, že je vidět celý řetězec od vstupních bodů přes matici vzdáleností až po výsledek a jeho geometrii na mapě, ne jen izolovaný výpis čísel z terminálu.
+Tato práce vznikla jako pokus spojit generování a práci s instancemi problému obchodního cestujícího s prostředím, které inženýr nebo student může použít při práci s reálnými daty, tedy s mapou, adresami a trasami. Desktopová aplikace v Pythonu s knihovnou Qt není sama o sobě jediná možná cesta, ale umožňuje rychle propojit výpočet, nastavení algoritmů a vizualizaci na jedné obrazovce bez nutnosti skládat dohromady několik nesourodých skriptů. Z pohledu někoho, kdo vstupuje do oboru, je na tom hodnota v tom, že je vidět celý řetězec od vstupních bodů přes matici vzdáleností až po výsledek a jeho geometrii na mapě, ne jen izolovaný výpis čísel z terminálu.
 
 Záměr nebyl nahradit specializované výzkumné nástroje v řešení knihovních instancí. Šlo o to implementovat použitelnou aplikaci, která bude propojovat teoretický popis heuristik s každodenním rozhodováním, kterou metodu zvolit, jak nastavit parametry a jak interpretovat rozptyl výsledků u stochastických běhů. V tomto smyslu práce plní spíše edukační a integrační roli než roli čistě publikovatelného algoritmického objevu.
 
@@ -16,14 +16,14 @@ Na druhé straně stojí závislost na externích službách a lokální infrast
 
 Výsledky měření na jedné středně velké instanci dávají srozumitelný obrázek o chování implementovaných metod, ale neslouží jako univerzální žebříček algoritmů pro všechny typy úloh. Potvrzuje se očekávání, že specializovaný nástroj typu LKH drží referenční kvalitu. U metaheuristik je naopak typické delší trvání běhu a větší rozptyl hodnot mezi opakováními. Mezi ACO, GA, RSO a SA proto nejde v praxi vybrat metodu jen tak, ale podle toho, kolik času a kolik opakování je uživatel ochoten obětovat, aby získal co nejlepší rozmezí výsledků.
 
-Zároveň je třeba připomenout, že ladění parametrů metaheuristik bylo provedeno v konkrétním experimentálním rámci. Jiná instance, jiný počet měst nebo jiný rozpočet iterací může pořadí metod mírně rozhodit jinak. To neznamená, že měření postrádá hodnotu, ale že závěry mají platit jako usměrnění pro výběr metody a interpretaci stability, nikoli jako definitivní soud nad algoritmem samým mimo kontext implementace a hardwaru.
+Zároveň je třeba připomenout, že ladění parametrů metaheuristik bylo provedeno v konkrétním experimentálním rámci. Jiná instance, jiný počet měst nebo jiný rozpočet iterací může pořadí metod mírně změnit. To neznamená, že měření postrádá hodnotu, ale že závěry mají platit jako usměrnění pro výběr metody a interpretaci stability, nikoli jako definitivní soud nad algoritmem samým mimo kontext implementace a hardwaru.
 
 \section{Návrhy na další vývoj}
 
 Přirozeným rozšířením by byla podpora úloh s časovými okny nebo s dynamickým doplňováním bodů v průběhu plánování, protože tam se často setkáváme s reálnou logistikou mimo statický model. Zlepšení vyhledávání míst na mapě o významné body zájmu nebo o kompaktní adresní kódy by zjednodušilo práci uživatelům, kteří nechtějí ručně klikat souřadnice. Z hlediska šíření software pak stojí za úvahu oddělit výpočetní server od desktopového klienta, aby šlo službu nasadit centrálně a uživatelům zůstal tenký klient, byť by to znamenalo přepsat část rozhraní do webové podoby a pečlivěji řešit autentizaci a limity volání rozhraní.
 
-Do budoucna by také pomohlo důslednější využití mezipaměti geokódů a matic. 
+V následujícím vývoji by také pomohlo důslednější využití mezipaměti geokódů a matic vzdáleností. 
 
-Do budoucna lze uvažovat také o rozšíření aplikace o kvantový výpočetní modul, a to ve chvíli, kdy se kvantové počítání více prosadí, ať už ve vědecké sféře díky dostupnosti většího počtu stabilních qubitů, nebo později i v osobním nasazení například s fotonovými kvantovými čipy. Díky tomu by bylo možné zachovat výhody aplikace a využít potenciál rychlejšího řešení optimalizačních úloh.
+Do budoucna lze uvažovat o rozšíření aplikace o kvantový výpočetní modul, a to ve chvíli, kdy se kvantové počítání více prosadí, ať už ve vědecké sféře díky dostupnosti většího počtu stabilních qubitů, nebo později i v osobním nasazení například s fotonovými kvantovými čipy. Díky tomu by bylo možné zachovat výhody aplikace a využít potenciál rychlejšího řešení optimalizačních úloh.
 
 Celkově lze říci, že práce ukazuje, jak lze TSP uchopit věcně od dat až po algoritmy a zároveň nezamlčovat limity, které v praxi stejně narazí na každého, kdo podobný systém skutečně provozuje.

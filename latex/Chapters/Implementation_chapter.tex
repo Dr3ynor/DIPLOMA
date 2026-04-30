@@ -1,16 +1,16 @@
 \chapter{Implementace}
 Z hlediska odpovědnosti modulů je systém rozdělen následovně:
 \begin{itemize}
-    \item \texttt{tsp\_solver/ui} -- uživatelské rozhraní (sidebar, mapa, pravý panel s trasou),
-    \item \texttt{tsp\_solver/core} -- orchestrace výpočtu a běh optimalizačních algoritmů,
-    \item \texttt{tsp\_solver/routing} -- tvorba trasových matic, volání ORS/OSRM a zpracování odpovědí,
-    \item \texttt{tsp\_solver/io} -- import/export instancí ve formátech TSPLIB (GEO/EUC\_2D) a GPX,
-    \item \texttt{tsp\_solver/state} -- centrální aplikační stav a perzistence nastavení.
+    \item \texttt{tsp\_solver/ui} -- uživatelské rozhraní (sidebar, mapa, pravý panel s trasou)
+    \item \texttt{tsp\_solver/core} -- orchestrace výpočtu a běh optimalizačních algoritmů
+    \item \texttt{tsp\_solver/routing} -- tvorba trasových matic, volání ORS/OSRM a zpracování odpovědí
+    \item \texttt{tsp\_solver/io} -- import/export instancí ve formátech TSPLIB (GEO/EUC\_2D) a GPX
+    \item \texttt{tsp\_solver/state} -- centrální aplikační stav a perzistence nastavení
 \end{itemize}
 
-Jádrem výpočtu je třída \texttt{TSPManager}, která zajišťuje celý výpočetní pipeline: validaci vstupu, volbu efektivní metriky, sestavení matice vzdáleností/časů, spuštění zvoleného solveru, výpočet agregované hodnoty trasy a následné vygenerování geometrie pro mapovou vizualizaci. Detailní výpis je uveden v příloze \ref{sec:appendix_long_listings}, výpis \ref{src:tspmanager_pipeline}.
+Jádrem výpočtu je třída \texttt{TSPManager}, která zajišťuje celou výpočetní pipeline: validaci vstupu, volbu efektivní metriky, sestavení matice vzdáleností/časů, spuštění zvoleného solveru, výpočet agregované hodnoty trasy a následné vygenerování geometrie pro mapovou vizualizaci. Detailní výpis je uveden v příloze \ref{src:tspmanager_pipeline}.
 
-Jednotné volání konkrétních solverů obstarává \texttt{OptimizationEngine}. Podle zvoleného klíče vybere implementační funkci a předá jí pouze argumenty, které signatura této funkce přijímá. Detailní výpis je uveden v příloze \ref{sec:appendix_long_listings}, výpis \ref{src:optimization_engine_dispatch}.
+Jednotné volání konkrétních solverů obstarává \texttt{OptimizationEngine}. Podle zvoleného klíče vybere implementační funkci a předá jí pouze argumenty, které signatura této funkce přijímá. Detailní výpis je uveden v příloze \ref{src:optimization_engine_dispatch}.
 
 \section{Implementace generátoru instancí}
 Generování instancí je v implementaci řešeno kombinací interaktivního a dávkového přístupu. Historicky byl v návrhu samostatný \texttt{InstanceGenerator}, ale výsledná implementace tuto funkcionalitu rozpouští do UI a I/O strategie, což se v praxi ukázalo jako jednodušší na údržbu.
@@ -26,12 +26,12 @@ Interně jsou body reprezentovány jako dvojice \texttt{(x, y)}. U geografickéh
 
 Body lze získat:
 \begin{enumerate}
-    \item klikáním do mapy (geografický režim),
-    \item geokódovacím vyhledáním lokality přes ORS autocomplete,
-    \item importem \texttt{.tsp} nebo \texttt{.gpx}.
+    \item vytvářením bodů na mapě (geografický režim)
+    \item geokódovacím vyhledáním lokality přes ORS autocomplete
+    \item importem \texttt{.tsp} nebo \texttt{.gpx}
 \end{enumerate}
 
-Tím je dosaženo toho, že stejná výpočetní část aplikace pracuje jak s reálnými geografickými instancemi, tak se syntetickými rovinými daty.
+Tím je dosaženo toho, že stejná výpočetní část aplikace pracuje jak s reálnými geografickými instancemi, tak se syntetickými rovinnými daty.
 
 \subsection{Funkce pro výpočet vzdáleností mezi všemi body pomocí mapových API}
 Výpočet matic je v třídě \texttt{DistanceMatrixBuilder}. Implementace podporuje dva typy metrik:
@@ -57,7 +57,7 @@ Pokud ORS volání selže nebo není API klíč nastaven, a je povolen fallback,
 \subsection{Ukládání matice vzdáleností}
 Matice je uložena jako dvourozměrné pole \texttt{list[list[float]]}. Hodnoty na diagonále jsou nulové, nedostupné trasy jsou reprezentovány hodnotou \texttt{inf}. Tato reprezentace je kompatibilní se všemi implementovanými metodami a umožňuje jednotné API optimalizačního jádra.
 
-Ve standardním běhu se matice počítá při každém spuštění výpočtu a explicitně se neukládá do samostatného perzistentního souboru. Perzistují se vstupní body (a případně route body v GPX), což zamezuje nekonzistenci mezi geometrií bodů, profilem routingu a uloženou maticí. Výjimkou je import TSPLIB instancí typu \texttt{EXPLICIT/FULL\_MATRIX}, kde je matice načtena přímo ze souboru a solver ji použije bez přepočtu.
+Ve standardním běhu se matice počítá při každém spuštění výpočtu a explicitně se neukládá do samostatného perzistentního souboru. Vstupní body se ukládají (a případně route body v GPX), což zamezuje nekonzistenci mezi geometrií bodů, profilem routingu a uloženou maticí. Výjimkou je import TSPLIB instancí typu \texttt{EXPLICIT/FULL\_MATRIX}, kde je matice načtena přímo ze souboru a solver ji použije bez přepočtu.
 
 \section{Generování reálných instancí}
 Hlavní běh aplikace je zaměřen na práci s reálnými geografickými lokalitami.
@@ -66,16 +66,16 @@ Hlavní běh aplikace je zaměřen na práci s reálnými geografickými lokalit
 \subsection{Generování podle reálných měst}
 Reálné instance jsou typicky tvořeny:
 \begin{itemize}
-    \item vyhledáním měst přes ORS geokódování (\texttt{MapSearchBar}),
-    \item importem existujících TSPLIB GEO instancí,
-    \item importem GPX bodů.
+    \item vyhledáním měst přes ORS geokódování (\texttt{MapSearchBar})
+    \item importem existujících GEO instancí
+    \item importem GPX bodů
 \end{itemize}
 
-V rámci práce byly ručně připraveny také vlastní geografické instance (krajská města České republiky, případně hlavní města evropských států), které slouží k ověření chování algoritmů na datech blízkých reálné silniční logistice.
+V rámci práce byly ručně připraveny také vlastní geografické instance (např. krajská města České republiky, případně hlavní města evropských států), které slouží k ověření chování algoritmů na datech blízkých reálné silniční logistice.
 
 Každý vybraný výsledek u mapového vyhledávání obsahuje souřadnice i textový label, který je při vložení bodu uložen do stavu a zároveň do perzistentní geocode cache.
 
-U GEO TSPLIB importu je implementována kompatibilitní logika: pokud soubor neobsahuje aplikační značku \texttt{COMMENT: MODERN\_GPS\_DIPLOMA}, parser předpokládá historický TSPLIB GEO formát \texttt{DDD.MM} a převádí jej na desetinné stupně. To umožňuje korektní načtení referenčních knihovních instancí bez ručního zásahu.
+U GEO TSPLIB importu je implementována kompatibilitní logika. Pokud soubor neobsahuje aplikační značku \texttt{COMMENT: MODERN\_GPS\_DIPLOMA}, parser předpokládá historický GEO TSPLIB formát \texttt{DDD.MM} a převádí jej na desetinné stupně. To umožňuje korektní načtení referenčních knihovních instancí bez ručního zásahu.
 
 \subsection{Syntetické instance}
 Pro zobrazení v mapové komponentě je u negeografických bodů použita normalizace do vizuálního souřadného prostoru. Tím je zajištěno, že i data bez geodetického významu lze přehledně vykreslit nad Leaflet scénou, aniž by systém předstíral reálné mapové dlaždice.
@@ -83,9 +83,9 @@ Pro zobrazení v mapové komponentě je u negeografických bodů použita normal
 \subsection{Automatizované generování}
 Automatizační vrstva je implementována jako automatizace výpočtu a obsluhy výsledků:
 \begin{itemize}
-    \item volitelný automatický přepočet trasy po přidání/odebrání bodu,
-    \item automatické přednačítání detailů trasy (instrukce, elevace) po dokončení výpočtu,
-    \item automatické ukládání částí konfigurace do \texttt{QSettings}.
+    \item volitelný automatický přepočet trasy po přidání/odebrání bodu
+    \item automatické přednačítání detailů trasy (instrukce, elevace) po dokončení výpočtu
+    \item automatické ukládání částí konfigurace do \texttt{QSettings}
 \end{itemize}
 
 Samostatný dávkový generátor syntetických instancí není součástí hlavního běhu aplikace. Jádro aplikace je v importně-exportních funkcích a v interaktivním skládání instancí v grafickém rozhraní.
@@ -114,7 +114,7 @@ V průběhu implementace bylo nutné upravit několik původních návrhových r
 
 Druhým významným krokem byla velká restrukturalizace projektu do modulárního balíku \texttt{tsp\_solver}, kde jsou odděleny vrstvy \texttt{ui}, \texttt{core}, \texttt{routing}, \texttt{io} a \texttt{state}. Tento krok byl náročný na migraci kódu, ale zjednodušil další rozvoj solverů i testovací infrastruktury a snížil počet míst, kde se mísila odpovědnost GUI a výpočetního jádra.
 
-U GA byl výběr rodičů sjednocen na tournament selection. Parametr \texttt{tournament\_k} určuje velikost turnaje, tedy kolik kandidátů vstupuje do lokálního výběru nejlepšího jedince před křížením. Kvalitativní zlepšení výsledků bylo spíše malé, ale tato varianta je lépe řiditelná při ladění parametrů a implementačně čitelnější. Pro křížení je v implementaci použit order-based postup odpovídající OX stylu (kopie souvislého úseku z prvního rodiče a doplnění z druhého rodiče).
+U GA byl výběr rodičů sjednocen na tournament selection. Parametr \texttt{tournament\_k} určuje velikost turnaje, tedy kolik kandidátů vstupuje do lokálního výběru nejlepšího jedince před křížením. Kvalitativní zlepšení výsledků bylo spíše malé, ale tato varianta umožňuje lepší ladění parametrů a je implementačně čitelnější. Pro křížení je v implementaci použit order-based postup odpovídající OX stylu (kopie souvislého úseku z prvního rodiče a doplnění z druhého rodiče).
 
 V implementaci algoritmu SA byl navíc zkoušen mechanismus periodického \emph{reheating} inspirovaný GitHub repozitářem \cite{aaronyw_atsp_py}, který v testech nepřinesl konzistentní zlepšení oproti jednoduššímu ochlazování. Ručně bylo také experimentováno s parametrem \texttt{p\_nn\_start}, protože algoritmus SA je citlivý na počáteční trajektorii prohledávání stavového prostoru. Záměrem bylo kombinovat běhy startující z NN a běhy startující z náhodné trasy. Tento postup ale ve výsledku vedl statisticky k horší kvalitě řešení, proto jsou v prezentovaných výsledcích použity běhy SA s \texttt{p\_nn\_start = 1.00}.
 
@@ -123,19 +123,19 @@ Samostatnou změnou byla formalizace benchmarkovacího workflow. Měření byla 
 \subsection{Algoritmické optimalizace}
 Kromě výběru více solverů jsou přímo v kódu implementovány mikrooptimalizace:
 \begin{itemize}
-    \item optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH \cite{lkh_pypi} nad jednotným datovým rozhraním matice
-    \item u genetického algoritmu je první jedinec populace vždy trasou z greedy heuristiky \emph{Nearest Neighbour} (NN) nad stejnou maticí. Ostatní jedinci vznikají náhodnou permutací vnitřních měst. Po skončení evoluce se na nejlepší trasu aplikuje krátké lokální vylepšení (náhodný 2-opt u STSP, u ATSP operátory \emph{swap}, \emph{relocate} a \emph{or-opt} v modulu \texttt{route\_ops}). Obdobné závěrečné vylepšení se uplatňuje i u ACO, SA a RSO v příslušných souborech v \texttt{tsp\_solver/algorithms/}
-    \item u ACO je předpočtena matice viditelnosti \(\eta^\beta\)
-    \item počet mravenců je výchozí hodnotou omezen horní hranicí \texttt{min(n, 20)} pro stabilnější dobu běhu, popřípadě lze načíst předem připravené laděné parametry pro určité velikosti instancí
-    \item katalog metrik centralizuje validní metriky dle typu instance a omezuje nevhodné kombinace
+    \item Optimalizační jádro sjednocuje volání metod NN, 2-opt, 3-opt, ACO, GA, SA, LK, RSO a LKH \cite{lkh_pypi} nad jednotným datovým rozhraním matice.
+    \item U genetického algoritmu je první jedinec populace vždy trasou z metody \emph{Nearest Neighbour} (NN) nad stejnou maticí. Ostatní jedinci vznikají náhodnou permutací vnitřních měst. Po skončení evoluce se na nejlepší trasu aplikuje lokální vylepšení (náhodný 2-opt u STSP, u ATSP operátory \emph{swap}, \emph{relocate} a \emph{or-opt} v modulu \texttt{route\_ops}). Obdobné závěrečné vylepšení se uplatňuje i u ACO, SA a RSO v příslušných souborech v \\ \texttt{tsp\_solver/algorithms/}.
+    \item U ACO je předpočtena matice viditelnosti.
+    \item Počet mravenců je výchozí hodnotou omezen horní hranicí \texttt{min(n, 20)} pro stabilnější dobu běhu, popřípadě lze načíst předem připravené laděné parametry pro určité velikosti instancí.
+    \item Katalog metrik centralizuje validní metriky dle typu instance a omezuje nevhodné kombinace.
 \end{itemize}
 
 \subsection{Správa síťových zdrojů}
 Síťová vrstva používá timeouty jak u \texttt{requests}, tak u Qt síťového klienta:
 \begin{itemize}
-    \item matrix volání: timeout 60 s,
-    \item directions volání: timeout 45 s,
-    \item geocode/reverse geocode volání: transfer timeout 12--15 s.
+    \item matrix volání: timeout 60 s
+    \item directions volání: timeout 45 s
+    \item geocode/reverse geocode volání: transfer timeout 12--15 s
 \end{itemize}
 
 Dále je implementována fronta reverzního geokódování s omezenou paralelou (\texttt{max\_concurrent = 2}), která brání požadavkům při rychlé manipulaci s body na mapě.
@@ -143,29 +143,29 @@ Dále je implementována fronta reverzního geokódování s omezenou paralelou 
 \subsection{Zpracování chyb a Rate Limiting mapových služeb}
 Současná implementace řeší chyby vícevrstvě:
 \begin{enumerate}
-    \item kontrola HTTP statusu a validace struktury odpovědi,
-    \item fallback ORS \(\rightarrow\) lokální OSRM,
-    \item fallback trasové metriky \(\rightarrow\) Haversine (pokud selže síťová vrstva).
+    \item kontrola HTTP statusu a validace struktury odpovědi
+    \item fallback ORS \(\rightarrow\) lokální OSRM
+    \item fallback trasové metriky \(\rightarrow\) Haversine (pokud selže síťová vrstva)
 \end{enumerate}
 
 Pokud API vrátí neúspěšnou odpověď, volání je vyhodnoceno jako neúspěšné a aktivuje se fallback větev. V geokódovacích widgetech se při chybě jednoduše skryjí návrhy, aby uživatel neměl nekonzistentní data.
 
-Chování je konzervativní: požadavek buď uspěje, nebo se bez opakování přejde na náhradní zdroj. To je v této etapě vývoje přijatelné díky dostupnosti lokálního OSRM, nicméně pro produkční cloud-only provoz je vhodné doplnit:
+Chování je konzervativní. Požadavek buď uspěje, nebo se bez opakování přejde na náhradní zdroj. To je v této etapě vývoje přijatelné díky dostupnosti lokálního OSRM, nicméně pro produkční cloud-only provoz je vhodné doplnit:
 \begin{itemize}
-    \item řízený retry policy (např. 429/5xx),
-    \item exponenciální zvyšování prodlev,
+    \item retry policy (např. 429/5xx)
+    \item exponenciální zvyšování prodlev
 \end{itemize}
 
-Nevalidní odpovědi (chybějící geometry, neočekávaný tvar pole, neparsovatelný JSON) jsou ošetřeny obranou validací a návratem \texttt{None}, což je navázáno na fallback logiku bez pádu aplikace.
+Nevalidní odpovědi (chybějící geometry, neočekávaný tvar pole, neparsovatelný JSON) jsou ošetřeny návratem \texttt{None}, což je navázáno na fallback logiku bez pádu aplikace.
 
 \section{Vizualizace}
-Vizualizační vrstva kombinuje \texttt{QWebEngineView} (Leaflet mapa) a PyQt prvky. Piktogramy v uživatelském rozhraní (postranní panel, stavové indikátory, akční tlačítka) vycházejí z kolekce ikon Lucide~\cite{lucide_dev}. Vektorové grafiky ve formátu \textsc{svg} s jednotným stylem.
+Vizualizační vrstva kombinuje \texttt{QWebEngineView} (Leaflet mapa) a PyQt prvky. Piktogramy v uživatelském rozhraní (postranní panel, stavové indikátory, tlačítka) vycházejí z kolekce ikon Lucide~\cite{lucide_dev}. Vektorové grafiky ve formátu \texttt{svg} s jednotným stylem.
 
 \subsection{Implementace interaktivní mapy}
 Mapa je načtena z lokálního HTML (\texttt{resources/map\_leaflet.html}) a propojena s Pythonem přes \texttt{QWebChannel}. Most \texttt{\_MapBridge} přenáší události:
 \begin{itemize}
-    \item levé kliknutí do mapy \(\rightarrow\) přidání bodu,
-    \item pravé kliknutí na marker \(\rightarrow\) odstranění bodu.
+    \item levé kliknutí do mapy \(\rightarrow\) přidání bodu
+    \item pravé kliknutí na marker \(\rightarrow\) odstranění bodu
 \end{itemize}
 
 Mapa reaguje na notifikace ze \texttt{AppState}, tj. umí se centrovat, překreslovat body, přepínat mapovou vrstvu, zobrazovat/skrývat indexy bodů a kreslit trasu.
@@ -185,11 +185,11 @@ Uzly jsou vykresleny jako markery. Při postupném přidávání se používá i
 
 Hrany trasy se vykreslují buď jako:
 \begin{itemize}
-    \item přímé úsečky (bodové metriky),
-    \item detailní polyline z ORS/OSRM geometrie (trasové metriky).
+    \item přímé úsečky (bodové metriky)
+    \item detailní polyline z ORS/OSRM geometrie (trasové metriky)
 \end{itemize}
 
-\subsection{Zobrazení nalezeného řešení} Po dokončení výpočtu se do aplikačního stavu ukládá polylinie trasy, pořadí zastávek včetně návratu do výchozího bodu, agregovaná výsledná hodnota odpovídající zvolené metrice (vzdálenost v kilometrech nebo čas v minutách) a klíč použité metriky. Pravý panel nad mapou tuto základní reprezentaci dále rozšiřuje o textové navigační instrukce, výškový profil dostupný v případě, že routovací backend vrátí výšková data, a orientační odhad spotřeby paliva. Samotný výškový profil je vykreslován widgetem postaveným nad \texttt{QPainter}, přičemž vodorovná osa reprezentuje kumulativní vzdálenost trasy a svislá osa odpovídá nadmořské výšce.
+\subsection{Zobrazení nalezeného řešení} Po dokončení výpočtu se do aplikačního stavu ukládá polyline trasy, pořadí zastávek včetně návratu do výchozího bodu, agregovaná výsledná hodnota odpovídající zvolené metrice (vzdálenost v kilometrech / mílích nebo čas v minutách) a klíč použité metriky. Pravý panel nad mapou tuto základní reprezentaci dále rozšiřuje o textové navigační instrukce, výškový profil dostupný v případě, že routing backend vrátí výšková data, a orientační odhad spotřeby paliva. Samotný výškový profil je vykreslován widgetem postaveným nad \texttt{QPainter}, přičemž vodorovná osa reprezentuje délku trasy a svislá osa odpovídá nadmořské výšce.
 
 Řada snímků obrazovky níže dokumentuje stejné rozhraní v různých situacích. Základní pohled na geografickou trasu s postranními panely (obr.~\ref{fig:ukazka_aplikace}), okno výškového profilu nad trasou ve střední Evropě (obr.~\ref{fig:ukazka_aplikace_prevyseni}), zadání fyzických parametrů vozidla pro profil nákladního vozidla u ORS (obr.~\ref{fig:ukazka_aplikace_hgv}), velká syntetická instance v negeografickém zobrazení mapy s přímými úsečkami (obr.~\ref{fig:ukazka_aplikace_synteticka}) a přehled doplňkových atributů trasy z pole \texttt{extra\_info} odpovědi OpenRouteService (obr.~\ref{fig:ukazka_aplikace_detail_cesty}).
 
@@ -229,7 +229,7 @@ Hrany trasy se vykreslují buď jako:
 \end{figure}
 
 \section{Export a kompatibilita}
-Exportní vrstva je postavena na strategickém vzoru (\texttt{TspGeoStrategy}, \texttt{TspEuc2DStrategy}, \texttt{GpxStrategy}), což umožňuje přidávat nové formáty bez zásahu do orchestrace.
+Exportní vrstva je postavena na strategickém vzoru Strategy (\texttt{TspGeoStrategy}, \texttt{TspEuc2DStrategy}, \texttt{GpxStrategy}), což umožňuje přidávat nové formáty bez zásahu do orchestrace.
 
 \subsection{Export do TSPLIB formátu}
 TSPLIB export je implementován v následujících variantách:
@@ -257,14 +257,14 @@ GPX export ukládá waypointy a volitelně i vypočtenou trasu jako \texttt{trks
     \item fallback export do TSP
 \end{itemize}
 
-Tato volba je důležitá z hlediska uživatelského pocitu. GPX je primárně navigační formát, zatímco TSP je optimalizační instance.
+Tato volba je důležitá z hlediska uživatelské přívětivosti. GPX je primárně navigační formát, zatímco TSP je optimalizační instance.
 
 \subsection{Perzistence konfigurace a provozní kompatibilita}
 Aplikační preference jsou uloženy pomocí knihovny \texttt{PyQt6}, konkrétně \texttt{QSettings}:
 \begin{itemize}
     \item barevné schéma aplikace (dark/light theme), mapový podklad, jednotky vzdálenosti
     \item ORS klíč, ORS base URL, profil routingu, HGV restrikce
-    \item přepínače fallback režimu a automatického přepočtu trasy.
+    \item přepínače fallback režimu a automatického přepočtu trasy
 \end{itemize}
 
 ORS klíč a base URL lze zároveň přepsat proměnnými prostředí (\texttt{ORS\_API\_KEY}, \texttt{ORS\_BASE\_URL}), což zvyšuje přenositelnost mezi vývojovým a testovacím prostředím.
